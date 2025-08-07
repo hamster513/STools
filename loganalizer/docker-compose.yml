@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  loganalizer_web:
+    build: ./app
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./app:/app
+      - loganalizer_data:/app/data
+    environment:
+      - DATABASE_URL=postgresql://loganalizer_user:loganalizer_pass@loganalizer_postgres:5432/loganalizer_db
+    depends_on:
+      - loganalizer_postgres
+    networks:
+      - loganalizer_network
+
+  loganalizer_postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=loganalizer_db
+      - POSTGRES_USER=loganalizer_user
+      - POSTGRES_PASSWORD=loganalizer_pass
+    volumes:
+      - loganalizer_postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"
+    networks:
+      - loganalizer_network
+
+  loganalizer_nginx:
+    image: nginx:alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/static:/var/www/html
+    depends_on:
+      - loganalizer_web
+    networks:
+      - loganalizer_network
+
+volumes:
+  loganalizer_data:
+  loganalizer_postgres_data:
+
+networks:
+  loganalizer_network:
+    driver: bridge 

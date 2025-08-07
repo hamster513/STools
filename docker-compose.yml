@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: vulnanalizer_postgres
+    environment:
+      POSTGRES_DB: vulnanalizer
+      POSTGRES_USER: vulnanalizer
+      POSTGRES_PASSWORD: vulnanalizer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      vulnanalizer_network:
+        ipv4_address: 172.20.0.10
+
+  web:
+    build: ./app
+    container_name: vulnanalizer_web
+    volumes:
+      - app_data:/app/data
+      - ./app:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://vulnanalizer:vulnanalizer@172.20.0.10:5432/vulnanalizer
+    networks:
+      vulnanalizer_network:
+        ipv4_address: 172.20.0.20
+
+  nginx:
+    image: nginx:alpine
+    container_name: vulnanalizer_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web
+    networks:
+      vulnanalizer_network:
+        ipv4_address: 172.20.0.30
+
+volumes:
+  postgres_data:
+  app_data:
+
+networks:
+  vulnanalizer_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1 

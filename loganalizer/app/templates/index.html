@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogAnalizer - Анализ логов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.5">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+</head>
+<body>
+    <!-- Верхняя панель переключения сервисов -->
+    <div class="top-bar">
+        <div class="service-switcher">
+            <a href="http://localhost" class="service-link" id="vulnanalizer-link">
+                <i class="fas fa-shield-alt"></i>
+                <span>VulnAnalizer</span>
+            </a>
+            <a href="http://localhost:8081" class="service-link active" id="loganalizer-link">
+                <i class="fas fa-file-alt"></i>
+                <span>LogAnalizer</span>
+            </a>
+        </div>
+        <div class="theme-toggle">
+            <button id="theme-toggle" class="theme-btn">
+                <i class="fas fa-sun"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Основной контейнер -->
+    <div class="container">
+        <!-- Боковое меню -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-file-alt"></i> LogAnalizer</h2>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-page="import">
+                        <i class="fas fa-upload"></i>
+                        <span>Импорт</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="analysis">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Анализ</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Настройки</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Уведомления -->
+            <div id="notifications" class="notifications"></div>
+
+            <!-- Страница импорта -->
+            <div id="import-page" class="page-content active">
+                <div class="page-header">
+                    <h1>Импорт логов</h1>
+                    <p>Загрузите файлы логов для анализа. Поддерживаются различные форматы файлов и архивов.</p>
+                </div>
+
+                <!-- Форма загрузки -->
+                <div class="upload-section">
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Перетащите файлы сюда или нажмите для выбора</h3>
+                            <p>Поддерживаемые форматы: .log, .txt, .csv, .json, .xml, .zip, .tar, .gz, .bz2, .xz</p>
+                            <input type="file" id="file-input" multiple accept=".log,.txt,.csv,.json,.xml,.zip,.tar,.gz,.bz2,.xz" style="display: none;">
+                            <button type="button" class="btn btn-primary btn-sm" id="select-files-btn">
+                                Выбрать файлы
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Прогресс загрузки -->
+                    <div id="upload-progress" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-text" id="progress-text">0%</div>
+                    </div>
+
+                    <!-- Улучшенный статусбар -->
+                    <div id="upload-status" style="margin-top: 1rem;"></div>
+                    <div id="filter-status" style="margin-top: 1rem;"></div>
+
+                    <!-- Кнопка загрузки -->
+                    <div class="upload-actions">
+                        <button type="button" id="upload-btn" class="btn btn-primary" disabled>
+                            <i class="fas fa-upload"></i> Загрузить
+                        </button>
+                        <button type="button" id="clear-upload-btn" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Очистить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Список загруженных файлов -->
+                <div class="files-section">
+                    <div class="section-header">
+                        <h3>Загруженные файлы</h3>
+                        <button type="button" id="clear-all-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Очистить все
+                        </button>
+                    </div>
+                    
+                    <div id="files-list" class="files-list">
+                        <!-- Файлы будут загружены динамически -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Страница анализа -->
+            <div id="analysis-page" class="page-content">
+                <div class="page-header">
+                    <h1>Анализ логов</h1>
+                    <p>Выберите файлы для анализа и настройте параметры</p>
+                </div>
+
+                <!-- Форма анализа -->
+                <div class="analysis-form">
+                    <div class="form-group">
+                        <label for="system-name">Название системы:</label>
+                        <input type="text" id="system-name" placeholder="Введите название системы для контекста">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preset-select">Пресет анализа:</label>
+                        <select id="preset-select">
+                            <option value="">Выберите пресет...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Выбранные файлы:</label>
+                        <div id="selected-files" class="selected-files">
+                            <!-- Выбранные файлы будут отображены здесь -->
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="analyze-btn" class="btn btn-primary" disabled>
+                            <i class="fas fa-search"></i> Анализировать
+                        </button>
+                        <button type="button" id="clear-analysis-btn" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Очистить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Результаты анализа -->
+                <div id="analysis-results" class="analysis-results">
+                    <!-- Результаты будут загружены динамически -->
+                </div>
+            </div>
+
+            <!-- Страница настроек -->
+            <div id="settings-page" class="page-content">
+                <div class="page-header">
+                    <h1>Настройки</h1>
+                    <p>Настройте параметры загрузки и анализа логов</p>
+                </div>
+                
+                <!-- Навигация по настройкам -->
+                <div class="settings-nav">
+                    <button type="button" class="nav-btn active" data-tab="general">
+                        <i class="fas fa-cog"></i> Общие настройки
+                    </button>
+                    <button type="button" class="nav-btn" data-tab="formats">
+                        <i class="fas fa-file-code"></i> Поддерживаемые форматы
+                    </button>
+                </div>
+
+                <!-- Настройки загрузки файлов -->
+                <div class="settings-section">
+                    <h3><i class="fas fa-upload"></i> Настройки загрузки</h3>
+                    <p class="settings-description">Настройте параметры загрузки файлов логов. Укажите максимальный размер файла и выберите поддерживаемые форматы для обработки.</p>
+                    <form id="upload-settings-form">
+                        <div class="form-group">
+                            <label for="max-file-size">Максимальный размер файла (МБ):</label>
+                            <input type="number" id="max-file-size" name="max_file_size_mb" min="1" max="1000" value="100">
+                            <small class="form-help">Файлы больше указанного размера будут отклонены при загрузке. Увеличьте лимит для обработки больших архивов.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Поддерживаемые форматы:</label>
+                            <div class="formats-list" id="supported-formats">
+                                <!-- Форматы будут загружены динамически -->
+                            </div>
+                            <small class="form-help">Выберите форматы файлов, которые будут приниматься для загрузки. Отключенные форматы будут отклонены.</small>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Настройки распаковки -->
+                <div class="settings-section">
+                    <h3><i class="fas fa-archive"></i> Настройки распаковки</h3>
+                    <p class="settings-description">Настройте параметры распаковки архивов. Включите распаковку вложенных архивов и укажите максимальную глубину вложенности.</p>
+                    <form id="extraction-settings-form">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="extract-nested" name="extract_nested_archives" checked>
+                                Распаковывать вложенные архивы
+                            </label>
+                            <small class="form-help">При включении система будет рекурсивно распаковывать архивы внутри архивов. Может замедлить обработку больших архивов.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="max-depth">Максимальная глубина вложенности:</label>
+                            <input type="number" id="max-depth" name="max_extraction_depth" min="1" max="10" value="5">
+                            <small class="form-help">Ограничивает глубину рекурсивной распаковки. Предотвращает бесконечные циклы при поврежденных архивах.</small>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Настройки фильтрации -->
+                <div class="settings-section">
+                    <h3><i class="fas fa-filter"></i> Настройки фильтрации</h3>
+                    <p class="settings-description">Настройте параметры автоматической фильтрации логов. Укажите максимальный размер файла для автоматической фильтрации.</p>
+                    <form id="filtering-settings-form">
+                        <div class="form-group">
+                            <label for="max-filtering-file-size">Максимальный размер файла для автоматической фильтрации (МБ):</label>
+                            <input type="number" id="max-filtering-file-size" name="max_filtering_file_size_mb" min="1" max="1000" value="50">
+                            <small class="form-help">Файлы больше этого размера будут загружены без автоматической фильтрации. Для них доступна ручная перефильтрация.</small>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Настройки анализа -->
+                <div class="settings-section">
+                    <h3><i class="fas fa-chart-line"></i> Настройки анализа</h3>
+                    <p class="settings-description">Настройте параметры анализа логов. Выберите важные уровни логов и создайте пользовательские шаблоны для поиска.</p>
+                    <form id="analysis-settings-form">
+                        <div class="form-group">
+                            <label>Важные уровни логов:</label>
+                            <div class="log-levels-list" id="important-log-levels">
+                                <!-- Уровни логов будут загружены динамически -->
+                            </div>
+                            <small class="form-help">Выберите уровни логов, которые будут автоматически выделяться при анализе. Система будет искать эти уровни в контексте логов.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Пользовательские настройки анализа:</label>
+                            <div class="custom-analysis-settings">
+                                <div class="custom-settings-list" id="custom-analysis-settings">
+                                    <!-- Пользовательские настройки будут загружены динамически -->
+                                </div>
+                                <div class="custom-settings-controls">
+                                    <button type="button" id="add-custom-setting-btn" class="btn btn-secondary btn-sm">
+                                        <i class="fas fa-plus"></i> Добавить настройку
+                                    </button>
+                                    <button type="button" id="toggle-inactive-settings-btn" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-eye"></i> <span class="toggle-text">Развернуть</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-help">Создайте собственные шаблоны поиска с регулярными выражениями для выделения специфических событий в логах. По умолчанию показываются только активные настройки.</small>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Кнопки управления -->
+                <div class="settings-actions">
+                    <button type="button" id="save-settings-btn" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Сохранить настройки
+                    </button>
+                    <button type="button" id="reset-settings-btn" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> Сбросить к умолчанию
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальное окно предварительного просмотра -->
+    <div id="preview-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="preview-title">Предварительный просмотр</h3>
+                <button type="button" class="modal-close" id="preview-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-content" class="preview-content">
+                    <!-- Содержимое предварительного просмотра -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования пользовательских настроек -->
+    <div id="custom-setting-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="custom-setting-title">Редактирование настройки анализа</h3>
+                <button type="button" class="modal-close" id="custom-setting-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="custom-setting-form">
+                    <div class="form-group">
+                        <label for="custom-setting-name">Название настройки:</label>
+                        <input type="text" id="custom-setting-name" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom-setting-pattern">Шаблон поиска (регулярное выражение):</label>
+                        <input type="text" id="custom-setting-pattern" name="pattern" required>
+                        <small class="form-help">Например: ERROR|WARN|CRITICAL</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom-setting-description">Описание:</label>
+                        <textarea id="custom-setting-description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="custom-setting-enabled" name="enabled" checked>
+                            Активна
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="save-custom-setting-btn" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Сохранить
+                </button>
+                <button type="button" id="delete-custom-setting-btn" class="btn btn-danger" style="display: none;">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+                <button type="button" id="cancel-custom-setting-btn" class="btn btn-secondary">
+                    Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=4.8"></script>
+</body>
+</html> 
