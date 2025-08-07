@@ -21,12 +21,39 @@ class LogAnalizer {
     }
 
     init() {
+        // Проверяем авторизацию
+        this.checkAuth();
+        
         this.initTheme();
         this.setupNavigation();
         this.setupSettings();
         this.setupFileUpload();
         this.setupEventListeners();
         this.loadInitialData();
+    }
+
+    checkAuth() {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            // Если нет токена, перенаправляем на страницу входа
+            window.location.href = '/auth/';
+            return;
+        }
+
+        // Проверяем токен
+        fetch('/auth/api/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }).then(response => {
+            if (!response.ok) {
+                localStorage.removeItem('auth_token');
+                window.location.href = '/auth/';
+            }
+        }).catch(() => {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/auth/';
+        });
     }
 
     initTheme() {
@@ -102,15 +129,8 @@ class LogAnalizer {
     }
 
     openUsersPage() {
-        // Проверяем авторизацию
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            // Если нет токена, перенаправляем на страницу входа
-            window.location.href = '/auth/';
-            return;
-        }
-
         // Открываем страницу управления пользователями
+        // Авторизация уже проверена в checkAuth()
         window.open('/auth/users', '_blank');
     }
 

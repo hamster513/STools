@@ -15,6 +15,9 @@ class VulnAnalizer {
     }
 
     init() {
+        // Проверяем авторизацию
+        this.checkAuth();
+        
         this.initTheme();
         this.setupNavigation();
         this.setupSettings();
@@ -27,6 +30,30 @@ class VulnAnalizer {
         setTimeout(() => {
             this.updateHostsStatus();
         }, 100);
+    }
+
+    checkAuth() {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            // Если нет токена, перенаправляем на страницу входа
+            window.location.href = '/auth/';
+            return;
+        }
+
+        // Проверяем токен
+        fetch('/auth/api/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }).then(response => {
+            if (!response.ok) {
+                localStorage.removeItem('auth_token');
+                window.location.href = '/auth/';
+            }
+        }).catch(() => {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/auth/';
+        });
     }
 
     initTheme() {
@@ -127,15 +154,8 @@ class VulnAnalizer {
     }
 
     openUsersPage() {
-        // Проверяем авторизацию
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            // Если нет токена, перенаправляем на страницу входа
-            window.location.href = '/auth/';
-            return;
-        }
-
         // Открываем страницу управления пользователями
+        // Авторизация уже проверена в checkAuth()
         window.open('/auth/users', '_blank');
     }
 
