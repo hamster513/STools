@@ -19,29 +19,29 @@ vulnanalizer/
 │   ├── static/            # Статические файлы (CSS, JS)
 │   ├── templates/         # HTML шаблоны
 │   └── data/              # Данные приложения
-├── nginx/                 # Конфигурация веб-сервера
-│   └── nginx.conf
 ├── init-db/               # Инициализация базы данных
 │   └── init.sql
-└── docker-compose.yml     # Конфигурация контейнеров
+└── README.md              # Документация
 ```
 
 ## Быстрый запуск
 
-1. Перейдите в папку vulnanalizer:
+VulnAnalizer является частью проекта STools и развертывается вместе с ним.
+
+1. **Клонирование репозитория**:
    ```bash
-   cd vulnanalizer
+   git clone https://github.com/hamster513/STools.git
+   cd STools
    ```
 
-2. Запустите проект из корневой папки:
+2. **Запуск всех сервисов**:
    ```bash
-   cd ..
    docker-compose up -d --build
    ```
 
-3. Откройте в браузере:
-   - Основной URL: http://localhost/vulnanalizer/
-   - Прямой доступ к API: http://localhost/vulnanalizer/api/
+3. **Открытие в браузере**:
+   - VulnAnalizer: http://localhost/vulnanalizer/
+   - LogAnalizer: http://localhost/loganalizer/
 
 ## Полезные команды
 
@@ -49,6 +49,7 @@ vulnanalizer/
 - Остановка: `docker-compose down`
 - Перезапуск: `docker-compose restart`
 - Обновление: `docker-compose up -d --build`
+- Просмотр логов конкретного сервиса: `docker-compose logs -f vulnanalizer_web`
 
 ## Доступ
 
@@ -63,9 +64,12 @@ vulnanalizer/
 # Запуск в режиме разработки
 docker-compose up -d
 
-# Просмотр логов
-docker-compose logs -f web
+# Просмотр логов VulnAnalizer
+docker-compose logs -f vulnanalizer_web
 
-# Перезапуск только веб-приложения
-docker-compose restart web
+# Перезапуск только VulnAnalizer
+docker-compose restart vulnanalizer_web
+
+# Перезапуск только LogAnalizer
+docker-compose restart loganalizer_web
 ```

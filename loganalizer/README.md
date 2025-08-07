@@ -23,15 +23,16 @@
 
 ## Быстрый старт
 
+LogAnalizer является частью проекта STools и развертывается вместе с ним.
+
 1. **Клонирование репозитория**:
 ```bash
-git clone <repository-url>
-cd loganalizer
+git clone https://github.com/hamster513/STools.git
+cd STools
 ```
 
-2. **Запуск сервисов** (из корневой папки STools):
+2. **Запуск всех сервисов**:
 ```bash
-cd ..
 docker-compose up -d --build
 ```
 
@@ -55,10 +56,8 @@ loganalizer/
 │   │   ├── js/           # JavaScript
 │   │   └── favicon.svg   # Иконка
 │   └── templates/        # HTML шаблоны
-├── nginx/                # Nginx конфигурация
-├── init-db/             # Инициализация БД
-├── docker-compose.yml   # Docker Compose
-└── README.md           # Документация
+├── init-db/              # Инициализация БД
+└── README.md            # Документация
 ```
 
 ## API Endpoints
