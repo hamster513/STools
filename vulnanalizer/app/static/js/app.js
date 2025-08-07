@@ -32,6 +32,20 @@ class VulnAnalizer {
     initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.body.className = `${savedTheme}-theme`;
+        this.updateThemeText(savedTheme);
+    }
+
+    updateThemeText(theme) {
+        const themeText = document.getElementById('theme-text');
+        const themeIcon = document.querySelector('#theme-link i');
+        
+        if (theme === 'dark') {
+            themeText.textContent = 'Темная';
+            themeIcon.className = 'fas fa-moon';
+        } else {
+            themeText.textContent = 'Светлая';
+            themeIcon.className = 'fas fa-sun';
+        }
     }
 
     toggleTheme() {
@@ -40,9 +54,11 @@ class VulnAnalizer {
         if (body.classList.contains('light-theme')) {
             body.className = 'dark-theme';
             localStorage.setItem('theme', 'dark');
+            this.updateThemeText('dark');
         } else {
             body.className = 'light-theme';
             localStorage.setItem('theme', 'light');
+            this.updateThemeText('light');
         }
     }
 

@@ -32,6 +32,20 @@ class LogAnalizer {
     initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
+        this.updateThemeText(savedTheme);
+    }
+
+    updateThemeText(theme) {
+        const themeText = document.getElementById('theme-text');
+        const themeIcon = document.querySelector('#theme-link i');
+        
+        if (theme === 'dark') {
+            themeText.textContent = 'Темная';
+            themeIcon.className = 'fas fa-moon';
+        } else {
+            themeText.textContent = 'Светлая';
+            themeIcon.className = 'fas fa-sun';
+        }
     }
 
     toggleTheme() {
@@ -39,6 +53,7 @@ class LogAnalizer {
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
+        this.updateThemeText(newTheme);
     }
 
     setupNavigation() {
