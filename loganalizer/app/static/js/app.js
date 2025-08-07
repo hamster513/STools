@@ -27,6 +27,7 @@ class LogAnalizer {
         this.initTheme();
         this.setupNavigation();
         this.setupSettings();
+        this.setupUserMenu();
         this.setupFileUpload();
         this.setupEventListeners();
         this.loadInitialData();
@@ -97,35 +98,94 @@ class LogAnalizer {
     setupSettings() {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
-        const themeLink = document.getElementById('theme-link');
         const usersLink = document.getElementById('users-link');
 
-        // Переключение выпадающего меню
-        settingsToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            settingsDropdown.classList.toggle('show');
-        });
+        // Переключение выпадающего меню настроек
+        if (settingsToggle) {
+            settingsToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                settingsDropdown.classList.toggle('show');
+            });
+        }
 
-        // Закрытие при клике вне меню
+        // Закрытие при клике вне меню настроек
         document.addEventListener('click', (e) => {
-            if (!settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
+            if (settingsToggle && !settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
                 settingsDropdown.classList.remove('show');
             }
         });
 
-        // Обработка клика по пункту "Тема"
-        themeLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            settingsDropdown.classList.remove('show');
-            this.toggleTheme();
+        // Обработка клика по пункту "Пользователи"
+        if (usersLink) {
+            usersLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                this.openUsersPage();
+            });
+        }
+    }
+
+    setupUserMenu() {
+        const userToggle = document.getElementById('user-toggle');
+        const userDropdown = document.getElementById('user-dropdown');
+        const themeLink = document.getElementById('theme-link');
+        const logoutLink = document.getElementById('logout-link');
+        const userName = document.getElementById('user-name');
+
+        // Загружаем информацию о пользователе
+        const userInfo = localStorage.getItem('user_info');
+        if (userInfo) {
+            try {
+                const user = JSON.parse(userInfo);
+                if (userName) {
+                    userName.textContent = user.username;
+                }
+            } catch (e) {
+                console.error('Error parsing user info:', e);
+            }
+        }
+
+        // Переключение выпадающего меню пользователя
+        if (userToggle) {
+            userToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userDropdown.classList.toggle('show');
+            });
+        }
+
+        // Закрытие при клике вне меню пользователя
+        document.addEventListener('click', (e) => {
+            if (userToggle && !userToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.remove('show');
+            }
         });
 
-        // Обработка клика по пункту "Пользователи"
-        usersLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            settingsDropdown.classList.remove('show');
-            this.openUsersPage();
-        });
+        // Обработка клика по пункту "Тема"
+        if (themeLink) {
+            themeLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                userDropdown.classList.remove('show');
+                this.toggleTheme();
+            });
+        }
+
+        // Обработка клика по пункту "Выйти"
+        if (logoutLink) {
+            logoutLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                userDropdown.classList.remove('show');
+                this.logout();
+            });
+        }
+    }
+
+    logout() {
+        // Очищаем данные пользователя
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_info');
+        
+        // Перенаправляем на страницу входа
+        window.location.href = '/auth/';
     }
 
     openUsersPage() {

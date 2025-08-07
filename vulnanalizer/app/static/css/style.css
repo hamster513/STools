@@ -322,6 +322,93 @@ body {
     color: var(--text-secondary);
 }
 
+/* User Menu Styles */
+.user-menu {
+    position: relative;
+    margin-left: 10px;
+}
+
+.user-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+}
+
+.user-btn:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    min-width: 200px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.user-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.user-info i {
+    font-size: 18px;
+    color: var(--primary-color);
+}
+
+.user-dropdown a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.user-dropdown a:hover {
+    background-color: var(--background-color);
+}
+
+.user-dropdown a i {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.user-dropdown a#logout-link:hover {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.user-dropdown a#logout-link:hover i {
+    color: white;
+}
+
 .sidebar-nav {
     padding: 1rem 0;
     flex: 1;
