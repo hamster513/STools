@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -103,7 +103,7 @@ class PasswordUpdate(BaseModel):
     password: str
 
 @app.post("/api/login")
-async def login(username: str, password: str):
+async def login(username: str = Form(...), password: str = Form(...)):
     """Вход пользователя"""
     user = await auth_db.verify_password(username, password)
     if not user:
