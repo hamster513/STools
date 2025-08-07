@@ -38,7 +38,7 @@ class VulnAnalizer {
         
         // Обновляем иконку
         const icon = themeToggle.querySelector('i');
-        icon.className = savedTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        icon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
         
         themeToggle.addEventListener('click', () => {
             this.toggleTheme();
@@ -52,11 +52,11 @@ class VulnAnalizer {
         
         if (body.classList.contains('light-theme')) {
             body.className = 'dark-theme';
-            icon.className = 'fas fa-sun';
+            icon.className = 'fas fa-moon';
             localStorage.setItem('theme', 'dark');
         } else {
             body.className = 'light-theme';
-            icon.className = 'fas fa-moon';
+            icon.className = 'fas fa-sun';
             localStorage.setItem('theme', 'light');
         }
     }
