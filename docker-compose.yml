@@ -93,6 +93,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
+      - ./static:/var/www/static
     depends_on:
       - auth_web
       - loganalizer_web
