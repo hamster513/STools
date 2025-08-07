@@ -79,6 +79,29 @@ async def login_page(request: Request):
     """Страница входа"""
     return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/users", response_class=HTMLResponse)
+async def users_page(request: Request):
+    """Страница управления пользователями"""
+    return templates.TemplateResponse("users.html", {"request": request})
+
+from pydantic import BaseModel
+from typing import Optional
+
+class UserCreate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    password: str
+    is_admin: bool = False
+
+class UserUpdate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    is_active: bool
+    is_admin: bool
+
+class PasswordUpdate(BaseModel):
+    password: str
+
 @app.post("/api/login")
 async def login(username: str, password: str):
     """Вход пользователя"""
@@ -114,10 +137,7 @@ async def get_users(current_user: dict = Depends(get_current_user)):
 
 @app.post("/api/users")
 async def create_user(
-    username: str,
-    email: str,
-    password: str,
-    is_admin: bool = False,
+    user_data: UserCreate,
     current_user: dict = Depends(get_current_user)
 ):
     """Создание нового пользователя (только для админов)"""
@@ -125,22 +145,19 @@ async def create_user(
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Проверяем уникальность
-    if await auth_db.check_username_exists(username):
+    if await auth_db.check_username_exists(user_data.username):
         raise HTTPException(status_code=400, detail="Username already exists")
     
-    if email and await auth_db.check_email_exists(email):
+    if user_data.email and await auth_db.check_email_exists(user_data.email):
         raise HTTPException(status_code=400, detail="Email already exists")
     
-    user = await auth_db.create_user(username, email, password, is_admin)
+    user = await auth_db.create_user(user_data.username, user_data.email, user_data.password, user_data.is_admin)
     return {"message": "User created successfully", "user": user}
 
 @app.put("/api/users/{user_id}")
 async def update_user(
     user_id: int,
-    username: str,
-    email: str,
-    is_active: bool,
-    is_admin: bool,
+    user_data: UserUpdate,
     current_user: dict = Depends(get_current_user)
 ):
     """Обновление пользователя (только для админов)"""
@@ -148,13 +165,13 @@ async def update_user(
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Проверяем уникальность
-    if await auth_db.check_username_exists(username, user_id):
+    if await auth_db.check_username_exists(user_data.username, user_id):
         raise HTTPException(status_code=400, detail="Username already exists")
     
-    if email and await auth_db.check_email_exists(email, user_id):
+    if user_data.email and await auth_db.check_email_exists(user_data.email, user_id):
         raise HTTPException(status_code=400, detail="Email already exists")
     
-    success = await auth_db.update_user(user_id, username, email, is_active, is_admin)
+    success = await auth_db.update_user(user_id, user_data.username, user_data.email, user_data.is_active, user_data.is_admin)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -163,14 +180,14 @@ async def update_user(
 @app.put("/api/users/{user_id}/password")
 async def update_user_password(
     user_id: int,
-    password: str,
+    password_data: PasswordUpdate,
     current_user: dict = Depends(get_current_user)
 ):
     """Обновление пароля пользователя (только для админов)"""
     if not current_user['is_admin']:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    success = await auth_db.update_user_password(user_id, password)
+    success = await auth_db.update_user_password(user_id, password_data.password)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
     

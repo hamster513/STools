@@ -23,6 +23,7 @@ class LogAnalizer {
     init() {
         this.setupTheme();
         this.setupNavigation();
+        this.setupSettings();
         this.setupFileUpload();
         this.setupEventListeners();
         this.loadInitialData();
@@ -61,6 +62,45 @@ class LogAnalizer {
                 this.switchPage(page);
             });
         });
+    }
+
+    setupSettings() {
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsDropdown = document.getElementById('settings-dropdown');
+        const usersLink = document.getElementById('users-link');
+
+        // Переключение выпадающего меню
+        settingsToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsDropdown.classList.toggle('show');
+        });
+
+        // Закрытие при клике вне меню
+        document.addEventListener('click', (e) => {
+            if (!settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
+                settingsDropdown.classList.remove('show');
+            }
+        });
+
+        // Обработка клика по пункту "Пользователи"
+        usersLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            settingsDropdown.classList.remove('show');
+            this.openUsersPage();
+        });
+    }
+
+    openUsersPage() {
+        // Проверяем авторизацию
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            // Если нет токена, перенаправляем на страницу входа
+            window.location.href = '/auth/';
+            return;
+        }
+
+        // Открываем страницу управления пользователями
+        window.open('/auth/users', '_blank');
     }
 
     switchPage(page) {
