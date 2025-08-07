@@ -129,6 +129,11 @@ class VulnAnalizer {
         if (settingsToggle) {
             settingsToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // Закрываем меню пользователя при открытии настроек
+                const userDropdown = document.getElementById('user-dropdown');
+                if (userDropdown) {
+                    userDropdown.classList.remove('show');
+                }
                 settingsDropdown.classList.toggle('show');
             });
         }
@@ -174,6 +179,11 @@ class VulnAnalizer {
         if (userToggle) {
             userToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // Закрываем меню настроек при открытии пользователя
+                const settingsDropdown = document.getElementById('settings-dropdown');
+                if (settingsDropdown) {
+                    settingsDropdown.classList.remove('show');
+                }
                 userDropdown.classList.toggle('show');
             });
         }
