@@ -20,7 +20,7 @@ class LoginManager {
             const password = formData.get('password');
 
             try {
-                const response = await fetch('/api/login', {
+                const response = await fetch('/auth/api/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -36,7 +36,7 @@ class LoginManager {
                     localStorage.setItem('user_info', JSON.stringify(data.user));
                     
                     // Перенаправляем на главную страницу
-                    window.location.href = '/dashboard/';
+                    window.location.href = '/vulnanalizer/';
                 } else {
                     const errorData = await response.json();
                     this.showError(errorData.detail || 'Ошибка входа');
