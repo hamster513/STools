@@ -217,90 +217,133 @@ class LogAnalizer {
     }
 
     setupEventListeners() {
-        // Кнопка переключения темы
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            this.toggleTheme();
-        });
-
         // Кнопка загрузки
-        document.getElementById('upload-btn').addEventListener('click', () => {
-            console.log('🚀 Upload button clicked!');
-            this.uploadFiles();
-        });
+        const uploadBtn = document.getElementById('upload-btn');
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', () => {
+                console.log('🚀 Upload button clicked!');
+                this.uploadFiles();
+            });
+        }
 
         // Кнопка очистки загрузки
-        document.getElementById('clear-upload-btn').addEventListener('click', () => {
-            this.clearUpload();
-        });
+        const clearUploadBtn = document.getElementById('clear-upload-btn');
+        if (clearUploadBtn) {
+            clearUploadBtn.addEventListener('click', () => {
+                this.clearUpload();
+            });
+        }
 
         // Кнопка очистки всех файлов
-        document.getElementById('clear-all-btn').addEventListener('click', () => {
-            this.clearAllFiles();
-        });
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => {
+                this.clearAllFiles();
+            });
+        }
 
         // Кнопка анализа
-        document.getElementById('analyze-btn').addEventListener('click', () => {
-            this.analyzeFiles();
-        });
+        const analyzeBtn = document.getElementById('analyze-btn');
+        if (analyzeBtn) {
+            analyzeBtn.addEventListener('click', () => {
+                this.analyzeFiles();
+            });
+        }
 
         // Кнопка очистки анализа
-        document.getElementById('clear-analysis-btn').addEventListener('click', () => {
-            this.clearAnalysis();
-        });
+        const clearAnalysisBtn = document.getElementById('clear-analysis-btn');
+        if (clearAnalysisBtn) {
+            clearAnalysisBtn.addEventListener('click', () => {
+                this.clearAnalysis();
+            });
+        }
 
         // Кнопки настроек
-        document.getElementById('save-settings-btn').addEventListener('click', () => {
-            this.saveSettings();
-        });
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', () => {
+                this.saveSettings();
+            });
+        }
 
-        document.getElementById('reset-settings-btn').addEventListener('click', () => {
-            this.resetSettings();
-        });
+        const resetSettingsBtn = document.getElementById('reset-settings-btn');
+        if (resetSettingsBtn) {
+            resetSettingsBtn.addEventListener('click', () => {
+                this.resetSettings();
+            });
+        }
 
         // Закрытие модального окна
-        document.getElementById('preview-close').addEventListener('click', () => {
-            this.closePreviewModal();
-        });
+        const previewClose = document.getElementById('preview-close');
+        if (previewClose) {
+            previewClose.addEventListener('click', () => {
+                this.closePreviewModal();
+            });
+        }
 
         // Закрытие модального окна по клику вне его
-        document.getElementById('preview-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'preview-modal') {
-                this.closePreviewModal();
-            }
-        });
+        const previewModal = document.getElementById('preview-modal');
+        if (previewModal) {
+            previewModal.addEventListener('click', (e) => {
+                if (e.target.id === 'preview-modal') {
+                    this.closePreviewModal();
+                }
+            });
+        }
 
         // Пользовательские настройки анализа
-        document.getElementById('add-custom-setting-btn').addEventListener('click', () => {
-            this.showCustomSettingModal();
-        });
+        const addCustomSettingBtn = document.getElementById('add-custom-setting-btn');
+        if (addCustomSettingBtn) {
+            addCustomSettingBtn.addEventListener('click', () => {
+                this.showCustomSettingModal();
+            });
+        }
 
         // Кнопка переключения неактивных настроек
-        document.getElementById('toggle-inactive-settings-btn').addEventListener('click', () => {
-            this.toggleInactiveSettings();
-        });
+        const toggleInactiveSettingsBtn = document.getElementById('toggle-inactive-settings-btn');
+        if (toggleInactiveSettingsBtn) {
+            toggleInactiveSettingsBtn.addEventListener('click', () => {
+                this.toggleInactiveSettings();
+            });
+        }
 
         // Модальное окно пользовательских настроек
-        document.getElementById('custom-setting-close').addEventListener('click', () => {
-            this.closeCustomSettingModal();
-        });
-
-        document.getElementById('custom-setting-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'custom-setting-modal') {
+        const customSettingClose = document.getElementById('custom-setting-close');
+        if (customSettingClose) {
+            customSettingClose.addEventListener('click', () => {
                 this.closeCustomSettingModal();
-            }
-        });
+            });
+        }
 
-        document.getElementById('save-custom-setting-btn').addEventListener('click', () => {
-            this.saveCustomSetting();
-        });
+        const customSettingModal = document.getElementById('custom-setting-modal');
+        if (customSettingModal) {
+            customSettingModal.addEventListener('click', (e) => {
+                if (e.target.id === 'custom-setting-modal') {
+                    this.closeCustomSettingModal();
+                }
+            });
+        }
 
-        document.getElementById('delete-custom-setting-btn').addEventListener('click', () => {
-            this.deleteCustomSetting();
-        });
+        const saveCustomSettingBtn = document.getElementById('save-custom-setting-btn');
+        if (saveCustomSettingBtn) {
+            saveCustomSettingBtn.addEventListener('click', () => {
+                this.saveCustomSetting();
+            });
+        }
 
-        document.getElementById('cancel-custom-setting-btn').addEventListener('click', () => {
-            this.closeCustomSettingModal();
-        });
+        const deleteCustomSettingBtn = document.getElementById('delete-custom-setting-btn');
+        if (deleteCustomSettingBtn) {
+            deleteCustomSettingBtn.addEventListener('click', () => {
+                this.deleteCustomSetting();
+            });
+        }
+
+        const cancelCustomSettingBtn = document.getElementById('cancel-custom-setting-btn');
+        if (cancelCustomSettingBtn) {
+            cancelCustomSettingBtn.addEventListener('click', () => {
+                this.closeCustomSettingModal();
+            });
+        }
     }
 
     async uploadFiles() {
