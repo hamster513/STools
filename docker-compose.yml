@@ -1,7 +1,20 @@
-version: '3.8'
-
 services:
-  postgres:
+  # База данных для LogAnalizer
+  loganalizer_postgres:
+    image: postgres:15
+    container_name: loganalizer_postgres
+    environment:
+      POSTGRES_DB: loganalizer_db
+      POSTGRES_USER: loganalizer_user
+      POSTGRES_PASSWORD: loganalizer_pass
+    volumes:
+      - loganalizer_postgres_data:/var/lib/postgresql/data
+      - ./loganalizer/init-db:/docker-entrypoint-initdb.d
+    networks:
+      - stools_network
+
+  # База данных для VulnAnalizer
+  vulnanalizer_postgres:
     image: postgres:15
     container_name: vulnanalizer_postgres
     environment:
@@ -9,51 +22,61 @@ services:
       POSTGRES_USER: vulnanalizer
       POSTGRES_PASSWORD: vulnanalizer
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
+      - vulnanalizer_postgres_data:/var/lib/postgresql/data
+      - ./vulnanalizer/init-db:/docker-entrypoint-initdb.d
     networks:
-      vulnanalizer_network:
-        ipv4_address: 172.20.0.10
+      - stools_network
 
-  web:
-    build: ./app
+  # Веб-приложение LogAnalizer
+  loganalizer_web:
+    build: ./loganalizer/app
+    container_name: loganalizer_web
+    volumes:
+      - loganalizer_data:/app/data
+      - ./loganalizer/app:/app
+    environment:
+      - DATABASE_URL=postgresql://loganalizer_user:loganalizer_pass@loganalizer_postgres:5432/loganalizer_db
+    depends_on:
+      - loganalizer_postgres
+    networks:
+      - stools_network
+
+  # Веб-приложение VulnAnalizer
+  vulnanalizer_web:
+    build: ./vulnanalizer/app
     container_name: vulnanalizer_web
     volumes:
-      - app_data:/app/data
-      - ./app:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
+      - vulnanalizer_data:/app/data
+      - ./vulnanalizer/app:/app
     environment:
-      - DATABASE_URL=postgresql://vulnanalizer:vulnanalizer@172.20.0.10:5432/vulnanalizer
+      - DATABASE_URL=postgresql://vulnanalizer:vulnanalizer@vulnanalizer_postgres:5432/vulnanalizer
+    depends_on:
+      - vulnanalizer_postgres
     networks:
-      vulnanalizer_network:
-        ipv4_address: 172.20.0.20
+      - stools_network
 
+  # Единый Nginx для проксирования
   nginx:
     image: nginx:alpine
-    container_name: vulnanalizer_nginx
+    container_name: stools_nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
-      - web
+      - loganalizer_web
+      - vulnanalizer_web
     networks:
-      vulnanalizer_network:
-        ipv4_address: 172.20.0.30
+      - stools_network
 
 volumes:
-  postgres_data:
-  app_data:
+  loganalizer_data:
+  loganalizer_postgres_data:
+  vulnanalizer_data:
+  vulnanalizer_postgres_data:
 
 networks:
-  vulnanalizer_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1 
+  stools_network:
+    driver: bridge 

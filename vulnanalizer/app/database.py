@@ -1,0 +1,696 @@
+import os
+import asyncpg
+from typing import Dict, List, Any
+import json
+from datetime import datetime
+
+class Database:
+    def __init__(self):
+        self.database_url = os.getenv("DATABASE_URL", "postgresql://vulnanalizer:vulnanalizer@postgres:5432/vulnanalizer")
+
+    async def get_connection(self):
+        """Получить новое соединение с базой данных"""
+        try:
+            return await asyncpg.connect(self.database_url)
+        except Exception as e:
+            print(f"Database connection failed: {e}")
+            raise
+
+    async def test_connection(self):
+        conn = await self.get_connection()
+        try:
+            await conn.execute("SELECT 1")
+            return True
+        except Exception as e:
+            print(f"Database test failed: {e}")
+            return False
+        finally:
+            await conn.close()
+
+    async def get_settings(self) -> Dict[str, str]:
+        conn = await self.get_connection()
+        try:
+            query = "SELECT key, value FROM settings"
+            rows = await conn.fetch(query)
+            
+            settings = {}
+            for row in rows:
+                settings[row['key']] = row['value']
+            
+            # Устанавливаем значение по умолчанию для max_concurrent_requests
+            if 'max_concurrent_requests' not in settings:
+                settings['max_concurrent_requests'] = '3'
+            
+            return settings
+        finally:
+            await conn.close()
+
+    async def update_settings(self, settings: Dict[str, str]):
+        conn = await self.get_connection()
+        try:
+            for key, value in settings.items():
+                query = """
+                    INSERT INTO settings (key, value) 
+                    VALUES ($1, $2) 
+                    ON CONFLICT (key) 
+                    DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
+                """
+                await conn.execute(query, key, value)
+        finally:
+            await conn.close()
+
+    async def insert_epss_records(self, records: list):
+        # Создаем отдельное соединение для массовой вставки
+        conn = await asyncpg.connect(self.database_url)
+        try:
+            # Получаем количество записей до вставки
+            count_before = await conn.fetchval("SELECT COUNT(*) FROM epss")
+            print(f"EPSS records in database before insert: {count_before}")
+            
+            async with conn.transaction():
+                # Группируем записи по CVE для обработки
+                cve_groups = {}
+                for rec in records:
+                    cve = rec['cve']
+                    if cve not in cve_groups:
+                        cve_groups[cve] = []
+                    cve_groups[cve].append(rec)
+                
+                inserted_count = 0
+                updated_count = 0
+                
+                for cve, cve_records in cve_groups.items():
+                    # Берем самую свежую запись для каждого CVE
+                    latest_record = max(cve_records, key=lambda x: x['date'])
+                    
+                    # Проверяем, существует ли запись для этого CVE
+                    existing = await conn.fetchval("SELECT id FROM epss WHERE cve = $1", cve)
+                    
+                    if existing:
+                        # Обновляем существующую запись
+                        query = """
+                            UPDATE epss 
+                            SET epss = $2, percentile = $3, cvss = $4, date = $5
+                            WHERE cve = $1
+                        """
+                        await conn.execute(query, 
+                            cve, latest_record['epss'], latest_record['percentile'], 
+                            latest_record.get('cvss'), latest_record['date'])
+                        updated_count += 1
+                    else:
+                        # Вставляем новую запись
+                        query = """
+                            INSERT INTO epss (cve, epss, percentile, cvss, date)
+                            VALUES ($1, $2, $3, $4, $5)
+                        """
+                        await conn.execute(query, 
+                            cve, latest_record['epss'], latest_record['percentile'], 
+                            latest_record.get('cvss'), latest_record['date'])
+                        inserted_count += 1
+                
+                # Получаем количество записей после вставки
+                count_after = await conn.fetchval("SELECT COUNT(*) FROM epss")
+                print(f"EPSS records in database after insert: {count_after}")
+                print(f"New EPSS records inserted: {inserted_count}")
+                print(f"Existing EPSS records updated: {updated_count}")
+                print(f"Total unique CVE records processed: {len(cve_groups)}")
+                print(f"Net change in EPSS database: {count_after - count_before}")
+                
+        finally:
+            await conn.close()
+
+    async def count_epss_records(self):
+        conn = await self.get_connection()
+        try:
+            # Проверяем, что таблица существует
+            table_exists = await conn.fetchval(
+                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'epss')"
+            )
+            if not table_exists:
+                print("Table epss does not exist")
+                return 0
+            
+            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM epss")
+            return row['cnt'] if row else 0
+        except Exception as e:
+            print(f"Error counting epss records: {e}")
+            raise
+        finally:
+            await conn.close()
+
+    async def insert_exploitdb_records(self, records: list):
+        # Создаем отдельное соединение для массовой вставки
+        conn = await asyncpg.connect(self.database_url)
+        try:
+            # Получаем количество записей до вставки
+            count_before = await conn.fetchval("SELECT COUNT(*) FROM exploitdb")
+            print(f"Records in database before insert: {count_before}")
+            
+            async with conn.transaction():
+                query = """
+                    INSERT INTO exploitdb (exploit_id, file_path, description, date_published, author, type, platform, port, date_added, date_updated, verified, codes, tags, aliases, screenshot_url, application_url, source_url)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                    ON CONFLICT (exploit_id) DO UPDATE SET 
+                        file_path = $2, description = $3, date_published = $4, author = $5, type = $6, platform = $7, port = $8, date_added = $9, date_updated = $10, verified = $11, codes = $12, tags = $13, aliases = $14, screenshot_url = $15, application_url = $16, source_url = $17
+                """
+                inserted_count = 0
+                updated_count = 0
+                
+                for rec in records:
+                    try:
+                        # Проверяем, существует ли запись
+                        existing = await conn.fetchval("SELECT exploit_id FROM exploitdb WHERE exploit_id = $1", rec['exploit_id'])
+                        
+                        await conn.execute(query, 
+                            rec['exploit_id'], rec.get('file_path'), rec.get('description'), 
+                            rec.get('date_published'), rec.get('author'), rec.get('type'), 
+                            rec.get('platform'), rec.get('port'), rec.get('date_added'), 
+                            rec.get('date_updated'), rec.get('verified', False), rec.get('codes'), 
+                            rec.get('tags'), rec.get('aliases'), rec.get('screenshot_url'), 
+                            rec.get('application_url'), rec.get('source_url'))
+                        
+                        if existing:
+                            updated_count += 1
+                        else:
+                            inserted_count += 1
+                            
+                    except Exception as e:
+                        print(f"Error inserting record {rec['exploit_id']}: {e}")
+                        continue
+                
+                # Получаем количество записей после вставки
+                count_after = await conn.fetchval("SELECT COUNT(*) FROM exploitdb")
+                print(f"Records in database after insert: {count_after}")
+                print(f"New records inserted: {inserted_count}")
+                print(f"Existing records updated: {updated_count}")
+                print(f"Total records processed: {len(records)}")
+                print(f"Net change in database: {count_after - count_before}")
+                
+        finally:
+            await conn.close()
+
+    async def count_exploitdb_records(self):
+        conn = await self.get_connection()
+        try:
+            # Проверяем, что таблица существует
+            table_exists = await conn.fetchval(
+                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'exploitdb')"
+            )
+            if not table_exists:
+                print("Table exploitdb does not exist")
+                return 0
+            
+            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM exploitdb")
+            return row['cnt'] if row else 0
+        except Exception as e:
+            print(f"Error counting exploitdb records: {e}")
+            raise
+        finally:
+            await conn.close()
+
+    async def get_epss_by_cve(self, cve_id: str):
+        """Получить данные EPSS по CVE ID"""
+        conn = await self.get_connection()
+        try:
+            query = """
+                SELECT cve, epss, percentile, cvss, date 
+                FROM epss 
+                WHERE cve = $1 
+                ORDER BY date DESC 
+                LIMIT 1
+            """
+            row = await conn.fetchrow(query, cve_id)
+            
+            if row:
+                return {
+                    'cve': row['cve'],
+                    'epss': float(row['epss']) if row['epss'] else None,
+                    'percentile': float(row['percentile']) if row['percentile'] else None,
+                    'cvss': float(row['cvss']) if row['cvss'] else None,
+                    'date': row['date'].isoformat() if row['date'] else None
+                }
+            return None
+        except Exception as e:
+            print(f"Error getting EPSS data for {cve_id}: {e}")
+            return None
+        finally:
+            await conn.close()
+
+    async def get_exploitdb_by_cve(self, cve_id: str):
+        """Получить данные ExploitDB по CVE ID"""
+        conn = await self.get_connection()
+        try:
+            # Нормализуем CVE ID для поиска в разных форматах
+            cve_normalized = cve_id.upper()
+            cve_with_underscores = cve_normalized.replace('-', '_')
+            cve_without_dashes = cve_normalized.replace('-', '')
+            
+            # Извлекаем год и номер из CVE для более гибкого поиска
+            cve_parts = cve_normalized.split('-')
+            if len(cve_parts) >= 3:
+                cve_year = cve_parts[1]
+                cve_number = cve_parts[2]
+                cve_year_number = f"{cve_year}-{cve_number}"
+                cve_year_underscore_number = f"{cve_year}_{cve_number}"
+            else:
+                cve_year_number = cve_normalized
+                cve_year_underscore_number = cve_normalized
+            
+            # Ищем в поле aliases, tags, description с разными форматами CVE
+            query = """
+                SELECT exploit_id, file_path, description, date_published, 
+                       author, type, platform, port, date_added, date_updated, 
+                       verified, codes, tags, aliases, screenshot_url, 
+                       application_url, source_url
+                FROM exploitdb 
+                WHERE aliases ILIKE $1 
+                   OR tags ILIKE $1 
+                   OR description ILIKE $1
+                   OR aliases ILIKE $2
+                   OR tags ILIKE $2
+                   OR description ILIKE $2
+                   OR aliases ILIKE $3
+                   OR tags ILIKE $3
+                   OR description ILIKE $3
+                   OR aliases ILIKE $4
+                   OR tags ILIKE $4
+                   OR description ILIKE $4
+                   OR aliases ILIKE $5
+                   OR tags ILIKE $5
+                   OR description ILIKE $5
+                ORDER BY date_published DESC
+            """
+            rows = await conn.fetch(query, 
+                f'%{cve_normalized}%', 
+                f'%{cve_with_underscores}%', 
+                f'%{cve_without_dashes}%',
+                f'%{cve_year_number}%',
+                f'%{cve_year_underscore_number}%')
+            
+            results = []
+            for row in rows:
+                results.append({
+                    'exploit_id': row['exploit_id'],
+                    'file_path': row['file_path'],
+                    'description': row['description'],
+                    'date_published': row['date_published'].isoformat() if row['date_published'] else None,
+                    'author': row['author'],
+                    'type': row['type'],
+                    'platform': row['platform'],
+                    'port': row['port'],
+                    'date_added': row['date_added'].isoformat() if row['date_added'] else None,
+                    'date_updated': row['date_updated'].isoformat() if row['date_updated'] else None,
+                    'verified': row['verified'],
+                    'codes': row['codes'],
+                    'tags': row['tags'],
+                    'aliases': row['aliases'],
+                    'screenshot_url': row['screenshot_url'],
+                    'application_url': row['application_url'],
+                    'source_url': row['source_url']
+                })
+            
+            return results
+        except Exception as e:
+            print(f"Error getting ExploitDB data for {cve_id}: {e}")
+            return []
+        finally:
+            await conn.close()
+
+    def _get_latest_exploit_date(self, exploitdb_data):
+        """Получить самую позднюю дату эксплойта"""
+        if not exploitdb_data:
+            return None
+        
+        exploit_dates = [e.get('date_published') for e in exploitdb_data if e.get('date_published')]
+        if not exploit_dates:
+            return None
+        
+        # Берем самую позднюю дату
+        latest_date = max(exploit_dates)
+        if isinstance(latest_date, str):
+            try:
+                # Парсим строку даты
+                from datetime import datetime
+                return datetime.strptime(latest_date, '%Y-%m-%d').date()
+            except:
+                return None
+        else:
+            return latest_date
+
+    def _calculate_risk_score(self, epss: float, cvss: float, settings: dict) -> dict:
+        """Рассчитать риск по формуле: raw_risk = EPSS * (CVSS / 10) * Impact"""
+        if epss is None or cvss is None:
+            return {
+                'raw_risk': None,
+                'risk_score': None,
+                'calculation_possible': False,
+                'impact': None
+            }
+        
+        # Конвертируем decimal в float если нужно
+        if hasattr(epss, 'as_tuple'):  # Это decimal.Decimal
+            epss = float(epss)
+        if hasattr(cvss, 'as_tuple'):  # Это decimal.Decimal
+            cvss = float(cvss)
+        
+        # Рассчитываем Impact на основе настроек
+        impact = self._calculate_impact(settings)
+        
+        raw_risk = epss * (cvss / 10) * impact
+        risk_score = min(1, raw_risk) * 100
+        
+        return {
+            'raw_risk': raw_risk,
+            'risk_score': risk_score,
+            'calculation_possible': True,
+            'impact': impact
+        }
+
+    def _calculate_impact(self, settings: dict) -> float:
+        """Рассчитать Impact на основе настроек"""
+        # Веса для критичности ресурса
+        resource_weights = {
+            'Critical': 0.33,
+            'High': 0.25,
+            'Medium': 0.15,
+            'None': 0.1
+        }
+        
+        # Веса для конфиденциальных данных
+        data_weights = {
+            'Есть': 0.33,
+            'Отсутствуют': 0.1
+        }
+        
+        # Веса для доступа к интернету
+        internet_weights = {
+            'Доступен': 0.33,
+            'Недоступен': 0.1
+        }
+        
+        # Получаем значения из настроек
+        resource_criticality = settings.get('impact_resource_criticality', 'Medium')
+        confidential_data = settings.get('impact_confidential_data', 'Отсутствуют')
+        internet_access = settings.get('impact_internet_access', 'Недоступен')
+        
+        # Рассчитываем Impact
+        impact = (
+            resource_weights.get(resource_criticality, 0.15) +
+            data_weights.get(confidential_data, 0.1) +
+            internet_weights.get(internet_access, 0.1)
+        )
+        
+        # Конвертируем в float если это decimal
+        if hasattr(impact, 'as_tuple'):  # Это decimal.Decimal
+            impact = float(impact)
+        
+        return impact
+
+    async def update_hosts_epss_and_exploits(self):
+        """Обновить данные EPSS и эксплойтов для всех хостов"""
+        conn = await self.get_connection()
+        try:
+            # Получаем все уникальные CVE из хостов
+            cve_query = "SELECT DISTINCT cve FROM hosts WHERE cve IS NOT NULL"
+            cve_rows = await conn.fetch(cve_query)
+            
+            updated_count = 0
+            for cve_row in cve_rows:
+                cve = cve_row['cve']
+                
+                # Получаем данные EPSS для CVE
+                epss_data = await self.get_epss_by_cve(cve)
+                
+                # Получаем данные эксплойтов для CVE
+                exploitdb_data = await self.get_exploitdb_by_cve(cve)
+                
+                # Получаем настройки для расчета Impact
+                settings_query = "SELECT key, value FROM settings"
+                settings_rows = await conn.fetch(settings_query)
+                settings = {row['key']: row['value'] for row in settings_rows}
+                
+                # Обновляем все хосты с этим CVE
+                hosts_query = "SELECT id, cvss, criticality FROM hosts WHERE cve = $1"
+                hosts_rows = await conn.fetch(hosts_query, cve)
+                
+                for host_row in hosts_rows:
+                    # Рассчитываем риск для каждого хоста
+                    risk_data = None
+                    if epss_data and epss_data.get('epss') is not None:
+                        cvss_score = epss_data.get('cvss') if epss_data.get('cvss') is not None else host_row['cvss']
+                        if cvss_score is not None:
+                            # Переопределяем критичность ресурса на основе хоста
+                            settings['impact_resource_criticality'] = host_row['criticality']
+                            risk_data = self._calculate_risk_score(epss_data['epss'], cvss_score, settings)
+                    
+                    # Обновляем запись хоста
+                    update_query = """
+                        UPDATE hosts SET
+                            epss_score = $1,
+                            epss_percentile = $2,
+                            risk_score = $3,
+                            risk_raw = $4,
+                            impact_score = $5,
+                            exploits_count = $6,
+                            verified_exploits_count = $7,
+                            has_exploits = $8,
+                            last_exploit_date = $9,
+                            epss_updated_at = $10,
+                            exploits_updated_at = $11,
+                            risk_updated_at = $12
+                        WHERE id = $13
+                    """
+                    
+                    # Обрабатываем дату последнего эксплойта
+                    last_exploit_date = None
+                    if exploitdb_data:
+                        exploit_dates = [e.get('date_published') for e in exploitdb_data if e.get('date_published')]
+                        if exploit_dates:
+                            # Берем самую позднюю дату
+                            latest_date = max(exploit_dates)
+                            if isinstance(latest_date, str):
+                                try:
+                                    # Парсим строку даты
+                                    from datetime import datetime
+                                    last_exploit_date = datetime.strptime(latest_date, '%Y-%m-%d').date()
+                                except:
+                                    last_exploit_date = None
+                            else:
+                                last_exploit_date = latest_date
+                    
+                    await conn.execute(update_query,
+                        epss_data.get('epss') if epss_data else None,
+                        epss_data.get('percentile') if epss_data else None,
+                        risk_data.get('risk_score') if risk_data else None,
+                        risk_data.get('raw_risk') if risk_data else None,
+                        risk_data.get('impact') if risk_data else None,
+                        len(exploitdb_data) if exploitdb_data else 0,
+                        len([e for e in exploitdb_data if e.get('verified', False)]) if exploitdb_data else 0,
+                        len(exploitdb_data) > 0 if exploitdb_data else False,
+                        last_exploit_date,
+                        datetime.now() if epss_data else None,
+                        datetime.now() if exploitdb_data else None,
+                        datetime.now() if risk_data else None,
+                        host_row['id']
+                    )
+                    updated_count += 1
+            
+            return updated_count
+        except Exception as e:
+            print(f"Error updating hosts EPSS and exploits: {e}")
+            raise e
+        finally:
+            await conn.close()
+
+    async def insert_hosts_records(self, records: list):
+        """Вставить записи хостов"""
+        conn = await self.get_connection()
+        try:
+            # Очищаем старые записи перед импортом
+            await conn.execute("DELETE FROM hosts")
+            
+            query = """
+                INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            """
+            for rec in records:
+                await conn.execute(query, 
+                    rec['hostname'], rec['ip_address'], rec['cve'], 
+                    rec['cvss'], rec['criticality'], rec['status'])
+            
+            return len(records)
+        except Exception as e:
+            print(f"Error inserting hosts records: {e}")
+            raise e
+        finally:
+            await conn.close()
+
+    async def count_hosts_records(self):
+        """Подсчитать количество записей хостов"""
+        conn = await self.get_connection()
+        try:
+            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM hosts")
+            return row['cnt'] if row else 0
+        except Exception as e:
+            print(f"Error counting hosts records: {e}")
+            return 0
+        finally:
+            await conn.close()
+
+    async def search_hosts(self, hostname_pattern: str = None, cve: str = None, ip_address: str = None, criticality: str = None):
+        """Поиск хостов по различным критериям с расширенными данными"""
+        conn = await self.get_connection()
+        try:
+            conditions = []
+            params = []
+            param_count = 0
+            
+            if hostname_pattern:
+                param_count += 1
+                # Поддержка маски * для hostname
+                pattern = hostname_pattern.replace('*', '%')
+                conditions.append(f"hostname ILIKE ${param_count}")
+                params.append(pattern)
+            
+            if cve:
+                param_count += 1
+                conditions.append(f"cve = ${param_count}")
+                params.append(cve.upper())
+            
+            if ip_address:
+                param_count += 1
+                conditions.append(f"ip_address ILIKE ${param_count}")
+                params.append(f"%{ip_address}%")
+            
+            if criticality:
+                param_count += 1
+                conditions.append(f"criticality ILIKE ${param_count}")
+                params.append(f"%{criticality}%")
+            
+            where_clause = " AND ".join(conditions) if conditions else "1=1"
+            query = f"""
+                SELECT id, hostname, ip_address, cve, cvss, criticality, status,
+                       epss_score, epss_percentile, risk_score, risk_raw, impact_score,
+                       exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
+                       epss_updated_at, exploits_updated_at, risk_updated_at, imported_at
+                FROM hosts 
+                WHERE {where_clause}
+                ORDER BY hostname, cve
+            """
+            
+            rows = await conn.fetch(query, *params)
+            
+            results = []
+            for row in rows:
+                results.append({
+                    'id': row['id'],
+                    'hostname': row['hostname'],
+                    'ip_address': row['ip_address'],
+                    'cve': row['cve'],
+                    'cvss': float(row['cvss']) if row['cvss'] else None,
+                    'criticality': row['criticality'],
+                    'status': row['status'],
+                    'epss_score': float(row['epss_score']) if row['epss_score'] else None,
+                    'epss_percentile': float(row['epss_percentile']) if row['epss_percentile'] else None,
+                    'risk_score': float(row['risk_score']) if row['risk_score'] else None,
+                    'risk_raw': float(row['risk_raw']) if row['risk_raw'] else None,
+                    'impact_score': float(row['impact_score']) if row['impact_score'] else None,
+                    'exploits_count': row['exploits_count'],
+                    'verified_exploits_count': row['verified_exploits_count'],
+                    'has_exploits': row['has_exploits'],
+                    'last_exploit_date': row['last_exploit_date'].isoformat() if row['last_exploit_date'] else None,
+                    'epss_updated_at': row['epss_updated_at'].isoformat() if row['epss_updated_at'] else None,
+                    'exploits_updated_at': row['exploits_updated_at'].isoformat() if row['exploits_updated_at'] else None,
+                    'risk_updated_at': row['risk_updated_at'].isoformat() if row['risk_updated_at'] else None,
+                    'imported_at': row['imported_at'].isoformat() if row['imported_at'] else None
+                })
+            
+            return results
+        except Exception as e:
+            print(f"Error searching hosts: {e}")
+            return []
+        finally:
+            await conn.close()
+
+    async def get_host_by_id(self, host_id: int):
+        """Получить хост по ID с расширенными данными"""
+        conn = await self.get_connection()
+        try:
+            query = """
+                SELECT id, hostname, ip_address, cve, cvss, criticality, status,
+                       epss_score, epss_percentile, risk_score, risk_raw, impact_score,
+                       exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
+                       epss_updated_at, exploits_updated_at, risk_updated_at, imported_at
+                FROM hosts 
+                WHERE id = $1
+            """
+            row = await conn.fetchrow(query, host_id)
+            
+            if row:
+                return {
+                    'id': row['id'],
+                    'hostname': row['hostname'],
+                    'ip_address': row['ip_address'],
+                    'cve': row['cve'],
+                    'cvss': float(row['cvss']) if row['cvss'] else None,
+                    'criticality': row['criticality'],
+                    'status': row['status'],
+                    'epss_score': float(row['epss_score']) if row['epss_score'] else None,
+                    'epss_percentile': float(row['epss_percentile']) if row['epss_percentile'] else None,
+                    'risk_score': float(row['risk_score']) if row['risk_score'] else None,
+                    'risk_raw': float(row['risk_raw']) if row['risk_raw'] else None,
+                    'impact_score': float(row['impact_score']) if row['impact_score'] else None,
+                    'exploits_count': row['exploits_count'],
+                    'verified_exploits_count': row['verified_exploits_count'],
+                    'has_exploits': row['has_exploits'],
+                    'last_exploit_date': row['last_exploit_date'].isoformat() if row['last_exploit_date'] else None,
+                    'epss_updated_at': row['epss_updated_at'].isoformat() if row['epss_updated_at'] else None,
+                    'exploits_updated_at': row['exploits_updated_at'].isoformat() if row['exploits_updated_at'] else None,
+                    'risk_updated_at': row['risk_updated_at'].isoformat() if row['risk_updated_at'] else None,
+                    'imported_at': row['imported_at'].isoformat() if row['imported_at'] else None
+                }
+            return None
+        except Exception as e:
+            print(f"Error getting host by ID {host_id}: {e}")
+            return None
+        finally:
+            await conn.close()
+
+    async def clear_hosts(self):
+        """Очистка таблицы хостов"""
+        conn = await self.get_connection()
+        try:
+            query = "DELETE FROM hosts"
+            await conn.execute(query)
+            print("Hosts table cleared successfully")
+        except Exception as e:
+            print(f"Error clearing hosts table: {e}")
+            raise e
+        finally:
+            await conn.close()
+
+    async def clear_epss(self):
+        """Очистка таблицы EPSS"""
+        conn = await self.get_connection()
+        try:
+            query = "DELETE FROM epss"
+            await conn.execute(query)
+            print("EPSS table cleared successfully")
+        except Exception as e:
+            print(f"Error clearing EPSS table: {e}")
+            raise e
+        finally:
+            await conn.close()
+
+    async def clear_exploitdb(self):
+        """Очистка таблицы ExploitDB"""
+        conn = await self.get_connection()
+        try:
+            query = "DELETE FROM exploitdb"
+            await conn.execute(query)
+            print("ExploitDB table cleared successfully")
+        except Exception as e:
+            print(f"Error clearing ExploitDB table: {e}")
+            raise e
+        finally:
+            await conn.close()

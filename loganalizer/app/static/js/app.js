@@ -10,6 +10,16 @@ class LogAnalizer {
         this.init();
     }
 
+    // Получение базового пути для API
+    getApiBasePath() {
+        // Определяем, находимся ли мы в подпути /loganalizer/
+        const path = window.location.pathname;
+        if (path.startsWith('/loganalizer/')) {
+            return '/loganalizer/api';
+        }
+        return '/api';
+    }
+
     init() {
         this.setupTheme();
         this.setupNavigation();
@@ -335,7 +345,7 @@ class LogAnalizer {
         formData.append('max_depth', settings.max_extraction_depth || 5);
 
         console.log('📤 Sending file to server:', file.name);
-        const response = await fetch('/api/logs/upload', {
+        const response = await fetch(this.getApiBasePath() + '/logs/upload', {
             method: 'POST',
             body: formData
         });
@@ -508,7 +518,7 @@ class LogAnalizer {
 
     async loadFiles() {
         try {
-            const response = await fetch('/api/logs/files');
+            const response = await fetch(this.getApiBasePath() + '/logs/files');
             const data = await response.json();
 
             if (data.success) {
@@ -711,7 +721,7 @@ class LogAnalizer {
         }
 
         try {
-            const response = await fetch('/api/logs/files/clear', {
+            const response = await fetch(this.getApiBasePath() + '/logs/files/clear', {
                 method: 'POST'
             });
 
@@ -735,7 +745,7 @@ class LogAnalizer {
 
     async loadPresets() {
         try {
-            const response = await fetch('/api/presets');
+            const response = await fetch(this.getApiBasePath() + '/presets');
             const data = await response.json();
 
             if (data.success) {
@@ -779,7 +789,7 @@ class LogAnalizer {
         analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Анализ...';
 
         try {
-            const response = await fetch('/api/logs/analyze', {
+            const response = await fetch(this.getApiBasePath() + '/logs/analyze', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -859,7 +869,7 @@ class LogAnalizer {
     async loadSettings() {
         try {
             console.log('🔄 Loading settings from server...');
-            const response = await fetch('/api/settings');
+            const response = await fetch(this.getApiBasePath() + '/settings');
             const data = await response.json();
 
             if (data.success) {
@@ -936,7 +946,7 @@ class LogAnalizer {
         };
 
         try {
-            const response = await fetch('/api/settings', {
+            const response = await fetch(this.getApiBasePath() + '/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -968,7 +978,7 @@ class LogAnalizer {
         }
 
         try {
-            const response = await fetch('/api/settings', {
+            const response = await fetch(this.getApiBasePath() + '/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1028,7 +1038,7 @@ class LogAnalizer {
     // Пользовательские настройки анализа
     async loadCustomAnalysisSettings() {
         try {
-            const response = await fetch('/api/custom-analysis-settings');
+            const response = await fetch(this.getApiBasePath() + '/custom-analysis-settings');
             if (response.ok) {
                 const data = await response.json();
                 this.customSettings = data.data || [];
@@ -1189,7 +1199,7 @@ class LogAnalizer {
                 });
             } else {
                 // Создание новой настройки
-                response = await fetch('/api/custom-analysis-settings', {
+                response = await fetch(this.getApiBasePath() + '/custom-analysis-settings', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1231,7 +1241,7 @@ class LogAnalizer {
                 return;
             }
 
-            const response = await fetch(`/api/custom-analysis-settings/${settingId}`, {
+            const response = await fetch(`${this.getApiBasePath()}/custom-analysis-settings/${settingId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1275,7 +1285,7 @@ class LogAnalizer {
         }
 
         try {
-            const response = await fetch(`/api/custom-analysis-settings/${id}`, {
+            const response = await fetch(`${this.getApiBasePath()}/custom-analysis-settings/${id}`, {
                 method: 'DELETE'
             });
 

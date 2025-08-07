@@ -29,14 +29,15 @@ git clone <repository-url>
 cd loganalizer
 ```
 
-2. **Запуск сервисов**:
+2. **Запуск сервисов** (из корневой папки STools):
 ```bash
+cd ..
 docker-compose up -d --build
 ```
 
 3. **Открытие в браузере**:
 ```
-http://localhost:8081
+http://localhost/loganalizer/
 ```
 
 ## Структура проекта
@@ -116,7 +117,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ### Тестирование
 ```bash
 # Проверка здоровья сервиса
-curl http://localhost:8081/api/health
+curl http://localhost/loganalizer/api/health
 ```
 
 ## Лицензия
