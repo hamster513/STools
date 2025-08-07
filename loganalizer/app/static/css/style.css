@@ -191,20 +191,7 @@ body {
     color: white;
 }
 
-.theme-btn {
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    font-size: 18px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    transition: background-color 0.3s;
-}
 
-.theme-btn:hover {
-    background-color: var(--bg-tertiary);
-}
 
 .settings-menu {
     position: relative;

@@ -21,7 +21,7 @@ class LogAnalizer {
     }
 
     init() {
-        this.setupTheme();
+        this.initTheme();
         this.setupNavigation();
         this.setupSettings();
         this.setupFileUpload();
@@ -29,20 +29,9 @@ class LogAnalizer {
         this.loadInitialData();
     }
 
-    setupTheme() {
+    initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
-        this.updateThemeIcon(savedTheme);
-    }
-
-    updateThemeIcon(theme) {
-        const themeBtn = document.getElementById('theme-toggle');
-        const icon = themeBtn.querySelector('i');
-        if (theme === 'dark') {
-            icon.className = 'fas fa-moon';
-        } else {
-            icon.className = 'fas fa-sun';
-        }
     }
 
     toggleTheme() {
@@ -50,7 +39,6 @@ class LogAnalizer {
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        this.updateThemeIcon(newTheme);
     }
 
     setupNavigation() {
@@ -67,6 +55,7 @@ class LogAnalizer {
     setupSettings() {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
+        const themeLink = document.getElementById('theme-link');
         const usersLink = document.getElementById('users-link');
 
         // Переключение выпадающего меню
@@ -80,6 +69,13 @@ class LogAnalizer {
             if (!settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
                 settingsDropdown.classList.remove('show');
             }
+        });
+
+        // Обработка клика по пункту "Тема"
+        themeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            settingsDropdown.classList.remove('show');
+            this.toggleTheme();
         });
 
         // Обработка клика по пункту "Пользователи"

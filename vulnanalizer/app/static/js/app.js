@@ -15,7 +15,7 @@ class VulnAnalizer {
     }
 
     init() {
-        this.setupTheme();
+        this.initTheme();
         this.setupNavigation();
         this.setupSettings();
         this.setupForms();
@@ -29,35 +29,19 @@ class VulnAnalizer {
         }, 100);
     }
 
-    setupTheme() {
-        const themeToggle = document.getElementById('theme-toggle');
-        const body = document.body;
-        
-        // Загружаем сохраненную тему
+    initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
-        body.className = `${savedTheme}-theme`;
-        
-        // Обновляем иконку
-        const icon = themeToggle.querySelector('i');
-        icon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-        
-        themeToggle.addEventListener('click', () => {
-            this.toggleTheme();
-        });
+        document.body.className = `${savedTheme}-theme`;
     }
 
     toggleTheme() {
         const body = document.body;
-        const themeToggle = document.getElementById('theme-toggle');
-        const icon = themeToggle.querySelector('i');
         
         if (body.classList.contains('light-theme')) {
             body.className = 'dark-theme';
-            icon.className = 'fas fa-moon';
             localStorage.setItem('theme', 'dark');
         } else {
             body.className = 'light-theme';
-            icon.className = 'fas fa-sun';
             localStorage.setItem('theme', 'light');
         }
     }
@@ -95,6 +79,7 @@ class VulnAnalizer {
     setupSettings() {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
+        const themeLink = document.getElementById('theme-link');
         const usersLink = document.getElementById('users-link');
 
         // Переключение выпадающего меню
@@ -108,6 +93,13 @@ class VulnAnalizer {
             if (!settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
                 settingsDropdown.classList.remove('show');
             }
+        });
+
+        // Обработка клика по пункту "Тема"
+        themeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            settingsDropdown.classList.remove('show');
+            this.toggleTheme();
         });
 
         // Обработка клика по пункту "Пользователи"
