@@ -82,6 +82,12 @@
                             <span>Настройки</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="#" class="nav-link" data-page="vm-integration">
+                            <i class="fas fa-server"></i>
+                            <span>VM Интеграция</span>
+                        </a>
+                    </li>
 
                 </ul>
             </nav>
@@ -334,6 +340,82 @@
                         </div>
                     </form>
                     <div id="hosts-status" style="margin-top:2rem;"></div>
+                </div>
+            </div>
+
+            <!-- Страница VM интеграции -->
+            <div id="vm-integration-page" class="page-content">
+                <div class="vm-integration-container">
+                    <h3>Интеграция с MaxPatrol VM</h3>
+                    <p class="vm-description">
+                        Настройте подключение к MaxPatrol VM для автоматического импорта хостов с уязвимостями.
+                        Система будет получать данные через API и импортировать их в базу данных VulnAnalizer.
+                    </p>
+                    
+                    <div class="vm-settings-section">
+                        <h4>Настройки подключения</h4>
+                        <form id="vm-settings-form">
+                            <div class="form-group">
+                                <label for="vm-enabled">Включить интеграцию:</label>
+                                <select id="vm-enabled" name="vm_enabled" required>
+                                    <option value="false">Отключено</option>
+                                    <option value="true">Включено</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-host">Хост VM:</label>
+                                <input type="text" id="vm-host" name="vm_host" placeholder="msk01vm23.corp.local" required>
+                                <small>Адрес сервера MaxPatrol VM</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-username">Имя пользователя:</label>
+                                <input type="text" id="vm-username" name="vm_username" placeholder="username" required>
+                                <small>Логин для доступа к VM API</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-password">Пароль:</label>
+                                <input type="password" id="vm-password" name="vm_password" placeholder="password" required>
+                                <small>Пароль для доступа к VM API</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-client-secret">Client Secret:</label>
+                                <input type="password" id="vm-client-secret" name="vm_client_secret" placeholder="client_secret" required>
+                                <small>Секретный ключ для OAuth2 аутентификации</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-os-filter">Фильтр ОС (исключить):</label>
+                                <input type="text" id="vm-os-filter" name="vm_os_filter" placeholder="Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD" value="Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD">
+                                <small>ОС через запятую, которые нужно исключить из импорта</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary" id="vm-settings-btn">
+                                    <i class="fas fa-save"></i> Сохранить настройки VM
+                                </button>
+                                <button type="button" id="vm-test-connection-btn" class="btn btn-info">
+                                    <i class="fas fa-plug"></i> Тест подключения
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="vm-import-section">
+                        <h4>Импорт данных</h4>
+                        <div class="vm-import-info">
+                            <p><strong>Последний импорт:</strong> <span id="vm-last-import">Не выполнялся</span></p>
+                            <p><strong>Количество записей:</strong> <span id="vm-import-count">0</span></p>
+                            <p><strong>Статус:</strong> <span id="vm-import-status">Не настроено</span></p>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="vm-import-btn" class="btn btn-success">
+                                <i class="fas fa-download"></i> Импорт хостов из VM
+                            </button>
+                            <button type="button" id="vm-refresh-status-btn" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i> Обновить статус
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="vm-status" style="margin-top:2rem;"></div>
                 </div>
             </div>
 
