@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VulnAnalizer - Анализ уязвимостей</title>
     <link rel="icon" type="image/svg+xml" href="/vulnanalizer/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1.9">
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="light-theme">
@@ -74,7 +74,10 @@
 
     <div class="container">
                 <!-- Боковое меню -->
-        <aside class="sidebar modern-sidebar">
+        <aside class="sidebar modern-sidebar" id="sidebar">
+            <div class="sidebar-toggle" id="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
             <nav class="sidebar-nav">
                 <ul>
                     <li>
@@ -637,6 +640,6 @@
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>
 
-    <script src="/vulnanalizer/static/js/app.js?v=2.7"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=2.8"></script>
 </body>
 </html> 

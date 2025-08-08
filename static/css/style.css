@@ -2612,6 +2612,54 @@ input:focus, textarea:focus, select:focus {
     border-right: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     padding-top: 1rem;
+    width: 280px;
+    flex-shrink: 0;
+    transition: all var(--transition-speed);
+    position: relative;
+}
+
+.modern-sidebar.collapsed {
+    width: 80px;
+}
+
+.sidebar-toggle {
+    position: absolute;
+    top: 1rem;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    z-index: 10;
+    transition: all var(--transition-speed);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggle:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+.modern-sidebar.collapsed .sidebar-toggle {
+    right: -12px;
+}
+
+.modern-sidebar.collapsed .nav-title {
+    display: none;
+}
+
+.modern-sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modern-sidebar.collapsed .nav-icon {
+    margin: 0;
 }
 
 .modern-nav-link {
