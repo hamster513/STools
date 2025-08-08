@@ -1931,6 +1931,15 @@ input:focus, textarea:focus, select:focus {
     font-weight: 500;
 }
 
+/* Стили для страницы пользователей */
+#users-page {
+    display: none;
+}
+
+#users-page.active {
+    display: block;
+}
+
 /* Современные стили для управления пользователями */
 .users-dashboard {
     padding: 2rem;
