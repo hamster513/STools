@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VulnAnalizer - Анализ уязвимостей</title>
     <link rel="icon" type="image/svg+xml" href="/vulnanalizer/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1.8">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.9">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="light-theme">
@@ -82,10 +82,7 @@
                             <div class="nav-icon">
                                 <i class="fas fa-search"></i>
                             </div>
-                            <div class="nav-info">
-                                <span class="nav-title">Поиск</span>
-                                <span class="nav-desc">Найти хосты и уязвимости</span>
-                            </div>
+                            <span class="nav-title">Поиск</span>
                         </a>
                     </li>
                     <li>
@@ -93,10 +90,7 @@
                             <div class="nav-icon">
                                 <i class="fas fa-upload"></i>
                             </div>
-                            <div class="nav-info">
-                                <span class="nav-title">Импорт</span>
-                                <span class="nav-desc">Загрузить данные</span>
-                            </div>
+                            <span class="nav-title">Импорт</span>
                         </a>
                     </li>
                     <li>
@@ -104,10 +98,7 @@
                             <div class="nav-icon">
                                 <i class="fas fa-cog"></i>
                             </div>
-                            <div class="nav-info">
-                                <span class="nav-title">Настройки</span>
-                                <span class="nav-desc">Настроить систему</span>
-                            </div>
+                            <span class="nav-title">Настройки</span>
                         </a>
                     </li>
                 </ul>
@@ -116,19 +107,6 @@
 
         <!-- Основной контент -->
         <main class="main-content">
-            <header class="content-header modern-header">
-                <div class="header-content">
-                    <h1 id="page-title">Поиск</h1>
-                    <p id="page-description">Найти хосты и уязвимости</p>
-                </div>
-                <div class="header-actions">
-                    <div class="breadcrumb">
-                        <span class="breadcrumb-item">VulnAnalizer</span>
-                        <i class="fas fa-chevron-right"></i>
-                        <span class="breadcrumb-item active" id="breadcrumb-current">Поиск</span>
-                    </div>
-                </div>
-            </header>
 
             <!-- Страница анализа -->
             <div id="analysis-page" class="page-content active">
@@ -659,6 +637,6 @@
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>
 
-    <script src="/vulnanalizer/static/js/app.js?v=2.6"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=2.7"></script>
 </body>
 </html> 

@@ -2656,21 +2656,9 @@ input:focus, textarea:focus, select:focus {
     color: white;
 }
 
-.nav-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    flex: 1;
-}
-
 .nav-title {
     font-weight: 500;
     font-size: 0.875rem;
-}
-
-.nav-desc {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
 }
 
 /* Современные стили для заголовка контента */

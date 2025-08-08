@@ -87,22 +87,8 @@ class VulnAnalizer {
     }
 
     updateBreadcrumb(page) {
-        const breadcrumbCurrent = document.getElementById('breadcrumb-current');
-        const pageDescriptions = {
-            'analysis': 'Найти хосты и уязвимости',
-            'hosts': 'Загрузить данные',
-            'settings': 'Настроить систему',
-            'users': 'Управление пользователями'
-        };
-        
-        if (breadcrumbCurrent) {
-            breadcrumbCurrent.textContent = page;
-        }
-        
-        const pageDescription = document.getElementById('page-description');
-        if (pageDescription) {
-            pageDescription.textContent = pageDescriptions[page] || 'Страница системы';
-        }
+        // Заголовки страниц больше не обновляются
+        // Функция оставлена для совместимости
     }
 
     toggleTheme() {
@@ -283,19 +269,8 @@ class VulnAnalizer {
 
 
     switchPage(page) {
-        const pageTitle = document.getElementById('page-title');
-        const pageNames = {
-            'analysis': 'Поиск',
-            'hosts': 'Импорт',
-            'settings': 'Настройки',
-            'users': 'Пользователи'
-        };
-        
-        if (pageTitle) {
-            pageTitle.textContent = pageNames[page] || 'VulnAnalizer';
-        }
-        
-        this.updateBreadcrumb(pageNames[page] || page);
+        // Заголовки страниц больше не обновляются
+        // Только обновляем статусы
         
         switch(page) {
             case 'analysis':
