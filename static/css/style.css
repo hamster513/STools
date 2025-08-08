@@ -2660,6 +2660,8 @@ input:focus, textarea:focus, select:focus {
 
 .modern-sidebar.collapsed .nav-icon {
     margin: 0;
+    width: 2.5rem;
+    height: 2.5rem;
 }
 
 .modern-nav-link {
@@ -2696,6 +2698,15 @@ input:focus, textarea:focus, select:focus {
     justify-content: center;
     font-size: 1rem;
     transition: all var(--transition-speed);
+    flex-shrink: 0;
+}
+
+.nav-icon i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
 }
 
 .modern-nav-link:hover .nav-icon,
