@@ -1,6 +1,6 @@
 import os
 import asyncpg
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import json
 from datetime import datetime
 
@@ -910,5 +910,137 @@ class Database:
                 # Очищаем ошибку, если импорт успешен
                 await conn.execute("DELETE FROM settings WHERE key = 'vm_last_import_error'")
                 
+        finally:
+            await self.release_connection(conn)
+
+    # ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ =====
+
+    async def create_user(self, username: str, password: str, email: str = None, is_admin: bool = False) -> int:
+        """Создать нового пользователя"""
+        conn = await self.get_connection()
+        try:
+            # Проверяем, существует ли пользователь
+            existing_user = await conn.fetchval(
+                "SELECT id FROM users WHERE username = $1", username
+            )
+            if existing_user:
+                raise Exception("User already exists")
+
+            # Создаем пользователя
+            user_id = await conn.fetchval(
+                """
+                INSERT INTO users (username, password, email, is_admin, is_active, created_at)
+                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                RETURNING id
+                """,
+                username, password, email, is_admin, True
+            )
+            return user_id
+        finally:
+            await self.release_connection(conn)
+
+    async def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """Получить пользователя по имени"""
+        conn = await self.get_connection()
+        try:
+            user = await conn.fetchrow(
+                "SELECT id, username, password, email, is_admin, is_active, created_at FROM users WHERE username = $1",
+                username
+            )
+            if user:
+                return dict(user)
+            return None
+        finally:
+            await self.release_connection(conn)
+
+    async def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Получить пользователя по ID"""
+        conn = await self.get_connection()
+        try:
+            user = await conn.fetchrow(
+                "SELECT id, username, password, email, is_admin, is_active, created_at FROM users WHERE id = $1",
+                user_id
+            )
+            if user:
+                return dict(user)
+            return None
+        finally:
+            await self.release_connection(conn)
+
+    async def get_all_users(self) -> List[Dict[str, Any]]:
+        """Получить всех пользователей"""
+        conn = await self.get_connection()
+        try:
+            users = await conn.fetch(
+                "SELECT id, username, email, is_admin, is_active, created_at FROM users ORDER BY created_at DESC"
+            )
+            return [dict(user) for user in users]
+        finally:
+            await self.release_connection(conn)
+
+    async def update_user(self, user_id: int, username: str, email: str = None, is_active: bool = True, is_admin: bool = False) -> bool:
+        """Обновить пользователя"""
+        conn = await self.get_connection()
+        try:
+            # Проверяем, существует ли пользователь с таким именем (кроме текущего)
+            existing_user = await conn.fetchval(
+                "SELECT id FROM users WHERE username = $1 AND id != $2", username, user_id
+            )
+            if existing_user:
+                raise Exception("Username already exists")
+
+            await conn.execute(
+                """
+                UPDATE users 
+                SET username = $1, email = $2, is_active = $3, is_admin = $4, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $5
+                """,
+                username, email, is_active, is_admin, user_id
+            )
+            return True
+        finally:
+            await self.release_connection(conn)
+
+    async def update_user_password(self, user_id: int, password: str) -> bool:
+        """Обновить пароль пользователя"""
+        conn = await self.get_connection()
+        try:
+            await conn.execute(
+                "UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+                password, user_id
+            )
+            return True
+        finally:
+            await self.release_connection(conn)
+
+    async def delete_user(self, user_id: int) -> bool:
+        """Удалить пользователя"""
+        conn = await self.get_connection()
+        try:
+            # Не удаляем пользователя с ID 1 (админ)
+            if user_id == 1:
+                raise Exception("Cannot delete admin user")
+            
+            await conn.execute("DELETE FROM users WHERE id = $1", user_id)
+            return True
+        finally:
+            await self.release_connection(conn)
+
+    async def initialize_admin_user(self):
+        """Инициализировать админа при первом запуске"""
+        conn = await self.get_connection()
+        try:
+            # Проверяем, есть ли уже пользователи
+            user_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+            if user_count == 0:
+                # Создаем админа
+                await conn.execute(
+                    """
+                    INSERT INTO users (username, password, email, is_admin, is_active, created_at)
+                    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                    """,
+                    "admin", "admin", "admin@stools.local", True, True
+                )
+                print("Admin user created: admin/admin")
         finally:
             await self.release_connection(conn)

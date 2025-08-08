@@ -1,25 +1,36 @@
-from fastapi import FastAPI, Request, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Depends, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 from database import Database
 from models import Settings
 from vm_integration import VMMaxPatrolIntegration
 import csv
 import aiohttp
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import gzip
 import io
 import traceback
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
+import jwt
+from pydantic import BaseModel
 
 app = FastAPI(title="VulnAnalizer", version="1.0.0")
+
+# Настройки JWT
+SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Безопасность
+security = HTTPBearer()
 
 # Увеличиваем лимиты для загрузки файлов
 app.add_middleware(
@@ -48,12 +59,66 @@ templates = Jinja2Templates(directory="templates")
 # Инициализация базы данных
 db = Database()
 
+# JWT функции
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Создание JWT токена"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str) -> Optional[dict]:
+    """Проверка JWT токена"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Получение текущего пользователя из токена"""
+    token = credentials.credentials
+    payload = verify_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if username is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = await db.get_user_by_username(username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return user
+
+# Pydantic модели для пользователей
+class UserCreate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    password: str
+    is_admin: bool = False
+
+class UserUpdate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    is_active: bool
+    is_admin: bool
+
+class PasswordUpdate(BaseModel):
+    password: str
 
 
 @app.on_event("startup")
 async def startup():
     # Проверяем соединение с базой данных
     await db.test_connection()
+    # Инициализируем админа при первом запуске
+    await db.initialize_admin_user()
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -849,4 +914,123 @@ async def get_vm_status():
             }
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+# ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ =====
+
+@app.post("/api/users/register")
+async def register_user(user: UserCreate):
+    """Регистрация нового пользователя"""
+    try:
+        existing_user = await db.get_user_by_username(user.username)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already registered")
+        
+        await db.create_user(user.username, user.password, user.email, user.is_admin)
+        return {"success": True, "message": "User registered successfully"}
+    except Exception as e:
+        print(f"User registration error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/login")
+async def login_user(username: str = Form(...), password: str = Form(...)):
+    """Авторизация пользователя"""
+    user = await db.get_user_by_username(username)
+    if not user or not user.get('password') == password:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/api/users/me")
+async def read_users_me(current_user: dict = Depends(get_current_user)):
+    """Получить информацию о текущем пользователе"""
+    return current_user
+
+@app.put("/api/users/me", response_model=dict)
+async def update_user_me(
+    current_user: dict = Depends(get_current_user),
+    user_update: UserUpdate = Form(...)
+):
+    """Обновить информацию о текущем пользователе"""
+    try:
+        await db.update_user(current_user["id"], user_update.username, user_update.email, user_update.is_active, user_update.is_admin)
+        return {"success": True, "message": "User updated successfully"}
+    except Exception as e:
+        print(f"User update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/users/me/password", response_model=dict)
+async def update_user_password_me(
+    current_user: dict = Depends(get_current_user),
+    password_update: PasswordUpdate = Form(...)
+):
+    """Обновить пароль текущего пользователя"""
+    try:
+        await db.update_user_password(current_user["id"], password_update.password)
+        return {"success": True, "message": "Password updated successfully"}
+    except Exception as e:
+        print(f"User password update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/all")
+async def get_all_users(current_user: dict = Depends(get_current_user)):
+    """Получить список всех пользователей (только для админов)"""
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only administrators can access this endpoint")
+    try:
+        users = await db.get_all_users()
+        return {"success": True, "data": users}
+    except Exception as e:
+        print(f"Get all users error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/users/{user_id}/update")
+async def update_user_by_id(
+    user_id: int,
+    user_update: UserUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Обновить пользователя по ID (только для админов)"""
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only administrators can access this endpoint")
+    try:
+        await db.update_user(user_id, user_update.username, user_update.email, user_update.is_active, user_update.is_admin)
+        return {"success": True, "message": "User updated successfully"}
+    except Exception as e:
+        print(f"Update user by ID error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/users/{user_id}/password")
+async def update_user_password_by_id(
+    user_id: int,
+    password_update: PasswordUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Обновить пароль пользователя по ID (только для админов)"""
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only administrators can access this endpoint")
+    try:
+        await db.update_user_password(user_id, password_update.password)
+        return {"success": True, "message": "Password updated successfully"}
+    except Exception as e:
+        print(f"Update user password by ID error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/users/{user_id}/delete")
+async def delete_user_by_id(
+    user_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """Удалить пользователя по ID (только для админов)"""
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only administrators can access this endpoint")
+    try:
+        await db.delete_user(user_id)
+        return {"success": True, "message": "User deleted successfully"}
+    except Exception as e:
+        print(f"Delete user by ID error: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
