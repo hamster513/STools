@@ -471,7 +471,6 @@ class Database:
                             if isinstance(latest_date, str):
                                 try:
                                     # Парсим строку даты
-                                    from datetime import datetime
                                     last_exploit_date = datetime.strptime(latest_date, '%Y-%m-%d').date()
                                 except:
                                     last_exploit_date = None
