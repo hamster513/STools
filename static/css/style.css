@@ -2424,3 +2424,31 @@ input:focus, textarea:focus, select:focus {
         flex-direction: column;
     }
 }
+
+/* Сообщение о недоступности */
+.access-denied-message {
+    text-align: center;
+    padding: 3rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.access-denied-message i {
+    font-size: 3rem;
+    color: var(--warning-color);
+    margin-bottom: 1rem;
+}
+
+.access-denied-message h3 {
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+    font-weight: 600;
+}
+
+.access-denied-message p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.95rem;
+}

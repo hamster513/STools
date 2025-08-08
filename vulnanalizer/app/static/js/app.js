@@ -1770,6 +1770,25 @@ class VulnAnalizer {
     }
 
     setupUsers() {
+        // Проверяем права доступа
+        const userInfo = localStorage.getItem('user_info');
+        if (userInfo) {
+            try {
+                const currentUser = JSON.parse(userInfo);
+                if (!currentUser.is_admin) {
+                    // Скрываем ссылку на управление пользователями для не-админов
+                    const usersLink = document.getElementById('users-link');
+                    if (usersLink) {
+                        usersLink.style.display = 'none';
+                    }
+                    return; // Не настраиваем функциональность для не-админов
+                }
+            } catch (e) {
+                console.error('Error parsing user info:', e);
+                return;
+            }
+        }
+
         // Кнопка добавления пользователя
         const addUserBtn = document.getElementById('add-user-btn');
         if (addUserBtn) {
@@ -1887,6 +1906,21 @@ class VulnAnalizer {
 
     async loadUsers() {
         try {
+            // Проверяем, является ли текущий пользователь администратором
+            const userInfo = localStorage.getItem('user_info');
+            if (!userInfo) {
+                this.showNotification('Ошибка: информация о пользователе не найдена', 'error');
+                return;
+            }
+
+            const currentUser = JSON.parse(userInfo);
+            if (!currentUser.is_admin) {
+                this.showNotification('Доступ запрещен: требуются права администратора', 'error');
+                // Скрываем страницу пользователей для не-админов
+                this.hideUsersPage();
+                return;
+            }
+
             const response = await fetch('/vulnanalizer/api/users/all', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -1896,12 +1930,35 @@ class VulnAnalizer {
             if (response.ok) {
                 const data = await response.json();
                 this.renderUsers(data.data);
+            } else if (response.status === 403) {
+                this.showNotification('Доступ запрещен: требуются права администратора', 'error');
+                this.hideUsersPage();
             } else {
                 this.showNotification('Ошибка загрузки пользователей', 'error');
             }
         } catch (error) {
             console.error('Error loading users:', error);
             this.showNotification('Ошибка соединения с сервером', 'error');
+        }
+    }
+
+    hideUsersPage() {
+        // Скрываем страницу пользователей
+        const usersPage = document.getElementById('users-page');
+        if (usersPage) {
+            usersPage.style.display = 'none';
+        }
+        
+        // Показываем сообщение о недоступности
+        const usersList = document.getElementById('users-list');
+        if (usersList) {
+            usersList.innerHTML = `
+                <div class="access-denied-message">
+                    <i class="fas fa-lock"></i>
+                    <h3>Доступ запрещен</h3>
+                    <p>Для просмотра и управления пользователями требуются права администратора.</p>
+                </div>
+            `;
         }
     }
 
