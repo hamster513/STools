@@ -714,7 +714,8 @@ class Database:
                 'vm_password': '',
                 'vm_client_secret': '',
                 'vm_enabled': 'false',
-                'vm_os_filter': 'Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD'
+                'vm_os_filter': 'Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD',
+                'vm_limit': '0'
             }
             
             for key, default_value in defaults.items():

@@ -1591,6 +1591,7 @@ class VulnAnalizer {
         const vmPassword = document.getElementById('vm-password');
         const vmClientSecret = document.getElementById('vm-client-secret');
         const vmOsFilter = document.getElementById('vm-os-filter');
+        const vmLimit = document.getElementById('vm-limit');
 
         if (vmEnabled) vmEnabled.value = settings.vm_enabled || 'false';
         if (vmHost) vmHost.value = settings.vm_host || '';
@@ -1598,6 +1599,7 @@ class VulnAnalizer {
         if (vmPassword) vmPassword.value = settings.vm_password || '';
         if (vmClientSecret) vmClientSecret.value = settings.vm_client_secret || '';
         if (vmOsFilter) vmOsFilter.value = settings.vm_os_filter || '';
+        if (vmLimit) vmLimit.value = settings.vm_limit || '0';
     }
 
     async saveVMSettings() {

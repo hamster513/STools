@@ -45,7 +45,7 @@ class VMMaxPatrolIntegration:
             print(f"Error getting VM token: {e}")
             return None
     
-    def get_hosts_data(self, os_filter: str = None) -> List[Dict[str, str]]:
+    def get_hosts_data(self, os_filter: str = None, limit: int = 0) -> List[Dict[str, str]]:
         """Получить данные хостов из VM"""
         try:
             if not self.token:
@@ -65,7 +65,7 @@ class VMMaxPatrolIntegration:
             pdql_query = f"""select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs) 
             | filter(   Host.OsName != null 
                     {f"and {os_filter_conditions}" if os_filter_conditions else ""}) 
-            | limit(0)"""
+            | limit({limit})"""
             
             # Первый запрос для получения токена
             url = f'https://{self.host}/api/assets_temporal_readmodel/v1/assets_grid'

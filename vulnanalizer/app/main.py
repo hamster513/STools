@@ -785,6 +785,7 @@ async def import_vm_hosts():
         vm_password = vm_settings.get('vm_password', '')
         vm_client_secret = vm_settings.get('vm_client_secret', '')
         vm_os_filter = vm_settings.get('vm_os_filter', '')
+        vm_limit = int(vm_settings.get('vm_limit', '0'))
         
         if not all([vm_host, vm_username, vm_password, vm_client_secret]):
             return {
@@ -801,7 +802,7 @@ async def import_vm_hosts():
         )
         
         # Получаем данные хостов из VM
-        hosts_data = vm_integration.get_hosts_data(os_filter=vm_os_filter)
+        hosts_data = vm_integration.get_hosts_data(os_filter=vm_os_filter, limit=vm_limit)
         
         if not hosts_data:
             return {
