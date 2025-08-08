@@ -126,6 +126,7 @@ class VulnAnalizer {
     setupSettings() {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
+        const usersLink = document.getElementById('users-link');
 
         // Переключение выпадающего меню настроек
         if (settingsToggle) {
@@ -146,6 +147,15 @@ class VulnAnalizer {
                 settingsDropdown.classList.remove('show');
             }
         });
+
+        // Обработка клика по пункту "Пользователи"
+        if (usersLink) {
+            usersLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                this.openUsersPage();
+            });
+        }
     }
 
     setupUserMenu() {
@@ -216,6 +226,33 @@ class VulnAnalizer {
         window.location.href = '/vulnanalizer/login';
     }
 
+    openUsersPage() {
+        // Открываем страницу управления пользователями в том же окне
+        // Скрываем все страницы
+        document.querySelectorAll('.page-content').forEach(page => {
+            page.classList.remove('active');
+        });
+        
+        // Показываем страницу пользователей
+        const usersPage = document.getElementById('users-page');
+        if (usersPage) {
+            usersPage.classList.add('active');
+        }
+        
+        // Обновляем активную ссылку в навигации
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Обновляем заголовок страницы
+        const pageTitle = document.getElementById('page-title');
+        if (pageTitle) {
+            pageTitle.textContent = 'Пользователи';
+        }
+        
+        // Загружаем пользователей
+        this.loadUsers();
+    }
 
 
     switchPage(page) {
@@ -233,10 +270,6 @@ class VulnAnalizer {
             case 'hosts':
                 pageTitle.textContent = 'Импорт';
                 this.updateHostsStatus();
-                break;
-            case 'users':
-                pageTitle.textContent = 'Пользователи';
-                this.loadUsers();
                 break;
             default:
                 pageTitle.textContent = 'VulnAnalizer';
