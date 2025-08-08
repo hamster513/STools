@@ -89,9 +89,9 @@ class VulnAnalizer {
     updateBreadcrumb(page) {
         const breadcrumbCurrent = document.getElementById('breadcrumb-current');
         const pageDescriptions = {
-            'analysis': 'Поиск хостов и уязвимостей',
-            'hosts': 'Загрузка и управление данными',
-            'settings': 'Конфигурация системы',
+            'analysis': 'Найти хосты и уязвимости',
+            'hosts': 'Загрузить данные',
+            'settings': 'Настроить систему',
             'users': 'Управление пользователями'
         };
         

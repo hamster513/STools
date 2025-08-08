@@ -18,7 +18,7 @@
                 </div>
                 <div class="service-info">
                     <span class="service-name">VulnAnalizer</span>
-                    <span class="service-desc">Анализ уязвимостей</span>
+                    <span class="service-desc">Анализ безопасности</span>
                 </div>
             </a>
             <a href="/loganalizer/" class="service-link modern-service-link" id="loganalizer-link">
@@ -80,10 +80,10 @@
                     <div class="logo-icon">
                         <i class="fas fa-shield-alt"></i>
                     </div>
-                    <div class="logo-info">
-                        <h2>VulnAnalizer</h2>
-                        <p>Анализ уязвимостей</p>
-                    </div>
+                                    <div class="logo-info">
+                    <h2>VulnAnalizer</h2>
+                    <p>Система анализа</p>
+                </div>
                 </div>
             </div>
             
@@ -96,7 +96,7 @@
                             </div>
                             <div class="nav-info">
                                 <span class="nav-title">Поиск</span>
-                                <span class="nav-desc">Поиск хостов и уязвимостей</span>
+                                <span class="nav-desc">Найти хосты и уязвимости</span>
                             </div>
                         </a>
                     </li>
@@ -107,7 +107,7 @@
                             </div>
                             <div class="nav-info">
                                 <span class="nav-title">Импорт</span>
-                                <span class="nav-desc">Загрузка данных</span>
+                                <span class="nav-desc">Загрузить данные</span>
                             </div>
                         </a>
                     </li>
@@ -118,7 +118,7 @@
                             </div>
                             <div class="nav-info">
                                 <span class="nav-title">Настройки</span>
-                                <span class="nav-desc">Конфигурация системы</span>
+                                <span class="nav-desc">Настроить систему</span>
                             </div>
                         </a>
                     </li>
@@ -131,7 +131,7 @@
             <header class="content-header modern-header">
                 <div class="header-content">
                     <h1 id="page-title">Поиск</h1>
-                    <p id="page-description">Поиск хостов и уязвимостей в системе</p>
+                    <p id="page-description">Найти хосты и уязвимости</p>
                 </div>
                 <div class="header-actions">
                     <div class="breadcrumb">
@@ -146,7 +146,7 @@
             <div id="analysis-page" class="page-content active">
                 <div class="analysis-container">
                     <div class="hosts-search-form">
-                        <h3>Поиск</h3>
+                        <h3>Критерии поиска</h3>
                         <form id="hosts-search-form">
                             <div class="form-row">
                                 <div class="form-group">
@@ -179,9 +179,9 @@
                                 <label for="exploits-only" style="display: inline; margin-left: 4px;">Только с эксплойтами</label>
                             </div>
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Поиск
-                                </button>
+                                                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Найти
+                            </button>
                                 <button type="button" id="clear-hosts-results" class="btn btn-secondary">
                                     <i class="fas fa-times"></i> Очистить
                                 </button>
@@ -400,7 +400,7 @@
             <!-- Страница настроек -->
             <div id="settings-page" class="page-content">
                 <div class="settings-container">
-                    <h3>Настройки подключения к базе данных</h3>
+                                            <h3>Подключение к базе данных</h3>
                     <form id="settings-form">
                         <div class="form-row">
                             <div class="form-group">
@@ -428,7 +428,7 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Сохранить настройки
+                                <i class="fas fa-save"></i> Сохранить
                             </button>
                             <button type="button" id="test-connection" class="btn btn-primary">
                                 <i class="fas fa-plug"></i> Проверить подключение
@@ -439,7 +439,7 @@
                 
                 <!-- Настройки Impact -->
                 <div class="impact-container">
-                    <h3>Настройки расчета риска (Impact)</h3>
+                                            <h3>Расчет риска (Impact)</h3>
                     <form id="impact-form">
                         <div class="form-group">
                             <label for="impact-resource-criticality">Критичность ресурса:</label>
@@ -479,7 +479,7 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Сохранить настройки Impact
+                                <i class="fas fa-save"></i> Сохранить Impact
                             </button>
                         </div>
                     </form>
@@ -487,7 +487,7 @@
                 
                 <!-- Настройки VM MaxPatrol -->
                 <div class="vm-settings-container">
-                    <h3>Настройки интеграции с MaxPatrol VM</h3>
+                                            <h3>Интеграция с MaxPatrol VM</h3>
                     <form id="vm-settings-form">
                         <div class="form-group">
                             <label for="vm-enabled">Включить интеграцию:</label>
@@ -518,7 +518,7 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary" id="vm-settings-btn">
-                                <i class="fas fa-save"></i> Сохранить настройки VM
+                                <i class="fas fa-save"></i> Сохранить VM
                             </button>
                             <button type="button" id="vm-test-connection-btn" class="btn btn-info">
                                 <i class="fas fa-plug"></i> Тест подключения
@@ -632,7 +632,7 @@
                     </p>
                     
                     <div class="vm-import-section">
-                        <h4>Настройки импорта</h4>
+                        <h4>Параметры импорта</h4>
                         <div class="form-group">
                             <label for="vm-os-filter">Фильтр ОС (исключить):</label>
                             <input type="text" id="vm-os-filter" name="vm_os_filter" placeholder="Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD" value="Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD">
@@ -671,6 +671,6 @@
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>
 
-    <script src="/vulnanalizer/static/js/app.js?v=2.5"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=2.6"></script>
 </body>
 </html> 
