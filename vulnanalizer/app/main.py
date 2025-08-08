@@ -129,6 +129,11 @@ async def shutdown():
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Страница входа"""
+    return templates.TemplateResponse("login.html", {"request": request})
+
 @app.get("/api/settings")
 async def get_settings():
     try:
@@ -943,7 +948,7 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
     access_token = create_access_token(
         data={"sub": user["username"]}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "user": user}
 
 @app.get("/api/users/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):

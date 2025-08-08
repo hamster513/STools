@@ -39,7 +39,7 @@ class VulnAnalizer {
         const token = localStorage.getItem('auth_token');
         if (!token) {
             // Если нет токена, перенаправляем на страницу входа
-            window.location.href = '/auth/';
+            window.location.href = '/vulnanalizer/login';
             return;
         }
 
@@ -51,11 +51,11 @@ class VulnAnalizer {
         }).then(response => {
             if (!response.ok) {
                 localStorage.removeItem('auth_token');
-                window.location.href = '/auth/';
+                window.location.href = '/vulnanalizer/login';
             }
         }).catch(() => {
             localStorage.removeItem('auth_token');
-            window.location.href = '/auth/';
+            window.location.href = '/vulnanalizer/login';
         });
     }
 
@@ -223,7 +223,7 @@ class VulnAnalizer {
         localStorage.removeItem('user_info');
         
         // Перенаправляем на страницу входа
-        window.location.href = '/auth/';
+        window.location.href = '/vulnanalizer/login';
     }
 
     openUsersPage() {
