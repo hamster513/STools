@@ -2611,39 +2611,7 @@ input:focus, textarea:focus, select:focus {
     background: linear-gradient(180deg, var(--surface-color) 0%, #f8fafc 100%);
     border-right: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
-}
-
-.sidebar-logo {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.logo-icon {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.5rem;
-}
-
-.logo-info h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.logo-info p {
-    margin: 0;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+    padding-top: 1rem;
 }
 
 .modern-nav-link {
