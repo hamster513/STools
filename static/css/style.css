@@ -290,65 +290,66 @@ body {
 
 .container {
     display: flex;
-    min-height: 100vh;
     margin-top: 60px;
+    min-height: calc(100vh - 60px);
 }
 
 .sidebar {
-    width: 280px;
-    background-color: var(--surface-color);
+    width: 250px;
+    background-color: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
+    padding: 20px 0;
+    position: fixed;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
 }
 
 .sidebar-header {
-    padding: 1.5rem;
+    padding: 0 20px 20px;
     border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    margin-bottom: 20px;
 }
 
 .sidebar-header h2 {
-    color: var(--primary-color);
-    font-size: 1.25rem;
-    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.sidebar-nav {
-    flex: 1;
-    padding: 1rem 0;
-}
-
-.sidebar-nav ul {
+.nav-menu {
     list-style: none;
 }
 
-.sidebar-nav li {
-    margin: 0;
+.nav-item {
+    margin-bottom: 5px;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 1.5rem;
+    padding: 12px 20px;
     color: var(--text-secondary);
     text-decoration: none;
-    transition: all 0.3s ease;
-    font-weight: 500;
+    transition: all 0.3s;
+    border-radius: 0;
+    border-left: 3px solid transparent;
 }
 
 .nav-link:hover {
-    background-color: var(--border-color);
+    background-color: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
 .nav-link.active {
-    background-color: var(--primary-color);
+    background-color: var(--accent-color);
     color: white;
+    border-left-color: var(--accent-hover);
 }
 
 .nav-link i {
@@ -359,9 +360,9 @@ body {
 
 .main-content {
     flex: 1;
-    padding: 2rem;
-    background-color: var(--background-color);
-    overflow-y: auto;
+    margin-left: 250px;
+    padding: 20px;
+    background-color: var(--bg-primary);
 }
 
 .content-header {
