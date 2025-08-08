@@ -114,7 +114,7 @@ def check_database_connections():
     
     # Проверяем подключение к auth_postgres
     success, output = run_command(
-        "docker-compose exec auth_postgres psql -U postgres -d auth_db -c 'SELECT 1;'",
+        "docker-compose exec auth_postgres psql -U auth_user -d auth_db -c 'SELECT 1;'",
         "Проверка auth_postgres"
     )
     if success:
@@ -124,7 +124,7 @@ def check_database_connections():
     
     # Проверяем подключение к vulnanalizer_postgres
     success, output = run_command(
-        "docker-compose exec vulnanalizer_postgres psql -U postgres -d vulnanalizer_db -c 'SELECT 1;'",
+        "docker-compose exec vulnanalizer_postgres psql -U vulnanalizer -d vulnanalizer -c 'SELECT 1;'",
         "Проверка vulnanalizer_postgres"
     )
     if success:

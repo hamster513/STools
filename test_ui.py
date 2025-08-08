@@ -57,8 +57,8 @@ class WebUITester:
         """Тест API эндпоинтов"""
         endpoints = [
             "/auth/api/login",
-            "/vulnanalizer/api/hosts",
-            "/loganalizer/api/logs"
+            "/vulnanalizer/api/hosts/search",
+            "/loganalizer/api/logs/files"
         ]
         
         for endpoint in endpoints:

@@ -25,9 +25,21 @@ class LogMonitor:
         except Exception as e:
             return f"Ошибка получения логов {container}: {str(e)}"
     
+    def get_recent_logs(self, container, minutes=5):
+        """Получение только свежих логов (последние N минут)"""
+        try:
+            # Получаем логи за последние N минут
+            result = subprocess.run(
+                ['docker-compose', 'logs', '--since', f'{minutes}m', container],
+                capture_output=True, text=True, timeout=30
+            )
+            return result.stdout
+        except Exception as e:
+            return f"Ошибка получения свежих логов {container}: {str(e)}"
+    
     def analyze_logs(self, container):
         """Анализ логов на наличие ошибок"""
-        logs = self.get_container_logs(container)
+        logs = self.get_recent_logs(container, minutes=2)  # Только свежие логи
         
         # Паттерны для поиска ошибок
         error_patterns = [
@@ -90,10 +102,7 @@ class LogMonitor:
         import socket
         
         ports = {
-            80: "HTTP (Nginx)",
-            8000: "Auth API",
-            8001: "VulnAnalizer API", 
-            8002: "LogAnalizer API"
+            80: "HTTP (Nginx)"
         }
         
         for port, service in ports.items():
