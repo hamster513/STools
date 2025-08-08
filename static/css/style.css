@@ -360,6 +360,16 @@ body {
     margin-bottom: 0.5rem;
 }
 
+/* ===== СТРАНИЦЫ ===== */
+
+.page-content {
+    display: none;
+}
+
+.page-content.active {
+    display: block;
+}
+
 /* ===== ФОРМЫ И КНОПКИ ===== */
 
 .form-group {
