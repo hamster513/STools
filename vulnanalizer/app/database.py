@@ -693,3 +693,200 @@ class Database:
             raise e
         finally:
             await conn.close()
+
+    # ===== VM MAXPATROL ИНТЕГРАЦИЯ =====
+    
+    async def get_vm_settings(self) -> Dict[str, str]:
+        """Получить настройки VM MaxPatrol"""
+        conn = await self.get_connection()
+        try:
+            query = "SELECT key, value FROM settings WHERE key LIKE 'vm_%'"
+            rows = await conn.fetch(query)
+            
+            settings = {}
+            for row in rows:
+                settings[row['key']] = row['value']
+            
+            # Устанавливаем значения по умолчанию
+            defaults = {
+                'vm_host': '',
+                'vm_username': '',
+                'vm_password': '',
+                'vm_client_secret': '',
+                'vm_enabled': 'false',
+                'vm_os_filter': 'Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD'
+            }
+            
+            for key, default_value in defaults.items():
+                if key not in settings:
+                    settings[key] = default_value
+            
+            return settings
+        finally:
+            await conn.close()
+
+    async def update_vm_settings(self, settings: Dict[str, str]):
+        """Обновить настройки VM MaxPatrol"""
+        conn = await self.get_connection()
+        try:
+            for key, value in settings.items():
+                if key.startswith('vm_'):
+                    query = """
+                        INSERT INTO settings (key, value) 
+                        VALUES ($1, $2) 
+                        ON CONFLICT (key) 
+                        DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
+                    """
+                    await conn.execute(query, key, value)
+        finally:
+            await conn.close()
+
+    async def import_vm_hosts(self, hosts_data: list):
+        """Импортировать хосты из VM MaxPatrol"""
+        conn = await self.get_connection()
+        try:
+            # Получаем количество записей до импорта
+            count_before = await conn.fetchval("SELECT COUNT(*) FROM hosts")
+            print(f"Hosts records in database before VM import: {count_before}")
+            
+            async with conn.transaction():
+                inserted_count = 0
+                updated_count = 0
+                
+                for host_data in hosts_data:
+                    # Парсим hostname и IP из строки вида "hostname (IP)"
+                    host_info = host_data.get('hostname', '')
+                    ip_address = ''
+                    hostname = host_info
+                    
+                    if '(' in host_info and ')' in host_info:
+                        parts = host_info.split('(')
+                        hostname = parts[0].strip()
+                        ip_address = parts[1].rstrip(')').strip()
+                    
+                    # Извлекаем CVE из данных
+                    cve = host_data.get('cve', '').strip()
+                    if not cve:
+                        continue
+                    
+                    # Определяем критичность на основе ОС
+                    os_name = host_data.get('os_name', '').lower()
+                    criticality = 'Medium'
+                    if 'windows' in os_name:
+                        criticality = 'High'
+                    elif 'rhel' in os_name or 'centos' in os_name:
+                        criticality = 'High'
+                    elif 'ubuntu' in os_name or 'debian' in os_name:
+                        criticality = 'Medium'
+                    
+                    # Проверяем, существует ли запись для этого хоста и CVE
+                    existing = await conn.fetchval(
+                        "SELECT id FROM hosts WHERE hostname = $1 AND cve = $2", 
+                        hostname, cve
+                    )
+                    
+                    if existing:
+                        # Обновляем существующую запись
+                        query = """
+                            UPDATE hosts 
+                            SET ip_address = $2, os_name = $3, criticality = $4, 
+                                status = $5, updated_at = CURRENT_TIMESTAMP
+                            WHERE hostname = $1 AND cve = $6
+                        """
+                        await conn.execute(query, 
+                            hostname, ip_address, host_data.get('os_name', ''), 
+                            criticality, 'Active', cve)
+                        updated_count += 1
+                    else:
+                        # Вставляем новую запись
+                        query = """
+                            INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7)
+                        """
+                        await conn.execute(query, 
+                            hostname, ip_address, cve, None, criticality, 'Active', 
+                            host_data.get('os_name', ''))
+                        inserted_count += 1
+                
+                # Получаем количество записей после импорта
+                count_after = await conn.fetchval("SELECT COUNT(*) FROM hosts")
+                print(f"Hosts records in database after VM import: {count_after}")
+                print(f"New hosts records inserted: {inserted_count}")
+                print(f"Existing hosts records updated: {updated_count}")
+                print(f"Total VM hosts processed: {len(hosts_data)}")
+                print(f"Net change in hosts database: {count_after - count_before}")
+                
+                return {
+                    'inserted': inserted_count,
+                    'updated': updated_count,
+                    'total_processed': len(hosts_data),
+                    'net_change': count_after - count_before
+                }
+                
+        finally:
+            await conn.close()
+
+    async def get_vm_import_status(self) -> Dict[str, Any]:
+        """Получить статус последнего импорта VM"""
+        conn = await self.get_connection()
+        try:
+            # Получаем последнюю запись о импорте
+            query = """
+                SELECT key, value, updated_at 
+                FROM settings 
+                WHERE key IN ('vm_last_import', 'vm_last_import_count', 'vm_last_import_error')
+                ORDER BY updated_at DESC
+                LIMIT 1
+            """
+            rows = await conn.fetch(query)
+            
+            status = {
+                'last_import': None,
+                'last_import_count': 0,
+                'last_import_error': None,
+                'vm_enabled': False
+            }
+            
+            for row in rows:
+                if row['key'] == 'vm_last_import':
+                    status['last_import'] = row['updated_at']
+                elif row['key'] == 'vm_last_import_count':
+                    status['last_import_count'] = int(row['value']) if row['value'].isdigit() else 0
+                elif row['key'] == 'vm_last_import_error':
+                    status['last_import_error'] = row['value']
+            
+            # Проверяем, включен ли VM импорт
+            vm_enabled = await conn.fetchval("SELECT value FROM settings WHERE key = 'vm_enabled'")
+            status['vm_enabled'] = vm_enabled == 'true' if vm_enabled else False
+            
+            return status
+        finally:
+            await conn.close()
+
+    async def update_vm_import_status(self, count: int, error: str = None):
+        """Обновить статус импорта VM"""
+        conn = await self.get_connection()
+        try:
+            # Обновляем количество импортированных записей
+            await conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('vm_last_import_count', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP",
+                str(count)
+            )
+            
+            # Обновляем время последнего импорта
+            await conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('vm_last_import', CURRENT_TIMESTAMP::text) ON CONFLICT (key) DO UPDATE SET value = CURRENT_TIMESTAMP::text, updated_at = CURRENT_TIMESTAMP"
+            )
+            
+            # Обновляем ошибку, если есть
+            if error:
+                await conn.execute(
+                    "INSERT INTO settings (key, value) VALUES ('vm_last_import_error', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP",
+                    error
+                )
+            else:
+                # Очищаем ошибку, если импорт успешен
+                await conn.execute("DELETE FROM settings WHERE key = 'vm_last_import_error'")
+                
+        finally:
+            await conn.close()

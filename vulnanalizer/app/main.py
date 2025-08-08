@@ -8,6 +8,7 @@ import json
 from typing import Dict, List
 from database import Database
 from models import Settings
+from vm_integration import VMMaxPatrolIntegration
 import csv
 import aiohttp
 from datetime import datetime, date
@@ -705,3 +706,146 @@ async def clear_exploitdb():
             "success": False,
             "error": str(e)
         } 
+
+# ===== VM MAXPATROL ИНТЕГРАЦИЯ =====
+
+@app.get("/api/vm/settings")
+async def get_vm_settings():
+    """Получить настройки VM MaxPatrol"""
+    try:
+        settings = await db.get_vm_settings()
+        return {"success": True, "data": settings}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/vm/settings")
+async def update_vm_settings(request: Request):
+    """Обновить настройки VM MaxPatrol"""
+    try:
+        data = await request.json()
+        await db.update_vm_settings(data)
+        return {"success": True, "message": "VM settings updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/vm/test-connection")
+async def test_vm_connection(request: Request):
+    """Тестировать подключение к VM MaxPatrol"""
+    try:
+        data = await request.json()
+        vm_host = data.get('vm_host', '')
+        vm_username = data.get('vm_username', '')
+        vm_password = data.get('vm_password', '')
+        vm_client_secret = data.get('vm_client_secret', '')
+        
+        if not all([vm_host, vm_username, vm_password, vm_client_secret]):
+            return {
+                "success": False,
+                "error": "All VM connection parameters are required"
+            }
+        
+        # Создаем экземпляр интеграции
+        vm_integration = VMMaxPatrolIntegration(
+            host=vm_host,
+            username=vm_username,
+            password=vm_password,
+            client_secret=vm_client_secret
+        )
+        
+        # Тестируем подключение
+        result = vm_integration.test_connection()
+        
+        return {
+            "success": True,
+            "data": result
+        }
+        
+    except Exception as e:
+        print(f"VM connection test error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/api/vm/import")
+async def import_vm_hosts():
+    """Импортировать хосты из VM MaxPatrol"""
+    try:
+        # Получаем настройки VM
+        vm_settings = await db.get_vm_settings()
+        
+        if vm_settings.get('vm_enabled') != 'true':
+            return {
+                "success": False,
+                "error": "VM integration is not enabled"
+            }
+        
+        vm_host = vm_settings.get('vm_host', '')
+        vm_username = vm_settings.get('vm_username', '')
+        vm_password = vm_settings.get('vm_password', '')
+        vm_client_secret = vm_settings.get('vm_client_secret', '')
+        vm_os_filter = vm_settings.get('vm_os_filter', '')
+        
+        if not all([vm_host, vm_username, vm_password, vm_client_secret]):
+            return {
+                "success": False,
+                "error": "VM connection parameters are not configured"
+            }
+        
+        # Создаем экземпляр интеграции
+        vm_integration = VMMaxPatrolIntegration(
+            host=vm_host,
+            username=vm_username,
+            password=vm_password,
+            client_secret=vm_client_secret
+        )
+        
+        # Получаем данные хостов из VM
+        hosts_data = vm_integration.get_hosts_data(os_filter=vm_os_filter)
+        
+        if not hosts_data:
+            return {
+                "success": False,
+                "error": "No hosts data received from VM"
+            }
+        
+        # Импортируем данные в базу
+        import_result = await db.import_vm_hosts(hosts_data)
+        
+        # Обновляем статус импорта
+        await db.update_vm_import_status(import_result['total_processed'])
+        
+        return {
+            "success": True,
+            "message": f"Successfully imported {import_result['total_processed']} host-CVE combinations",
+            "data": import_result
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"VM import error: {error_msg}")
+        
+        # Обновляем статус с ошибкой
+        await db.update_vm_import_status(0, error_msg)
+        
+        return {
+            "success": False,
+            "error": error_msg
+        }
+
+@app.get("/api/vm/status")
+async def get_vm_status():
+    """Получить статус VM интеграции"""
+    try:
+        vm_settings = await db.get_vm_settings()
+        import_status = await db.get_vm_import_status()
+        
+        return {
+            "success": True,
+            "data": {
+                "settings": vm_settings,
+                "import_status": import_status
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 
