@@ -126,7 +126,6 @@ class VulnAnalizer {
     setupSettings() {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
-        const usersLink = document.getElementById('users-link');
 
         // Переключение выпадающего меню настроек
         if (settingsToggle) {
@@ -147,15 +146,6 @@ class VulnAnalizer {
                 settingsDropdown.classList.remove('show');
             }
         });
-
-        // Обработка клика по пункту "Пользователи"
-        if (usersLink) {
-            usersLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                settingsDropdown.classList.remove('show');
-                this.openUsersPage();
-            });
-        }
     }
 
     setupUserMenu() {
@@ -226,11 +216,7 @@ class VulnAnalizer {
         window.location.href = '/vulnanalizer/login';
     }
 
-    openUsersPage() {
-        // Открываем страницу управления пользователями
-        // Авторизация уже проверена в checkAuth()
-        window.open('/auth/users', '_blank');
-    }
+
 
     switchPage(page) {
         const pageTitle = document.getElementById('page-title');
@@ -247,6 +233,10 @@ class VulnAnalizer {
             case 'hosts':
                 pageTitle.textContent = 'Импорт';
                 this.updateHostsStatus();
+                break;
+            case 'users':
+                pageTitle.textContent = 'Пользователи';
+                this.loadUsers();
                 break;
             default:
                 pageTitle.textContent = 'VulnAnalizer';
