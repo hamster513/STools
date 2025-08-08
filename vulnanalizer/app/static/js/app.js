@@ -2054,7 +2054,7 @@ class VulnAnalizer {
         if (userCard) {
             const user = {
                 id: userId,
-                username: userCard.querySelector('.user-name').textContent,
+                username: userCard.querySelector('.user-details h4').textContent,
                 email: userCard.querySelector('.user-email').textContent,
                 is_admin: userCard.querySelector('.user-badge.admin') !== null,
                 is_active: userCard.querySelector('.user-badge.active') !== null
