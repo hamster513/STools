@@ -42,34 +42,7 @@
     --warning-color: #fbbf24;
     --info-color: #60a5fa;
     
-    /* Дополнительные переменные для совместимости */
-    --bg-primary: var(--background-color);
-    --bg-secondary: var(--surface-color);
-    --bg-tertiary: #404040;
-    --accent-color: var(--primary-color);
-    --accent-hover: #60a5fa;
-    --danger-color: var(--error-color);
-    --shadow: 0 2px 4px var(--shadow-color);
-    --shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.4);
-}
-
-/* Альтернативная система тем для LogAnalizer */
-[data-theme="dark"] {
-    /* Основные переменные для совместимости */
-    --background-color: #1a1a1a;
-    --surface-color: #2d2d2d;
-    --text-primary: #ffffff;
-    --text-secondary: #b0b0b0;
-    --border-color: #404040;
-    --primary-color: #4dabf7;
-    --secondary-color: #b0b0b0;
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    --success-color: #51cf66;
-    --error-color: #ff6b6b;
-    --warning-color: #ffd43b;
-    --info-color: #74c0fc;
-    
-    /* Переменные LogAnalizer */
+    /* Переменные LogAnalizer для совместимости */
     --bg-primary: #1a1a1a;
     --bg-secondary: #2d2d2d;
     --bg-tertiary: #404040;
@@ -79,6 +52,8 @@
     --shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     --shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
+
+
 
 /* ===== БАЗОВЫЕ СТИЛИ ===== */
 

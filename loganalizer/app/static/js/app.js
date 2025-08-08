@@ -59,7 +59,7 @@ class LogAnalizer {
 
     initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.body.className = `${savedTheme}-theme`;
         this.updateThemeText(savedTheme);
     }
 
@@ -77,11 +77,17 @@ class LogAnalizer {
     }
 
     toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        this.updateThemeText(newTheme);
+        const body = document.body;
+        
+        if (body.classList.contains('light-theme')) {
+            body.className = 'dark-theme';
+            localStorage.setItem('theme', 'dark');
+            this.updateThemeText('dark');
+        } else {
+            body.className = 'light-theme';
+            localStorage.setItem('theme', 'light');
+            this.updateThemeText('light');
+        }
     }
 
     setupNavigation() {
