@@ -86,6 +86,25 @@ class VulnAnalizer {
         }
     }
 
+    updateBreadcrumb(page) {
+        const breadcrumbCurrent = document.getElementById('breadcrumb-current');
+        const pageDescriptions = {
+            'analysis': 'Поиск хостов и уязвимостей',
+            'hosts': 'Загрузка и управление данными',
+            'settings': 'Конфигурация системы',
+            'users': 'Управление пользователями'
+        };
+        
+        if (breadcrumbCurrent) {
+            breadcrumbCurrent.textContent = page;
+        }
+        
+        const pageDescription = document.getElementById('page-description');
+        if (pageDescription) {
+            pageDescription.textContent = pageDescriptions[page] || 'Страница системы';
+        }
+    }
+
     toggleTheme() {
         const body = document.body;
         
@@ -265,22 +284,32 @@ class VulnAnalizer {
 
     switchPage(page) {
         const pageTitle = document.getElementById('page-title');
+        const pageNames = {
+            'analysis': 'Поиск',
+            'hosts': 'Импорт',
+            'settings': 'Настройки',
+            'users': 'Пользователи'
+        };
+        
+        if (pageTitle) {
+            pageTitle.textContent = pageNames[page] || 'VulnAnalizer';
+        }
+        
+        this.updateBreadcrumb(pageNames[page] || page);
         
         switch(page) {
             case 'analysis':
-                pageTitle.textContent = 'Поиск хостов';
+                this.updateHostsStatus();
+                break;
+            case 'hosts':
+                this.updateHostsStatus();
                 break;
             case 'settings':
-                pageTitle.textContent = 'Настройки';
                 this.updateEPSSStatus();
                 this.updateExploitDBStatus();
                 break;
-            case 'hosts':
-                pageTitle.textContent = 'Импорт';
-                this.updateHostsStatus();
-                break;
             default:
-                pageTitle.textContent = 'VulnAnalizer';
+                break;
         }
     }
 

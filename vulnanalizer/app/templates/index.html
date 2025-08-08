@@ -5,48 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VulnAnalizer - Анализ уязвимостей</title>
     <link rel="icon" type="image/svg+xml" href="/vulnanalizer/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1.4">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.6">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="light-theme">
     <!-- Верхняя панель переключения сервисов -->
-    <div class="top-bar">
+    <div class="top-bar modern-top-bar">
         <div class="service-switcher">
-            <a href="/vulnanalizer/" class="service-link active" id="vulnanalizer-link">
-                <i class="fas fa-shield-alt"></i>
-                <span>VulnAnalizer</span>
+            <a href="/vulnanalizer/" class="service-link active modern-service-link" id="vulnanalizer-link">
+                <div class="service-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="service-info">
+                    <span class="service-name">VulnAnalizer</span>
+                    <span class="service-desc">Анализ уязвимостей</span>
+                </div>
             </a>
-            <a href="/loganalizer/" class="service-link" id="loganalizer-link">
-                <i class="fas fa-file-alt"></i>
-                <span>LogAnalizer</span>
+            <a href="/loganalizer/" class="service-link modern-service-link" id="loganalizer-link">
+                <div class="service-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="service-info">
+                    <span class="service-name">LogAnalizer</span>
+                    <span class="service-desc">Анализ логов</span>
+                </div>
             </a>
         </div>
         <div class="top-bar-right">
             <div class="settings-menu">
-                <button id="settings-toggle" class="settings-btn">
+                <button id="settings-toggle" class="settings-btn modern-btn">
                     <i class="fas fa-cog"></i>
                 </button>
-                <div id="settings-dropdown" class="settings-dropdown">
-                    <a href="#" id="users-link">
+                <div id="settings-dropdown" class="settings-dropdown modern-dropdown">
+                    <a href="#" id="users-link" class="dropdown-item">
                         <i class="fas fa-users"></i>
                         <span>Пользователи</span>
                     </a>
                 </div>
             </div>
             <div class="user-menu">
-                <button id="user-toggle" class="user-btn">
+                <button id="user-toggle" class="user-btn modern-btn">
                     <i class="fas fa-user"></i>
                 </button>
-                <div id="user-dropdown" class="user-dropdown">
+                <div id="user-dropdown" class="user-dropdown modern-dropdown">
                     <div class="user-info">
-                        <i class="fas fa-user-circle"></i>
-                        <span id="user-name">Пользователь</span>
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-details">
+                            <span id="user-name" class="user-name">Пользователь</span>
+                            <span class="user-role">Администратор</span>
+                        </div>
                     </div>
-                    <a href="#" id="theme-link">
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="theme-link" class="dropdown-item">
                         <i class="fas fa-sun"></i>
                         <span id="theme-text">Светлая</span>
                     </a>
-                    <a href="#" id="logout-link">
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="logout-link" class="dropdown-item">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Выйти</span>
                     </a>
@@ -57,41 +74,72 @@
 
     <div class="container">
         <!-- Боковое меню -->
-        <aside class="sidebar">
+        <aside class="sidebar modern-sidebar">
             <div class="sidebar-header">
-                <h2><i class="fas fa-shield-alt"></i> VulnAnalizer</h2>
+                <div class="sidebar-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="logo-info">
+                        <h2>VulnAnalizer</h2>
+                        <p>Анализ уязвимостей</p>
+                    </div>
+                </div>
             </div>
             
             <nav class="sidebar-nav">
                 <ul>
                     <li>
-                        <a href="#" class="nav-link active" data-page="analysis">
-                            <i class="fas fa-search"></i>
-                            <span>Поиск</span>
+                        <a href="#" class="nav-link active modern-nav-link" data-page="analysis">
+                            <div class="nav-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="nav-info">
+                                <span class="nav-title">Поиск</span>
+                                <span class="nav-desc">Поиск хостов и уязвимостей</span>
+                            </div>
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="nav-link" data-page="hosts">
-                            <i class="fas fa-upload"></i>
-                            <span>Импорт</span>
+                        <a href="#" class="nav-link modern-nav-link" data-page="hosts">
+                            <div class="nav-icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <div class="nav-info">
+                                <span class="nav-title">Импорт</span>
+                                <span class="nav-desc">Загрузка данных</span>
+                            </div>
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="nav-link" data-page="settings">
-                            <i class="fas fa-cog"></i>
-                            <span>Настройки</span>
+                        <a href="#" class="nav-link modern-nav-link" data-page="settings">
+                            <div class="nav-icon">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="nav-info">
+                                <span class="nav-title">Настройки</span>
+                                <span class="nav-desc">Конфигурация системы</span>
+                            </div>
                         </a>
                     </li>
-
-
                 </ul>
             </nav>
         </aside>
 
         <!-- Основной контент -->
         <main class="main-content">
-            <header class="content-header">
-                <h1 id="page-title">Поиск</h1>
+            <header class="content-header modern-header">
+                <div class="header-content">
+                    <h1 id="page-title">Поиск</h1>
+                    <p id="page-description">Поиск хостов и уязвимостей в системе</p>
+                </div>
+                <div class="header-actions">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">VulnAnalizer</span>
+                        <i class="fas fa-chevron-right"></i>
+                        <span class="breadcrumb-item active" id="breadcrumb-current">Поиск</span>
+                    </div>
+                </div>
             </header>
 
             <!-- Страница анализа -->
@@ -623,6 +671,6 @@
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>
 
-    <script src="/vulnanalizer/static/js/app.js?v=2.4"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=2.5"></script>
 </body>
 </html> 
