@@ -7,14 +7,35 @@ from datetime import datetime
 class Database:
     def __init__(self):
         self.database_url = os.getenv("DATABASE_URL", "postgresql://vulnanalizer:vulnanalizer@postgres:5432/vulnanalizer")
+        self.pool = None
+
+    async def get_pool(self):
+        """Получить или создать пул соединений"""
+        if self.pool is None:
+            self.pool = await asyncpg.create_pool(
+                self.database_url,
+                min_size=5,
+                max_size=20,
+                command_timeout=60
+            )
+        return self.pool
 
     async def get_connection(self):
-        """Получить новое соединение с базой данных"""
+        """Получить соединение из пула"""
         try:
-            return await asyncpg.connect(self.database_url)
+            pool = await self.get_pool()
+            return await pool.acquire()
         except Exception as e:
             print(f"Database connection failed: {e}")
             raise
+
+    async def release_connection(self, conn):
+        """Освободить соединение обратно в пул"""
+        try:
+            pool = await self.get_pool()
+            await pool.release(conn)
+        except Exception as e:
+            print(f"Error releasing connection: {e}")
 
     async def test_connection(self):
         conn = await self.get_connection()
@@ -25,7 +46,7 @@ class Database:
             print(f"Database test failed: {e}")
             return False
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def get_settings(self) -> Dict[str, str]:
         conn = await self.get_connection()
@@ -43,7 +64,7 @@ class Database:
             
             return settings
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def update_settings(self, settings: Dict[str, str]):
         conn = await self.get_connection()
@@ -57,7 +78,7 @@ class Database:
                 """
                 await conn.execute(query, key, value)
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def insert_epss_records(self, records: list):
         # Создаем отдельное соединение для массовой вставки
@@ -117,7 +138,7 @@ class Database:
                 print(f"Net change in EPSS database: {count_after - count_before}")
                 
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def count_epss_records(self):
         conn = await self.get_connection()
@@ -136,7 +157,7 @@ class Database:
             print(f"Error counting epss records: {e}")
             raise
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def insert_exploitdb_records(self, records: list):
         # Создаем отдельное соединение для массовой вставки
@@ -187,7 +208,7 @@ class Database:
                 print(f"Net change in database: {count_after - count_before}")
                 
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def count_exploitdb_records(self):
         conn = await self.get_connection()
@@ -206,7 +227,7 @@ class Database:
             print(f"Error counting exploitdb records: {e}")
             raise
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def get_epss_by_cve(self, cve_id: str):
         """Получить данные EPSS по CVE ID"""
@@ -234,7 +255,7 @@ class Database:
             print(f"Error getting EPSS data for {cve_id}: {e}")
             return None
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def get_exploitdb_by_cve(self, cve_id: str):
         """Получить данные ExploitDB по CVE ID"""
@@ -314,7 +335,7 @@ class Database:
             print(f"Error getting ExploitDB data for {cve_id}: {e}")
             return []
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     def _get_latest_exploit_date(self, exploitdb_data):
         """Получить самую позднюю дату эксплойта"""
@@ -499,7 +520,7 @@ class Database:
             print(f"Error updating hosts EPSS and exploits: {e}")
             raise e
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def insert_hosts_records(self, records: list):
         """Вставить записи хостов"""
@@ -522,7 +543,7 @@ class Database:
             print(f"Error inserting hosts records: {e}")
             raise e
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def count_hosts_records(self):
         """Подсчитать количество записей хостов"""
@@ -534,7 +555,7 @@ class Database:
             print(f"Error counting hosts records: {e}")
             return 0
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def search_hosts(self, hostname_pattern: str = None, cve: str = None, ip_address: str = None, criticality: str = None):
         """Поиск хостов по различным критериям с расширенными данными"""
@@ -609,7 +630,7 @@ class Database:
             print(f"Error searching hosts: {e}")
             return []
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def get_host_by_id(self, host_id: int):
         """Получить хост по ID с расширенными данными"""
@@ -653,7 +674,7 @@ class Database:
             print(f"Error getting host by ID {host_id}: {e}")
             return None
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def clear_hosts(self):
         """Очистка таблицы хостов"""
@@ -666,7 +687,7 @@ class Database:
             print(f"Error clearing hosts table: {e}")
             raise e
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def clear_epss(self):
         """Очистка таблицы EPSS"""
@@ -679,7 +700,7 @@ class Database:
             print(f"Error clearing EPSS table: {e}")
             raise e
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def clear_exploitdb(self):
         """Очистка таблицы ExploitDB"""
@@ -692,7 +713,7 @@ class Database:
             print(f"Error clearing ExploitDB table: {e}")
             raise e
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     # ===== VM MAXPATROL ИНТЕГРАЦИЯ =====
     
@@ -724,7 +745,7 @@ class Database:
             
             return settings
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def update_vm_settings(self, settings: Dict[str, str]):
         """Обновить настройки VM MaxPatrol"""
@@ -740,7 +761,7 @@ class Database:
                     """
                     await conn.execute(query, key, value)
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def import_vm_hosts(self, hosts_data: list):
         """Импортировать хосты из VM MaxPatrol"""
@@ -825,7 +846,7 @@ class Database:
                 }
                 
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def get_vm_import_status(self) -> Dict[str, Any]:
         """Получить статус последнего импорта VM"""
@@ -862,7 +883,7 @@ class Database:
             
             return status
         finally:
-            await conn.close()
+            await self.release_connection(conn)
 
     async def update_vm_import_status(self, count: int, error: str = None):
         """Обновить статус импорта VM"""
@@ -890,4 +911,4 @@ class Database:
                 await conn.execute("DELETE FROM settings WHERE key = 'vm_last_import_error'")
                 
         finally:
-            await conn.close()
+            await self.release_connection(conn)

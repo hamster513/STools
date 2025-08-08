@@ -1,6 +1,6 @@
-/* CSS Variables для тем */
+/* Оптимизированные CSS переменные */
 :root {
-    /* Светлая тема */
+    /* Светлая тема - оптимизированные цвета */
     --primary-color: #2563eb;
     --secondary-color: #64748b;
     --background-color: #ffffff;
@@ -13,9 +13,16 @@
     --error-color: #ef4444;
     --warning-color: #f59e0b;
     --danger-color: #dc3545;
+    
+    /* Оптимизированные размеры */
+    --border-radius: 8px;
+    --transition-speed: 0.3s;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* Темная тема */
+/* Темная тема - оптимизированные цвета */
 .dark-theme {
     --primary-color: #3b82f6;
     --secondary-color: #94a3b8;
@@ -31,19 +38,56 @@
     --danger-color: #f87171;
 }
 
-/* Стили для улучшенного статусбара */
+/* Оптимизированные базовые стили */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background-color: var(--background-color);
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+/* Оптимизированные анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+/* Оптимизированные утилиты */
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Оптимизированные стили для улучшенного статусбара */
 .operation-status {
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     padding: 16px;
     margin: 16px 0;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed);
+    box-shadow: var(--shadow-sm);
 }
 
 .operation-status.active {
     border-left: 4px solid var(--primary-color);
     background-color: rgba(37, 99, 235, 0.05);
+    box-shadow: var(--shadow-md);
 }
 
 .operation-status.success {
@@ -155,20 +199,6 @@
 
 .status-info i, .status-error i {
     font-size: 16px;
-}
-
-/* Общие стили */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--background-color);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
 }
 
 /* Верхняя панель */

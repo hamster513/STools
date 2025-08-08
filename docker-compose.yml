@@ -1,4 +1,19 @@
 services:
+  # Redis для кэширования
+  redis:
+    image: redis:7-alpine
+    container_name: stools_redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # База данных для аутентификации
   auth_postgres:
     image: postgres:15
@@ -11,6 +26,11 @@ services:
       - auth_postgres_data:/var/lib/postgresql/data
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Сервис аутентификации
   auth_web:
@@ -22,10 +42,19 @@ services:
     environment:
       - AUTH_DATABASE_URL=postgresql://auth_user:auth_pass@auth_postgres:5432/auth_db
       - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - REDIS_URL=redis://redis:6379
     depends_on:
-      - auth_postgres
+      auth_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # База данных для LogAnalizer
   loganalizer_postgres:
@@ -40,6 +69,11 @@ services:
       - ./loganalizer/init-db:/docker-entrypoint-initdb.d
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loganalizer_user -d loganalizer_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # База данных для VulnAnalizer
   vulnanalizer_postgres:
@@ -54,6 +88,11 @@ services:
       - ./vulnanalizer/init-db:/docker-entrypoint-initdb.d
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vulnanalizer -d vulnanalizer"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Веб-приложение LogAnalizer
   loganalizer_web:
@@ -64,10 +103,19 @@ services:
       - ./loganalizer/app:/app
     environment:
       - DATABASE_URL=postgresql://loganalizer_user:loganalizer_pass@loganalizer_postgres:5432/loganalizer_db
+      - REDIS_URL=redis://redis:6379
     depends_on:
-      - loganalizer_postgres
+      loganalizer_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Веб-приложение VulnAnalizer
   vulnanalizer_web:
@@ -78,10 +126,19 @@ services:
       - ./vulnanalizer/app:/app
     environment:
       - DATABASE_URL=postgresql://vulnanalizer:vulnanalizer@vulnanalizer_postgres:5432/vulnanalizer
+      - REDIS_URL=redis://redis:6379
     depends_on:
-      - vulnanalizer_postgres
+      vulnanalizer_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Единый Nginx для проксирования
   nginx:
@@ -95,13 +152,22 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl
       - ./static:/var/www/static
     depends_on:
-      - auth_web
-      - loganalizer_web
-      - vulnanalizer_web
+      auth_web:
+        condition: service_healthy
+      loganalizer_web:
+        condition: service_healthy
+      vulnanalizer_web:
+        condition: service_healthy
     networks:
       - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
+  redis_data:
   auth_data:
   auth_postgres_data:
   loganalizer_data:
