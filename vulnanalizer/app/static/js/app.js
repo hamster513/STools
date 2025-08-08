@@ -27,7 +27,7 @@ class VulnAnalizer {
         this.setupExploitDB();
         this.setupHosts();
         this.setupVM();
-        this.initUsersManager();
+        this.setupUsers();
         
         // Загружаем статус хостов при инициализации
         setTimeout(() => {
@@ -1746,28 +1746,7 @@ class VulnAnalizer {
         }
     }
 
-    initUsersManager() {
-        if (document.getElementById('users-page')) {
-            usersManager = new UsersManager();
-        }
-    }
-}
-
-// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ =====
-
-class UsersManager {
-    constructor() {
-        this.currentUser = null;
-        this.editingUserId = null;
-        this.init();
-    }
-
-    init() {
-        this.setupEventListeners();
-        this.loadUsers();
-    }
-
-    setupEventListeners() {
+    setupUsers() {
         // Кнопка добавления пользователя
         const addUserBtn = document.getElementById('add-user-btn');
         if (addUserBtn) {
@@ -1826,6 +1805,9 @@ class UsersManager {
                 e.target.classList.remove('show');
             }
         });
+
+        // Загружаем пользователей при открытии страницы
+        this.loadUsers();
     }
 
     async loadUsers() {
@@ -1840,11 +1822,11 @@ class UsersManager {
                 const data = await response.json();
                 this.renderUsers(data.data);
             } else {
-                this.showError('Ошибка загрузки пользователей');
+                this.showNotification('Ошибка загрузки пользователей', 'error');
             }
         } catch (error) {
             console.error('Error loading users:', error);
-            this.showError('Ошибка соединения с сервером');
+            this.showNotification('Ошибка соединения с сервером', 'error');
         }
     }
 
@@ -1852,87 +1834,68 @@ class UsersManager {
         const usersList = document.getElementById('users-list');
         if (!usersList) return;
 
-        usersList.innerHTML = '';
-
-        users.forEach(user => {
-            const userCard = this.createUserCard(user);
-            usersList.appendChild(userCard);
-        });
+        usersList.innerHTML = users.map(user => this.createUserCard(user)).join('');
     }
 
     createUserCard(user) {
-        const card = document.createElement('div');
-        card.className = 'user-card';
-        
         const badges = [];
         if (user.is_admin) badges.push('<span class="user-badge admin">Админ</span>');
-        if (user.is_active) {
-            badges.push('<span class="user-badge active">Активен</span>');
-        } else {
-            badges.push('<span class="user-badge inactive">Неактивен</span>');
-        }
+        if (user.is_active) badges.push('<span class="user-badge active">Активен</span>');
+        if (!user.is_active) badges.push('<span class="user-badge inactive">Неактивен</span>');
 
-        card.innerHTML = `
-            <div class="user-header">
-                <div class="user-info">
-                    <h3>${user.username}</h3>
-                    <div class="user-email">${user.email || 'Email не указан'}</div>
+        return `
+            <div class="user-card" data-user-id="${user.id}">
+                <div class="user-header">
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <div>
+                            <div class="user-name">${user.username}</div>
+                            <div class="user-email">${user.email || 'Email не указан'}</div>
+                        </div>
+                    </div>
+                    <div class="user-badges">
+                        ${badges.join('')}
+                    </div>
                 </div>
-                <div class="user-badges">
-                    ${badges.join('')}
+                <div class="user-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="vulnAnalizer.editUser(${user.id})">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="vulnAnalizer.changePassword(${user.id})">
+                        <i class="fas fa-key"></i> Сменить пароль
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="vulnAnalizer.deleteUser(${user.id})">
+                        <i class="fas fa-trash"></i> Удалить
+                    </button>
                 </div>
-            </div>
-            <div class="user-actions">
-                <button class="btn btn-secondary edit-user" data-user-id="${user.id}">
-                    <i class="fas fa-edit"></i> Редактировать
-                </button>
-                <button class="btn btn-secondary change-password" data-user-id="${user.id}">
-                    <i class="fas fa-key"></i> Сменить пароль
-                </button>
-                ${user.id !== 1 ? `<button class="btn btn-danger delete-user" data-user-id="${user.id}">
-                    <i class="fas fa-trash"></i> Удалить
-                </button>` : ''}
             </div>
         `;
-
-        // Добавляем обработчики событий
-        card.querySelector('.edit-user').addEventListener('click', () => {
-            this.editUser(user);
-        });
-
-        card.querySelector('.change-password').addEventListener('click', () => {
-            this.changePassword(user.id);
-        });
-
-        const deleteBtn = card.querySelector('.delete-user');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
-                this.deleteUser(user.id);
-            });
-        }
-
-        return card;
     }
 
     openUserModal(user = null) {
-        this.editingUserId = user ? user.id : null;
         const modal = document.getElementById('user-modal');
-        const title = document.getElementById('modal-title');
+        const modalTitle = document.getElementById('modal-title');
         const form = document.getElementById('user-form');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const isAdminCheckbox = document.getElementById('is-admin');
+        const isActiveCheckbox = document.getElementById('is-active');
 
         if (user) {
-            title.textContent = 'Редактировать пользователя';
-            form.username.value = user.username;
-            form.email.value = user.email || '';
-            form['is-admin'].checked = user.is_admin;
-            form['is-active'].checked = user.is_active;
-            form.password.required = false;
-            form['confirm-password'].required = false;
+            modalTitle.textContent = 'Редактировать пользователя';
+            usernameInput.value = user.username;
+            emailInput.value = user.email || '';
+            passwordInput.value = '';
+            confirmPasswordInput.value = '';
+            isAdminCheckbox.checked = user.is_admin;
+            isActiveCheckbox.checked = user.is_active;
+            form.dataset.userId = user.id;
         } else {
-            title.textContent = 'Добавить пользователя';
+            modalTitle.textContent = 'Добавить пользователя';
             form.reset();
-            form.password.required = true;
-            form['confirm-password'].required = true;
+            delete form.dataset.userId;
         }
 
         modal.classList.add('show');
@@ -1941,79 +1904,66 @@ class UsersManager {
     closeUserModal() {
         const modal = document.getElementById('user-modal');
         modal.classList.remove('show');
-        this.editingUserId = null;
     }
 
     async saveUser() {
         const form = document.getElementById('user-form');
         const formData = new FormData(form);
-
+        
         const userData = {
             username: formData.get('username'),
             email: formData.get('email'),
             password: formData.get('password'),
-            confirm_password: formData.get('confirm-password'),
             is_admin: formData.get('is-admin') === 'on',
             is_active: formData.get('is-active') === 'on'
         };
 
-        // Валидация
-        if (!userData.username) {
-            this.showError('Имя пользователя обязательно');
-            return;
-        }
-
-        if (!this.editingUserId && (!userData.password || userData.password !== userData.confirm_password)) {
-            this.showError('Пароли не совпадают');
+        if (userData.password !== formData.get('confirm-password')) {
+            this.showNotification('Пароли не совпадают', 'error');
             return;
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
-            const url = this.editingUserId 
-                ? `/vulnanalizer/api/users/${this.editingUserId}/update`
-                : '/vulnanalizer/api/users/register';
-            
-            const method = this.editingUserId ? 'PUT' : 'POST';
-            const body = this.editingUserId 
-                ? JSON.stringify({
-                    username: userData.username,
-                    email: userData.email,
-                    is_admin: userData.is_admin,
-                    is_active: userData.is_active
-                })
-                : JSON.stringify({
-                    username: userData.username,
-                    email: userData.email,
-                    password: userData.password,
-                    is_admin: userData.is_admin
-                });
+            const userId = form.dataset.userId;
+            const url = userId ? `/vulnanalizer/api/users/${userId}/update` : '/vulnanalizer/api/users/register';
+            const method = userId ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
                 method: method,
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 },
-                body: body
+                body: JSON.stringify(userData)
             });
 
             if (response.ok) {
-                this.showSuccess(this.editingUserId ? 'Пользователь обновлен' : 'Пользователь создан');
+                this.showNotification(userId ? 'Пользователь обновлен' : 'Пользователь создан', 'success');
                 this.closeUserModal();
                 this.loadUsers();
             } else {
                 const error = await response.json();
-                this.showError(error.detail || 'Ошибка сохранения');
+                this.showNotification(error.detail || 'Ошибка сохранения', 'error');
             }
         } catch (error) {
             console.error('Error saving user:', error);
-            this.showError('Ошибка соединения с сервером');
+            this.showNotification('Ошибка соединения с сервером', 'error');
         }
     }
 
-    editUser(user) {
-        this.openUserModal(user);
+    editUser(userId) {
+        // Найти пользователя в списке и открыть модальное окно
+        const userCard = document.querySelector(`[data-user-id="${userId}"]`);
+        if (userCard) {
+            const user = {
+                id: userId,
+                username: userCard.querySelector('.user-name').textContent,
+                email: userCard.querySelector('.user-email').textContent,
+                is_admin: userCard.querySelector('.user-badge.admin') !== null,
+                is_active: userCard.querySelector('.user-badge.active') !== null
+            };
+            this.openUserModal(user);
+        }
     }
 
     changePassword(userId) {
@@ -2038,16 +1988,15 @@ class UsersManager {
         };
 
         if (!passwordData.password || passwordData.password !== passwordData.confirm_password) {
-            this.showError('Пароли не совпадают');
+            this.showNotification('Пароли не совпадают', 'error');
             return;
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
             const response = await fetch(`/vulnanalizer/api/users/${this.editingUserId}/password`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -2056,15 +2005,15 @@ class UsersManager {
             });
 
             if (response.ok) {
-                this.showSuccess('Пароль изменен');
+                this.showNotification('Пароль изменен', 'success');
                 this.closePasswordModal();
             } else {
                 const error = await response.json();
-                this.showError(error.detail || 'Ошибка изменения пароля');
+                this.showNotification(error.detail || 'Ошибка изменения пароля', 'error');
             }
         } catch (error) {
             console.error('Error changing password:', error);
-            this.showError('Ошибка соединения с сервером');
+            this.showNotification('Ошибка соединения с сервером', 'error');
         }
     }
 
@@ -2074,40 +2023,28 @@ class UsersManager {
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
             const response = await fetch(`/vulnanalizer/api/users/${userId}/delete`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 
             if (response.ok) {
-                this.showSuccess('Пользователь удален');
+                this.showNotification('Пользователь удален', 'success');
                 this.loadUsers();
             } else {
                 const error = await response.json();
-                this.showError(error.detail || 'Ошибка удаления');
+                this.showNotification(error.detail || 'Ошибка удаления', 'error');
             }
         } catch (error) {
             console.error('Error deleting user:', error);
-            this.showError('Ошибка соединения с сервером');
+            this.showNotification('Ошибка соединения с сервером', 'error');
         }
-    }
-
-    showSuccess(message) {
-        showNotification(message, 'success');
-    }
-
-    showError(message) {
-        showNotification('Ошибка: ' + message, 'error');
     }
 }
 
-// Инициализация управления пользователями
-let usersManager = null;
-
 // Инициализация приложения при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    new VulnAnalizer();
-}); 
+    window.vulnAnalizer = new VulnAnalizer();
+});
