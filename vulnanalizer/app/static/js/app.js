@@ -92,7 +92,6 @@ class VulnAnalizer {
 
     setupNavigation() {
         const navLinks = document.querySelectorAll('.nav-link');
-        const pages = document.querySelectorAll('.page-content');
         
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
@@ -105,7 +104,9 @@ class VulnAnalizer {
                 link.classList.add('active');
                 
                 // Скрываем все страницы
-                pages.forEach(page => page.classList.remove('active'));
+                document.querySelectorAll('.page-content').forEach(page => {
+                    page.classList.remove('active');
+                });
                 
                 // Показываем нужную страницу
                 const targetPage = link.getAttribute('data-page');
