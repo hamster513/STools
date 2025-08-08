@@ -1829,8 +1829,60 @@ class VulnAnalizer {
             }
         });
 
+        // Поиск пользователей
+        const usersSearch = document.getElementById('users-search');
+        if (usersSearch) {
+            usersSearch.addEventListener('input', (e) => {
+                this.filterUsers();
+            });
+        }
+
+        // Фильтры пользователей
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Убираем активный класс со всех кнопок
+                filterButtons.forEach(b => b.classList.remove('active'));
+                // Добавляем активный класс к текущей кнопке
+                e.target.classList.add('active');
+                this.filterUsers();
+            });
+        });
+
         // Загружаем пользователей при открытии страницы
         this.loadUsers();
+    }
+
+    filterUsers() {
+        if (!this.allUsers) return;
+
+        const searchTerm = document.getElementById('users-search')?.value.toLowerCase() || '';
+        const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+
+        let filteredUsers = this.allUsers.filter(user => {
+            // Поиск по имени пользователя и email
+            const matchesSearch = user.username.toLowerCase().includes(searchTerm) || 
+                                (user.email && user.email.toLowerCase().includes(searchTerm));
+
+            // Фильтрация по статусу
+            let matchesFilter = true;
+            if (activeFilter === 'active') {
+                matchesFilter = user.is_active;
+            } else if (activeFilter === 'admin') {
+                matchesFilter = user.is_admin;
+            }
+
+            return matchesSearch && matchesFilter;
+        });
+
+        // Обновляем отображение
+        const usersList = document.getElementById('users-list');
+        if (usersList) {
+            usersList.innerHTML = filteredUsers.map(user => this.createUserCard(user)).join('');
+        }
+
+        // Обновляем статистику для отфильтрованных пользователей
+        this.updateUsersStats(filteredUsers);
     }
 
     async loadUsers() {
@@ -1857,7 +1909,24 @@ class VulnAnalizer {
         const usersList = document.getElementById('users-list');
         if (!usersList) return;
 
+        // Обновляем статистику
+        this.updateUsersStats(users);
+
+        // Рендерим пользователей
         usersList.innerHTML = users.map(user => this.createUserCard(user)).join('');
+
+        // Сохраняем список пользователей для фильтрации
+        this.allUsers = users;
+    }
+
+    updateUsersStats(users) {
+        const totalUsers = document.getElementById('total-users');
+        const activeUsers = document.getElementById('active-users');
+        const adminUsers = document.getElementById('admin-users');
+
+        if (totalUsers) totalUsers.textContent = users.length;
+        if (activeUsers) activeUsers.textContent = users.filter(u => u.is_active).length;
+        if (adminUsers) adminUsers.textContent = users.filter(u => u.is_admin).length;
     }
 
     createUserCard(user) {
@@ -1866,14 +1935,19 @@ class VulnAnalizer {
         if (user.is_active) badges.push('<span class="user-badge active">Активен</span>');
         if (!user.is_active) badges.push('<span class="user-badge inactive">Неактивен</span>');
 
+        const userInitial = user.username.charAt(0).toUpperCase();
+        const email = user.email || 'Email не указан';
+
         return `
-            <div class="user-card" data-user-id="${user.id}">
+            <div class="user-card" data-user-id="${user.id}" data-username="${user.username}" data-email="${email}" data-admin="${user.is_admin}" data-active="${user.is_active}">
                 <div class="user-header">
                     <div class="user-info">
-                        <i class="fas fa-user-circle"></i>
-                        <div>
-                            <div class="user-name">${user.username}</div>
-                            <div class="user-email">${user.email || 'Email не указан'}</div>
+                        <div class="user-avatar">
+                            ${userInitial}
+                        </div>
+                        <div class="user-details">
+                            <h4>${user.username}</h4>
+                            <div class="user-email">${email}</div>
                         </div>
                     </div>
                     <div class="user-badges">
@@ -1885,7 +1959,7 @@ class VulnAnalizer {
                         <i class="fas fa-edit"></i> Редактировать
                     </button>
                     <button class="btn btn-warning btn-sm" onclick="vulnAnalizer.changePassword(${user.id})">
-                        <i class="fas fa-key"></i> Сменить пароль
+                        <i class="fas fa-key"></i> Пароль
                     </button>
                     <button class="btn btn-danger btn-sm" onclick="vulnAnalizer.deleteUser(${user.id})">
                         <i class="fas fa-trash"></i> Удалить
