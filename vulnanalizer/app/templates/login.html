@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>STools - Вход</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.5">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 </head>
 <body class="light-theme">
@@ -58,6 +58,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     localStorage.setItem('auth_token', data.access_token);
+                    localStorage.setItem('user_info', JSON.stringify(data.user));
                     window.location.href = '/vulnanalizer/';
                 } else {
                     const error = await response.json();

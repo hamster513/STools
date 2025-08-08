@@ -49,12 +49,20 @@ class VulnAnalizer {
                 'Authorization': `Bearer ${token}`
             }
         }).then(response => {
-            if (!response.ok) {
+            if (response.ok) {
+                return response.json();
+            } else {
                 localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_info');
                 window.location.href = '/vulnanalizer/login';
+                throw new Error('Auth failed');
             }
+        }).then(userData => {
+            // Сохраняем информацию о пользователе
+            localStorage.setItem('user_info', JSON.stringify(userData));
         }).catch(() => {
             localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_info');
             window.location.href = '/vulnanalizer/login';
         });
     }
