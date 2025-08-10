@@ -27,6 +27,15 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Инициализация настроек Impact для расчета риска
+INSERT INTO settings (key, value) VALUES 
+    ('impact_resource_criticality', 'Medium'),
+    ('impact_confidential_data', 'Отсутствуют'),
+    ('impact_internet_access', 'Недоступен')
+ON CONFLICT (key) DO UPDATE SET 
+    value = EXCLUDED.value,
+    updated_at = CURRENT_TIMESTAMP;
+
 -- Создание таблицы EPSS
 CREATE TABLE IF NOT EXISTS epss (
     id SERIAL PRIMARY KEY,
@@ -43,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_epss_cve ON epss(cve);
 CREATE INDEX IF NOT EXISTS idx_epss_date ON epss(date);
 CREATE INDEX IF NOT EXISTS idx_epss_epss ON epss(epss);
 
--- Создание таблицы ExploitDB
+-- Создание таблицы ExploitDB (исправленная структура)
 CREATE TABLE IF NOT EXISTS exploitdb (
     id SERIAL PRIMARY KEY,
     exploit_id INTEGER UNIQUE NOT NULL,
@@ -73,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_exploitdb_verified ON exploitdb(verified);
 CREATE INDEX IF NOT EXISTS idx_exploitdb_type ON exploitdb(type);
 CREATE INDEX IF NOT EXISTS idx_exploitdb_platform ON exploitdb(platform);
 
--- Создание таблицы хостов
+-- Создание таблицы хостов (с полем zone)
 CREATE TABLE IF NOT EXISTS hosts (
     id SERIAL PRIMARY KEY,
     hostname VARCHAR(255),
@@ -108,6 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_hosts_cve ON hosts(cve);
 CREATE INDEX IF NOT EXISTS idx_hosts_criticality ON hosts(criticality);
 CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
 CREATE INDEX IF NOT EXISTS idx_hosts_os_name ON hosts(os_name);
+CREATE INDEX IF NOT EXISTS idx_hosts_zone ON hosts(zone);
 CREATE INDEX IF NOT EXISTS idx_hosts_risk_score ON hosts(risk_score);
 CREATE INDEX IF NOT EXISTS idx_hosts_has_exploits ON hosts(has_exploits);
 CREATE INDEX IF NOT EXISTS idx_hosts_last_exploit_date ON hosts(last_exploit_date);
