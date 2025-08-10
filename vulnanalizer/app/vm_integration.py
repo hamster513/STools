@@ -53,25 +53,32 @@ class VMMaxPatrolIntegration:
                     raise Exception("Failed to get authentication token")
             
             # Формируем PDQL запрос с фильтрацией по ОС
-            os_filter_conditions = ""
+            
+            # Базовые фильтры ОС (всегда применяются)
+            base_os_filters = [
+                "Host.OsName != 'Windows 7'",
+                "Host.OsName != 'Windows 10'", 
+                "Host.OsName != 'ESXi'",
+                "Host.OsName != 'IOS'",
+                "Host.OsName != 'NX-OS'",
+                "Host.OsName != 'IOS XE'",
+                "Host.OsName != 'FreeBSD'"
+            ]
+            
+            # Пользовательские фильтры ОС (из настроек)
+            user_os_filters = []
             if os_filter:
                 os_list = [os.strip() for os in os_filter.split(',') if os.strip()]
-                if os_list:
-                    os_conditions = []
-                    for os_name in os_list:
-                        os_conditions.append(f"Host.OsName != '{os_name}'")
-                    os_filter_conditions = " and ".join(os_conditions)
+                for os_name in os_list:
+                    user_os_filters.append(f"Host.OsName != '{os_name}'")
+            
+            # Объединяем все фильтры
+            all_os_filters = base_os_filters + user_os_filters
+            os_filter_conditions = " and ".join(all_os_filters)
             
             pdql_query = f"""select(@Host, Host.OsName, Host.@Vulners.CVEs, host.UF_Criticality, Host.UF_Zone) 
             | filter(   Host.OsName != null 
-                    and Host.OsName != 'Windows 7' 
-                    and Host.OsName != 'Windows 10' 
-                    and Host.OsName != 'ESXi' 
-                    and Host.OsName != 'IOS' 
-                    and Host.OsName != 'NX-OS' 
-                    and Host.OsName != 'IOS XE' 
-                    and Host.OsName != 'FreeBSD'
-                    {f"and {os_filter_conditions}" if os_filter_conditions else ""}) 
+                    and {os_filter_conditions}) 
             | limit({limit})"""
             
             # Первый запрос для получения токена
