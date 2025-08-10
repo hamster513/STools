@@ -1,0 +1,177 @@
+services:
+  # Redis для кэширования
+  redis:
+    image: redis:7-alpine
+    container_name: stools_redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # База данных для аутентификации
+  auth_postgres:
+    image: postgres:15
+    container_name: auth_postgres
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth_pass}
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Сервис аутентификации (готовый образ)
+  auth_web:
+    image: hamster513/stools-auth:latest
+    container_name: auth_web
+    volumes:
+      - auth_data:/app/data
+    environment:
+      - AUTH_DATABASE_URL=postgresql://auth_user:${AUTH_DB_PASSWORD:-auth_pass}@auth_postgres:5432/auth_db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      auth_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # База данных для LogAnalizer
+  loganalizer_postgres:
+    image: postgres:15
+    container_name: loganalizer_postgres
+    environment:
+      POSTGRES_DB: loganalizer_db
+      POSTGRES_USER: loganalizer_user
+      POSTGRES_PASSWORD: ${LOGANALIZER_DB_PASSWORD:-loganalizer_pass}
+    volumes:
+      - loganalizer_postgres_data:/var/lib/postgresql/data
+      - ./loganalizer/init-db:/docker-entrypoint-initdb.d
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loganalizer_user -d loganalizer_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # База данных для VulnAnalizer
+  vulnanalizer_postgres:
+    image: postgres:15
+    container_name: vulnanalizer_postgres
+    environment:
+      POSTGRES_DB: vulnanalizer
+      POSTGRES_USER: vulnanalizer
+      POSTGRES_PASSWORD: ${VULNANALIZER_DB_PASSWORD:-vulnanalizer}
+    volumes:
+      - vulnanalizer_postgres_data:/var/lib/postgresql/data
+      - ./vulnanalizer/init-db:/docker-entrypoint-initdb.d
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vulnanalizer -d vulnanalizer"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Веб-приложение LogAnalizer (готовый образ)
+  loganalizer_web:
+    image: hamster513/stools-loganalizer:latest
+    container_name: loganalizer_web
+    volumes:
+      - loganalizer_data:/app/data
+    environment:
+      - DATABASE_URL=postgresql://loganalizer_user:${LOGANALIZER_DB_PASSWORD:-loganalizer_pass}@loganalizer_postgres:5432/loganalizer_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      loganalizer_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Веб-приложение VulnAnalizer (готовый образ)
+  vulnanalizer_web:
+    image: hamster513/stools-vulnanalizer:latest
+    container_name: vulnanalizer_web
+    volumes:
+      - vulnanalizer_data:/app/data
+    environment:
+      - DATABASE_URL=postgresql://vulnanalizer:${VULNANALIZER_DB_PASSWORD:-vulnanalizer}@vulnanalizer_postgres:5432/vulnanalizer
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      vulnanalizer_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Единый Nginx для проксирования
+  nginx:
+    image: nginx:alpine
+    container_name: stools_nginx
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./static:/var/www/static
+    depends_on:
+      auth_web:
+        condition: service_healthy
+      loganalizer_web:
+        condition: service_healthy
+      vulnanalizer_web:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+  auth_data:
+  auth_postgres_data:
+  loganalizer_data:
+  loganalizer_postgres_data:
+  vulnanalizer_data:
+  vulnanalizer_postgres_data:
+
+networks:
+  stools_network:
+    driver: bridge
