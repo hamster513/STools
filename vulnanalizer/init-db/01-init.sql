@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_epss_epss ON epss(epss);
 -- Создание таблицы ExploitDB
 CREATE TABLE IF NOT EXISTS exploitdb (
     id SERIAL PRIMARY KEY,
-    exploit_id VARCHAR(20) UNIQUE NOT NULL,
+    exploit_id INTEGER UNIQUE NOT NULL,
     file_path TEXT,
     description TEXT,
     date_published DATE,
