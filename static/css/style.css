@@ -2,6 +2,7 @@
 :root {
     /* Светлая тема - оптимизированные цвета */
     --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
     --secondary-color: #64748b;
     --background-color: #ffffff;
     --surface-color: #f8fafc;
@@ -20,11 +21,13 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* Темная тема - оптимизированные цвета */
 .dark-theme {
     --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
     --secondary-color: #94a3b8;
     --background-color: #0f172a;
     --surface-color: #1e293b;
@@ -32,6 +35,10 @@
     --text-secondary: #cbd5e1;
     --border-color: #334155;
     --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
     --success-color: #22c55e;
     --error-color: #f87171;
     --warning-color: #fbbf24;
@@ -2653,15 +2660,61 @@ input:focus, textarea:focus, select:focus {
     display: none;
 }
 
-.modern-sidebar.collapsed .nav-link {
+.modern-sidebar.collapsed .modern-nav-link {
     justify-content: center;
     padding: 1rem;
+    margin: 0.25rem 0.5rem;
 }
 
 .modern-sidebar.collapsed .nav-icon {
     margin: 0;
     width: 2.5rem;
     height: 2.5rem;
+    flex-shrink: 0;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+}
+
+.modern-sidebar.collapsed .nav-icon i {
+    font-size: 1.1rem;
+    color: inherit;
+}
+
+.modern-sidebar.collapsed .modern-nav-link {
+    justify-content: center;
+    padding: 1rem 0.5rem;
+    margin: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    gap: 0;
+}
+
+.modern-sidebar.collapsed .modern-nav-link:hover {
+    background: var(--background-color);
+    border-left-color: transparent;
+}
+
+.modern-sidebar.collapsed .modern-nav-link:hover .nav-icon {
+    background: var(--primary-color);
+    color: white;
+}
+
+.modern-sidebar.collapsed .modern-nav-link:hover .nav-icon i {
+    color: white;
+}
+
+.modern-sidebar.collapsed .modern-nav-link.active {
+    background: var(--primary-color);
+    color: white;
+    border-left-color: transparent;
+}
+
+.modern-sidebar.collapsed .modern-nav-link.active .nav-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.modern-sidebar.collapsed .modern-nav-link.active .nav-icon i {
+    color: white;
 }
 
 .modern-nav-link {
@@ -2701,17 +2754,35 @@ input:focus, textarea:focus, select:focus {
     flex-shrink: 0;
     position: relative;
     overflow: hidden;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+}
+
+.nav-icon i {
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: inherit;
 }
 
 .modern-nav-link:hover .nav-icon,
 .modern-nav-link.active .nav-icon {
     background: var(--primary-color);
     color: white;
+    transform: scale(1.05);
+    border-color: var(--primary-color);
 }
 
 .nav-title {
     font-weight: 500;
     font-size: 0.875rem;
+    white-space: nowrap;
 }
 
 /* Современные стили для заголовка контента */
@@ -3205,3 +3276,5 @@ input:focus, textarea:focus, select:focus {
         justify-content: center;
     }
 }
+
+

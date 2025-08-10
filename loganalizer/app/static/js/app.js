@@ -30,6 +30,7 @@ class LogAnalizer {
         this.setupUserMenu();
         this.setupFileUpload();
         this.setupEventListeners();
+        this.setupSidebar();
         this.loadInitialData();
     }
 
@@ -1592,6 +1593,28 @@ class LogAnalizer {
                 ${errorHtml}
             </div>
         `;
+    }
+
+    setupSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        
+        if (!sidebar || !sidebarToggle) return;
+
+        // Загружаем состояние из localStorage
+        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+        }
+
+        // Обработчик для кнопки сворачивания
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            
+            // Сохраняем состояние
+            const isNowCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar_collapsed', isNowCollapsed.toString());
+        });
     }
 }
 
