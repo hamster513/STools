@@ -138,7 +138,7 @@ class Database:
                 print(f"Net change in EPSS database: {count_after - count_before}")
                 
         finally:
-            await self.release_connection(conn)
+            await conn.close()
 
     async def count_epss_records(self):
         conn = await self.get_connection()
@@ -208,7 +208,7 @@ class Database:
                 print(f"Net change in database: {count_after - count_before}")
                 
         finally:
-            await self.release_connection(conn)
+            await conn.close()
 
     async def count_exploitdb_records(self):
         conn = await self.get_connection()

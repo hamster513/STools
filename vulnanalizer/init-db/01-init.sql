@@ -46,23 +46,32 @@ CREATE INDEX IF NOT EXISTS idx_epss_epss ON epss(epss);
 -- Создание таблицы ExploitDB
 CREATE TABLE IF NOT EXISTS exploitdb (
     id SERIAL PRIMARY KEY,
-    cve VARCHAR(20) NOT NULL,
-    exploit_id VARCHAR(20),
+    exploit_id VARCHAR(20) UNIQUE NOT NULL,
+    file_path TEXT,
     description TEXT,
     date_published DATE,
-    date_updated DATE,
     author VARCHAR(100),
     type VARCHAR(50),
     platform VARCHAR(50),
     port VARCHAR(10),
+    date_added DATE,
+    date_updated DATE,
     verified BOOLEAN DEFAULT FALSE,
+    codes TEXT,
+    tags TEXT,
+    aliases TEXT,
+    screenshot_url TEXT,
+    application_url TEXT,
+    source_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Создание индексов для ExploitDB
-CREATE INDEX IF NOT EXISTS idx_exploitdb_cve ON exploitdb(cve);
+CREATE INDEX IF NOT EXISTS idx_exploitdb_exploit_id ON exploitdb(exploit_id);
 CREATE INDEX IF NOT EXISTS idx_exploitdb_date_published ON exploitdb(date_published);
 CREATE INDEX IF NOT EXISTS idx_exploitdb_verified ON exploitdb(verified);
+CREATE INDEX IF NOT EXISTS idx_exploitdb_type ON exploitdb(type);
+CREATE INDEX IF NOT EXISTS idx_exploitdb_platform ON exploitdb(platform);
 
 -- Создание таблицы хостов
 CREATE TABLE IF NOT EXISTS hosts (
