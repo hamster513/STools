@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS hosts (
     criticality VARCHAR(20),
     status VARCHAR(50) DEFAULT 'Active',
     os_name VARCHAR(100),
+    zone VARCHAR(100),
     epss_score DECIMAL(5,4),
     epss_percentile DECIMAL(5,2),
     exploits_count INTEGER DEFAULT 0,

@@ -62,8 +62,15 @@ class VMMaxPatrolIntegration:
                         os_conditions.append(f"Host.OsName != '{os_name}'")
                     os_filter_conditions = " and ".join(os_conditions)
             
-            pdql_query = f"""select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs) 
+            pdql_query = f"""select(@Host, Host.OsName, Host.@Vulners.CVEs, host.UF_Criticality, Host.UF_Zone) 
             | filter(   Host.OsName != null 
+                    and Host.OsName != 'Windows 7' 
+                    and Host.OsName != 'Windows 10' 
+                    and Host.OsName != 'ESXi' 
+                    and Host.OsName != 'IOS' 
+                    and Host.OsName != 'NX-OS' 
+                    and Host.OsName != 'IOS XE' 
+                    and Host.OsName != 'FreeBSD'
                     {f"and {os_filter_conditions}" if os_filter_conditions else ""}) 
             | limit({limit})"""
             
@@ -118,8 +125,9 @@ class VMMaxPatrolIntegration:
                 # Очищаем данные от кавычек
                 hostname = row.get('@Host', '').strip('"')
                 os_name = row.get('Host.OsName', '').strip('"')
-                groups = row.get('Host.@Groups', '').strip('"')
                 cve = row.get('Host.@Vulners.CVEs', '').strip('"')
+                criticality = row.get('host.UF_Criticality', '').strip('"')
+                zone = row.get('Host.UF_Zone', '').strip('"')
                 
                 # Пропускаем строки без CVE
                 if not cve or cve == '""':
@@ -135,8 +143,9 @@ class VMMaxPatrolIntegration:
                         hosts_data.append({
                             'hostname': hostname,
                             'os_name': os_name,
-                            'groups': groups,
-                            'cve': clean_cve
+                            'cve': clean_cve,
+                            'criticality': criticality,
+                            'zone': zone
                         })
             
             print(f"Parsed {len(hosts_data)} host-CVE combinations from VM")

@@ -791,15 +791,21 @@ class Database:
                     if not cve:
                         continue
                     
-                    # Определяем критичность на основе ОС
+                    # Используем критичность из VM или определяем на основе ОС
+                    vm_criticality = host_data.get('criticality', '').strip()
                     os_name = host_data.get('os_name', '').lower()
-                    criticality = 'Medium'
-                    if 'windows' in os_name:
-                        criticality = 'High'
-                    elif 'rhel' in os_name or 'centos' in os_name:
-                        criticality = 'High'
-                    elif 'ubuntu' in os_name or 'debian' in os_name:
+                    
+                    if vm_criticality and vm_criticality in ['Critical', 'High', 'Medium', 'Low']:
+                        criticality = vm_criticality
+                    else:
+                        # Определяем критичность на основе ОС если не указана в VM
                         criticality = 'Medium'
+                        if 'windows' in os_name:
+                            criticality = 'High'
+                        elif 'rhel' in os_name or 'centos' in os_name:
+                            criticality = 'High'
+                        elif 'ubuntu' in os_name or 'debian' in os_name:
+                            criticality = 'Medium'
                     
                     # Проверяем, существует ли запись для этого хоста и CVE
                     existing = await conn.fetchval(
@@ -812,22 +818,22 @@ class Database:
                         query = """
                             UPDATE hosts 
                             SET ip_address = $2, os_name = $3, criticality = $4, 
-                                status = $5, updated_at = CURRENT_TIMESTAMP
-                            WHERE hostname = $1 AND cve = $6
+                                zone = $5, status = $6, updated_at = CURRENT_TIMESTAMP
+                            WHERE hostname = $1 AND cve = $7
                         """
                         await conn.execute(query, 
                             hostname, ip_address, host_data.get('os_name', ''), 
-                            criticality, 'Active', cve)
+                            criticality, host_data.get('zone', ''), 'Active', cve)
                         updated_count += 1
                     else:
                         # Вставляем новую запись
                         query = """
-                            INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7)
+                            INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                         """
                         await conn.execute(query, 
                             hostname, ip_address, cve, None, criticality, 'Active', 
-                            host_data.get('os_name', ''))
+                            host_data.get('os_name', ''), host_data.get('zone', ''))
                         inserted_count += 1
                 
                 # Получаем количество записей после импорта
