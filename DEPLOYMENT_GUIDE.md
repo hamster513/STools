@@ -119,7 +119,7 @@ chmod +x build_images.sh
 ./build_images.sh push
 ```
 
-**Примечание:** Готовые образы уже доступны в Docker Hub под тегом `hamster513/stools-*:latest`
+**Примечание:** Готовые образы уже доступны в Docker Hub под тегом `hamster5133/stools-*:latest`
 
 ## ⚙️ Настройка окружения
 

@@ -6,7 +6,7 @@
 set -e  # Остановка при ошибке
 
 # Конфигурация
-DOCKER_USERNAME="hamster513"
+DOCKER_USERNAME="hamster5133"
 VERSION="latest"
 
 # Цвета для вывода

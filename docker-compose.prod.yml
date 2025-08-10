@@ -34,7 +34,7 @@ services:
 
   # Сервис аутентификации (готовый образ)
   auth_web:
-    image: hamster513/stools-auth:latest
+    image: hamster5133/stools-auth:latest
     container_name: auth_web
     volumes:
       - auth_data:/app/data
@@ -95,7 +95,7 @@ services:
 
   # Веб-приложение LogAnalizer (готовый образ)
   loganalizer_web:
-    image: hamster513/stools-loganalizer:latest
+    image: hamster5133/stools-loganalizer:latest
     container_name: loganalizer_web
     volumes:
       - loganalizer_data:/app/data
@@ -117,7 +117,7 @@ services:
 
   # Веб-приложение VulnAnalizer (готовый образ)
   vulnanalizer_web:
-    image: hamster513/stools-vulnanalizer:latest
+    image: hamster5133/stools-vulnanalizer:latest
     container_name: vulnanalizer_web
     volumes:
       - vulnanalizer_data:/app/data
