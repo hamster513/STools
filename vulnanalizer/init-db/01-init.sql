@@ -110,4 +110,4 @@ CREATE TABLE IF NOT EXISTS vm_import_status (
     error_message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-); 
+);
