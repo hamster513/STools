@@ -72,11 +72,21 @@ CREATE TABLE IF NOT EXISTS hosts (
     cve VARCHAR(20),
     cvss DECIMAL(3,1),
     criticality VARCHAR(20),
+    status VARCHAR(50) DEFAULT 'Active',
+    os_name VARCHAR(100),
     epss_score DECIMAL(5,4),
-    exploit_count INTEGER DEFAULT 0,
-    verified_exploits INTEGER DEFAULT 0,
+    epss_percentile DECIMAL(5,2),
+    exploits_count INTEGER DEFAULT 0,
+    verified_exploits_count INTEGER DEFAULT 0,
+    has_exploits BOOLEAN DEFAULT FALSE,
+    last_exploit_date DATE,
     risk_score DECIMAL(5,2),
+    risk_raw DECIMAL(5,2),
     impact_score DECIMAL(5,2),
+    epss_updated_at TIMESTAMP,
+    exploits_updated_at TIMESTAMP,
+    risk_updated_at TIMESTAMP,
+    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -86,7 +96,11 @@ CREATE INDEX IF NOT EXISTS idx_hosts_hostname ON hosts(hostname);
 CREATE INDEX IF NOT EXISTS idx_hosts_ip_address ON hosts(ip_address);
 CREATE INDEX IF NOT EXISTS idx_hosts_cve ON hosts(cve);
 CREATE INDEX IF NOT EXISTS idx_hosts_criticality ON hosts(criticality);
+CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
+CREATE INDEX IF NOT EXISTS idx_hosts_os_name ON hosts(os_name);
 CREATE INDEX IF NOT EXISTS idx_hosts_risk_score ON hosts(risk_score);
+CREATE INDEX IF NOT EXISTS idx_hosts_has_exploits ON hosts(has_exploits);
+CREATE INDEX IF NOT EXISTS idx_hosts_last_exploit_date ON hosts(last_exploit_date);
 
 -- Создание таблицы VM импорта
 CREATE TABLE IF NOT EXISTS vm_import_status (
