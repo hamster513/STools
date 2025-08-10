@@ -476,6 +476,9 @@ body {
     display: flex;
     flex-direction: column;
     background-color: var(--background-color);
+    margin-left: 280px;
+    min-height: calc(100vh - 60px);
+    transition: margin-left var(--transition-speed);
 }
 
 .content-header {
@@ -2613,13 +2616,23 @@ input:focus, textarea:focus, select:focus {
     box-shadow: var(--shadow-sm);
     padding-top: 1rem;
     width: 280px;
-    flex-shrink: 0;
+    height: 100vh;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    z-index: 100;
+    overflow-y: auto;
     transition: all var(--transition-speed);
-    position: relative;
 }
 
 .modern-sidebar.collapsed {
     width: 80px;
+}
+
+/* Основной контент при свернутом боковом меню */
+.modern-sidebar.collapsed + .main-content,
+.container:has(.modern-sidebar.collapsed) .main-content {
+    margin-left: 80px;
 }
 
 .sidebar-toggle {
@@ -3215,10 +3228,14 @@ input:focus, textarea:focus, select:focus {
     .modern-sidebar {
         position: fixed;
         left: -100%;
-        top: 0;
-        height: 100vh;
+        top: 60px;
+        height: calc(100vh - 60px);
         z-index: 1000;
         transition: left var(--transition-speed);
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
     }
     
     .modern-sidebar.show {
