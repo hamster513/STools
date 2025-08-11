@@ -2,6 +2,12 @@ class VulnAnalizer {
     constructor() {
         this.init();
         this.operationStatus = {}; // Хранит статус текущих операций
+        this.paginationState = {
+            currentPage: 1,
+            totalPages: 1,
+            totalCount: 0,
+            limit: 100
+        };
     }
 
     // Получение базового пути для API
@@ -143,6 +149,9 @@ class VulnAnalizer {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
         const usersLink = document.getElementById('users-link');
+
+        // Загружаем версию приложения
+        this.loadAppVersion();
 
         // Переключение выпадающего меню настроек
         if (settingsToggle) {
@@ -622,7 +631,7 @@ class VulnAnalizer {
     }
 
     setupHosts() {
-        // Загрузка CSV хостов
+        // Загрузка CSV хостов с поддержкой сжатых файлов
         const hostsForm = document.getElementById('hosts-upload-form');
         if (hostsForm) {
             hostsForm.addEventListener('submit', async (e) => {
@@ -633,6 +642,19 @@ class VulnAnalizer {
                     return;
                 }
                 
+                const file = fileInput.files[0];
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                
+                // Проверяем размер файла (максимум 2GB)
+                const maxFileSize = 2 * 1024 * 1024 * 1024; // 2GB в байтах
+                if (file.size > maxFileSize) {
+                    this.showNotification(`Файл слишком большой (${fileSizeMB} МБ). Максимальный размер: 2 ГБ.`, 'error');
+                    return;
+                }
+                
+                // Обновляем accept для поддержки сжатых файлов
+                fileInput.accept = '.csv,.zip,.gz,.gzip';
+                
                 const uploadBtn = document.getElementById('hosts-upload-btn');
                 const btnText = uploadBtn.querySelector('.btn-text');
                 const spinner = uploadBtn.querySelector('.fa-spinner');
@@ -642,46 +664,88 @@ class VulnAnalizer {
                 spinner.style.display = 'inline-block';
                 uploadBtn.disabled = true;
                 
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('hosts', 'Загрузка файла хостов...', 0);
+                // Показываем прогресс-бар
+                this.showImportProgress();
                 
                 const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
+                formData.append('file', file);
                 
                 try {
-                    this.updateOperationProgress('hosts', 'Обработка файла хостов...', 25, 'Чтение CSV файла...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    this.updateOperationProgress('hosts', 'Парсинг данных...', 50, 'Обработка записей хостов...');
-                    await new Promise(resolve => setTimeout(resolve, 600));
-                    
-                    this.updateOperationProgress('hosts', 'Сохранение в базу...', 75, 'Запись хостов в базу данных...');
+                    // Запускаем мониторинг прогресса
+                    const progressInterval = this.startProgressMonitoring();
                     
                     const resp = await fetch(this.getApiBasePath() + '/hosts/upload', {
                         method: 'POST',
                         body: formData
                     });
+                    
+                    // Проверяем статус ответа
+                    if (!resp.ok) {
+                        let errorMessage = `HTTP ${resp.status}: ${resp.statusText}`;
+                        
+                        // Пытаемся получить текст ошибки
+                        try {
+                            const errorText = await resp.text();
+                            if (errorText.includes('<html>')) {
+                                errorMessage = `Ошибка сервера (${resp.status}). Возможно, файл слишком большой или произошла внутренняя ошибка.`;
+                            } else {
+                                errorMessage = errorText;
+                            }
+                        } catch (textError) {
+                            console.error('Error reading response text:', textError);
+                        }
+                        
+                        clearInterval(progressInterval);
+                        this.updateImportProgress('error', 'Ошибка загрузки', 0, 0, 0, 0, errorMessage);
+                        this.showNotification('Ошибка загрузки: ' + errorMessage, 'error');
+                        return;
+                    }
+                    
+                    // Проверяем Content-Type
+                    const contentType = resp.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        clearInterval(progressInterval);
+                        const errorMessage = 'Сервер вернул неверный формат ответа. Возможно, произошла ошибка на сервере.';
+                        this.updateImportProgress('error', 'Ошибка формата ответа', 0, 0, 0, 0, errorMessage);
+                        this.showNotification('Ошибка: ' + errorMessage, 'error');
+                        return;
+                    }
+                    
                     const data = await resp.json();
                     
+                    // Останавливаем мониторинг прогресса
+                    clearInterval(progressInterval);
+                    
                     if (data.success) {
-                        this.updateOperationProgress('hosts', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('hosts', 'Хосты успешно загружены', `Загружено хостов: ${data.count}`);
-                        this.showNotification(`Загружено хостов: ${data.count}`, 'success');
+                        this.updateImportProgress('completed', 'Импорт завершен', 100, 100, data.count, data.count);
+                        this.showNotification(`Импорт завершен: ${data.count.toLocaleString()} записей`, 'success');
                         this.updateHostsStatus();
                         fileInput.value = ''; // Очищаем поле файла
+                        
+                        // Скрываем прогресс-бар через 3 секунды
+                        setTimeout(() => {
+                            this.hideImportProgress();
+                        }, 3000);
                     } else {
-                        this.showOperationError('hosts', 'Ошибка загрузки хостов', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка загрузки хостов', 'error');
+                        this.updateImportProgress('error', 'Ошибка импорта', 0, 0, 0, 0, data.detail || 'Неизвестная ошибка');
+                        this.showNotification('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), 'error');
                     }
                 } catch (err) {
                     console.error('Hosts upload error:', err);
-                    this.showOperationError('hosts', 'Ошибка загрузки хостов', err.message);
-                    this.showNotification('Ошибка загрузки хостов', 'error');
+                    let errorMessage = err.message;
+                    
+                    // Улучшенная обработка ошибок
+                    if (err.name === 'TypeError' && err.message.includes('JSON')) {
+                        errorMessage = 'Сервер вернул неверный формат ответа. Возможно, произошла ошибка на сервере или файл слишком большой.';
+                    } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                        errorMessage = 'Ошибка соединения с сервером. Проверьте подключение к интернету.';
+                    }
+                    
+                    this.updateImportProgress('error', 'Ошибка импорта', 0, 0, 0, 0, errorMessage);
+                    this.showNotification('Ошибка импорта: ' + errorMessage, 'error');
                 } finally {
                     // Восстанавливаем кнопку
-                    btnText.textContent = 'Загрузить CSV';
+                    btnText.textContent = 'Загрузить файл';
                     spinner.style.display = 'none';
                     uploadBtn.disabled = false;
                 }
@@ -752,8 +816,36 @@ class VulnAnalizer {
                 await this.searchHosts();
             });
         }
-        
 
+        // Обработчики пагинации
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', () => {
+                if (this.paginationState.currentPage > 1) {
+                    this.searchHosts(this.paginationState.currentPage - 1);
+                }
+            });
+        }
+        
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', () => {
+                if (this.paginationState.currentPage < this.paginationState.totalPages) {
+                    this.searchHosts(this.paginationState.currentPage + 1);
+                }
+            });
+        }
+
+        // Обработчик изменения количества записей на странице
+        const resultsPerPageSelect = document.getElementById('results-per-page');
+        if (resultsPerPageSelect) {
+            resultsPerPageSelect.addEventListener('change', (e) => {
+                this.paginationState.limit = parseInt(e.target.value);
+                this.paginationState.currentPage = 1; // Сбрасываем на первую страницу
+                this.searchHosts(1);
+            });
+        }
     }
 
     async updateExploitDBStatus() {
@@ -778,13 +870,13 @@ class VulnAnalizer {
                         <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания ExploitDB</h4>
                         <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <a href="https://raw.githubusercontent.com/offensive-security/exploitdb/master/files_exploits.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                            <a href="https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
                                 🔗 <span style="flex: 1;">ExploitDB Files (основная база)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~15MB</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~10MB</span>
                             </a>
-                            <a href="https://raw.githubusercontent.com/offensive-security/exploitdb/master/files_shellcodes.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                            <a href="https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_shellcodes.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
                                 🔗 <span style="flex: 1;">ExploitDB Shellcodes</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~220KB</span>
                             </a>
                             <a href="https://github.com/offensive-security/exploitdb" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
                                 📦 <span style="flex: 1;">GitHub репозиторий ExploitDB</span>
@@ -832,13 +924,13 @@ class VulnAnalizer {
                         <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания EPSS</h4>
                         <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <a href="https://epss.cyentia.com/epss_scores-current.csv.gz" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                            <a href="https://epss.empiricalsecurity.com/epss_scores-current.csv.gz" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
                                 🔗 <span style="flex: 1;">EPSS Scores (текущая версия)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~50MB</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB</span>
                             </a>
-                            <a href="https://epss.cyentia.com/epss_scores-current.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">EPSS Scores (без сжатия)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~200MB</span>
+                            <a href="https://epss.empiricalsecurity.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">EPSS Scores (официальный сайт)</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB (gz)</span>
                             </a>
                             <a href="https://epss.cyentia.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
                                 🌐 <span style="flex: 1;">Официальный сайт EPSS</span>
@@ -888,7 +980,7 @@ class VulnAnalizer {
         }
     }
 
-    async searchHosts() {
+    async searchHosts(page = 1) {
         const form = document.getElementById('hosts-search-form');
         const resultsDiv = document.getElementById('hosts-search-results');
         
@@ -909,13 +1001,17 @@ class VulnAnalizer {
             }
         }
         
+        // Добавляем параметры пагинации
+        params.append('page', page);
+        params.append('limit', this.paginationState.limit);
+        
         try {
             const resp = await fetch(`${this.getApiBasePath()}/hosts/search?${params.toString()}`);
             const data = await resp.json();
             
             if (data.success) {
                 const groupBy = formData.get('group_by') || '';
-                this.renderHostsResults(data.data, groupBy);
+                this.renderHostsResults(data.results, groupBy, data);
             } else {
                 this.showNotification('Ошибка поиска хостов', 'error');
             }
@@ -925,7 +1021,7 @@ class VulnAnalizer {
         }
     }
 
-    renderHostsResults(hosts, groupBy = '') {
+    renderHostsResults(hosts, groupBy = '', paginationData = null) {
         const resultsDiv = document.getElementById('hosts-search-results');
         if (!resultsDiv) return;
         
@@ -936,10 +1032,21 @@ class VulnAnalizer {
                     <p>Хосты не найдены</p>
                 </div>
             `;
+            this.hidePagination();
             return;
         }
         
-        let html = `<h4>Найдено хостов: ${hosts.length}</h4>`;
+        // Обновляем состояние пагинации
+        if (paginationData) {
+            this.paginationState = {
+                currentPage: paginationData.page || 1,
+                totalPages: paginationData.total_pages || 1,
+                totalCount: paginationData.total_count || hosts.length,
+                limit: paginationData.limit || 100
+            };
+        }
+        
+        let html = `<h4>Найдено хостов: ${this.paginationState.totalCount}</h4>`;
         
         if (groupBy) {
             // Группируем хосты
@@ -984,6 +1091,9 @@ class VulnAnalizer {
                 this.calculateHostRisk(host.id);
             }, index * 100); // Задержка 100мс между запросами
         });
+        
+        // Отображаем пагинацию
+        this.renderPagination();
     }
 
     groupHosts(hosts, groupBy) {
@@ -1067,6 +1177,97 @@ class VulnAnalizer {
         const resultsDiv = document.getElementById('hosts-search-results');
         if (resultsDiv) {
             resultsDiv.innerHTML = '';
+        }
+        this.hidePagination();
+    }
+
+    renderPagination() {
+        const paginationDiv = document.getElementById('hosts-pagination');
+        if (!paginationDiv) return;
+
+        if (this.paginationState.totalPages <= 1) {
+            this.hidePagination();
+            return;
+        }
+
+        // Обновляем информацию о пагинации
+        const startRecord = (this.paginationState.currentPage - 1) * this.paginationState.limit + 1;
+        const endRecord = Math.min(this.paginationState.currentPage * this.paginationState.limit, this.paginationState.totalCount);
+        
+        const paginationInfo = document.getElementById('pagination-info');
+        if (paginationInfo) {
+            paginationInfo.textContent = `Показано ${startRecord}-${endRecord} из ${this.paginationState.totalCount} записей`;
+        }
+
+        // Обновляем кнопки навигации
+        const prevBtn = document.getElementById('prev-page');
+        const nextBtn = document.getElementById('next-page');
+        
+        if (prevBtn) {
+            prevBtn.disabled = this.paginationState.currentPage <= 1;
+        }
+        
+        if (nextBtn) {
+            nextBtn.disabled = this.paginationState.currentPage >= this.paginationState.totalPages;
+        }
+
+        // Генерируем номера страниц
+        this.renderPageNumbers();
+
+        // Показываем пагинацию
+        paginationDiv.style.display = 'block';
+    }
+
+    renderPageNumbers() {
+        const pageNumbersDiv = document.getElementById('page-numbers');
+        if (!pageNumbersDiv) return;
+
+        const { currentPage, totalPages } = this.paginationState;
+        let html = '';
+
+        // Показываем максимум 5 страниц вокруг текущей
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        // Добавляем первую страницу если нужно
+        if (startPage > 1) {
+            html += `<span class="page-number" data-page="1">1</span>`;
+            if (startPage > 2) {
+                html += `<span class="page-number disabled">...</span>`;
+            }
+        }
+
+        // Добавляем страницы в диапазоне
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === currentPage;
+            html += `<span class="page-number ${isActive ? 'active' : ''}" data-page="${i}">${i}</span>`;
+        }
+
+        // Добавляем последнюю страницу если нужно
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `<span class="page-number disabled">...</span>`;
+            }
+            html += `<span class="page-number" data-page="${totalPages}">${totalPages}</span>`;
+        }
+
+        pageNumbersDiv.innerHTML = html;
+
+        // Добавляем обработчики событий
+        pageNumbersDiv.querySelectorAll('.page-number:not(.disabled)').forEach(span => {
+            span.addEventListener('click', (e) => {
+                const page = parseInt(e.target.dataset.page);
+                if (page && page !== currentPage) {
+                    this.searchHosts(page);
+                }
+            });
+        });
+    }
+
+    hidePagination() {
+        const paginationDiv = document.getElementById('hosts-pagination');
+        if (paginationDiv) {
+            paginationDiv.style.display = 'none';
         }
     }
 
@@ -1799,6 +2000,20 @@ class VulnAnalizer {
         }
     }
 
+    async loadAppVersion() {
+        try {
+            const response = await fetch(`${this.getApiBasePath()}/version`);
+            const data = await response.json();
+            
+            const versionElement = document.getElementById('app-version');
+            if (versionElement && data.version) {
+                versionElement.textContent = `v${data.version}`;
+            }
+        } catch (error) {
+            console.error('Error loading app version:', error);
+        }
+    }
+
     populateVMStatus(data) {
         const lastImport = document.getElementById('vm-last-import');
         const importCount = document.getElementById('vm-import-count');
@@ -2013,7 +2228,7 @@ class VulnAnalizer {
 
             if (response.ok) {
                 const data = await response.json();
-                this.renderUsers(data.data);
+                this.renderUsers(data.users);
             } else if (response.status === 403) {
                 this.showNotification('Доступ запрещен: требуются права администратора', 'error');
                 this.hideUsersPage();
@@ -2050,6 +2265,13 @@ class VulnAnalizer {
         const usersList = document.getElementById('users-list');
         if (!usersList) return;
 
+        // Проверяем, что users является массивом
+        if (!Array.isArray(users)) {
+            console.error('Users is not an array:', users);
+            this.showNotification('Ошибка: неверный формат данных пользователей', 'error');
+            return;
+        }
+
         // Обновляем статистику
         this.updateUsersStats(users);
 
@@ -2064,6 +2286,15 @@ class VulnAnalizer {
         const totalUsers = document.getElementById('total-users');
         const activeUsers = document.getElementById('active-users');
         const adminUsers = document.getElementById('admin-users');
+
+        // Проверяем, что users является массивом
+        if (!Array.isArray(users)) {
+            console.error('updateUsersStats: users is not an array:', users);
+            if (totalUsers) totalUsers.textContent = '0';
+            if (activeUsers) activeUsers.textContent = '0';
+            if (adminUsers) adminUsers.textContent = '0';
+            return;
+        }
 
         if (totalUsers) totalUsers.textContent = users.length;
         if (activeUsers) activeUsers.textContent = users.filter(u => u.is_active).length;
@@ -2278,6 +2509,127 @@ class VulnAnalizer {
         } catch (error) {
             console.error('Error deleting user:', error);
             this.showNotification('Ошибка соединения с сервером', 'error');
+        }
+    }
+
+    // Функции для работы с прогресс-баром импорта
+    showImportProgress() {
+        const container = document.getElementById('import-progress-container');
+        if (container) {
+            container.style.display = 'block';
+            container.classList.add('fade-in');
+        }
+    }
+
+    hideImportProgress() {
+        const container = document.getElementById('import-progress-container');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    updateImportProgress(status, currentStep, overallProgress, stepProgress, totalRecords, processedRecords, errorMessage = null) {
+        const container = document.getElementById('import-progress-container');
+        if (!container) return;
+
+        // Обновляем классы для анимации
+        container.className = 'progress-info ' + status;
+
+        // Обновляем текст текущего шага
+        const currentStepText = document.getElementById('current-step-text');
+        if (currentStepText) {
+            currentStepText.textContent = currentStep;
+        }
+
+        // Обновляем прогресс шага
+        const stepProgressText = document.getElementById('step-progress-text');
+        if (stepProgressText) {
+            stepProgressText.textContent = Math.round(stepProgress) + '%';
+        }
+
+        // Обновляем общий прогресс
+        const overallProgressText = document.getElementById('overall-progress-text');
+        if (overallProgressText) {
+            overallProgressText.textContent = Math.round(overallProgress) + '%';
+        }
+
+        // Обновляем прогресс-бар
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        if (progressBarFill) {
+            progressBarFill.style.width = overallProgress + '%';
+        }
+
+        // Обновляем количество записей
+        const processedRecordsText = document.getElementById('processed-records-text');
+        if (processedRecordsText) {
+            processedRecordsText.textContent = processedRecords.toLocaleString();
+        }
+
+        const totalRecordsText = document.getElementById('total-records-text');
+        if (totalRecordsText) {
+            totalRecordsText.textContent = totalRecords.toLocaleString();
+        }
+
+        // Обновляем оставшееся время
+        const estimatedTimeText = document.getElementById('estimated-time-text');
+        if (estimatedTimeText && this.estimatedTime) {
+            estimatedTimeText.textContent = this.formatTime(this.estimatedTime);
+        } else {
+            estimatedTimeText.textContent = '-';
+        }
+
+        // Показываем ошибку если есть
+        if (errorMessage) {
+            this.showNotification('Ошибка: ' + errorMessage, 'error');
+        }
+    }
+
+    startProgressMonitoring() {
+        return setInterval(async () => {
+            try {
+                const resp = await fetch(this.getApiBasePath() + '/hosts/import-progress');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    
+                    this.updateImportProgress(
+                        data.status,
+                        data.current_step,
+                        data.progress,
+                        data.current_step_progress,
+                        data.total_records,
+                        data.processed_records,
+                        data.error_message
+                    );
+
+                    // Обновляем оставшееся время
+                    if (data.estimated_time) {
+                        this.estimatedTime = data.estimated_time;
+                    }
+
+                    // Если импорт завершен или произошла ошибка, останавливаем мониторинг
+                    if (data.status === 'completed' || data.status === 'error') {
+                        return false; // Остановить интервал
+                    }
+                }
+            } catch (err) {
+                console.error('Progress monitoring error:', err);
+            }
+        }, 1000); // Обновляем каждую секунду
+    }
+
+    formatTime(seconds) {
+        if (!seconds || seconds < 0) return '-';
+        
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        if (hours > 0) {
+            return `${hours}ч ${minutes}м ${secs}с`;
+        } else if (minutes > 0) {
+            return `${minutes}м ${secs}с`;
+        } else {
+            return `${secs}с`;
         }
     }
 }

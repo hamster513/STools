@@ -350,6 +350,27 @@ body {
     color: var(--text-secondary);
 }
 
+.version-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 8px;
+}
+
+.version-info i {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.version-info span {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
 /* User Menu Styles */
 .user-menu {
     position: relative;

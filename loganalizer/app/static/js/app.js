@@ -107,6 +107,9 @@ class LogAnalizer {
         const settingsDropdown = document.getElementById('settings-dropdown');
         const usersLink = document.getElementById('users-link');
 
+        // Загружаем версию приложения
+        this.loadAppVersion();
+
         // Переключение выпадающего меню настроек
         if (settingsToggle) {
             settingsToggle.addEventListener('click', (e) => {
@@ -1595,10 +1598,10 @@ class LogAnalizer {
         `;
     }
 
-    setupSidebar() {
+        setupSidebar() {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebar-toggle');
-        
+   
         if (!sidebar || !sidebarToggle) return;
 
         // Загружаем состояние из localStorage
@@ -1615,6 +1618,20 @@ class LogAnalizer {
             const isNowCollapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('sidebar_collapsed', isNowCollapsed.toString());
         });
+    }
+
+    async loadAppVersion() {
+        try {
+            const response = await fetch(`${this.getApiBasePath()}/version`);
+            const data = await response.json();
+            
+            const versionElement = document.getElementById('app-version');
+            if (versionElement && data.version) {
+                versionElement.textContent = `v${data.version}`;
+            }
+        } catch (error) {
+            console.error('Error loading app version:', error);
+        }
     }
 }
 

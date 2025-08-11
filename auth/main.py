@@ -212,6 +212,26 @@ async def delete_user(
     
     return {"message": "User deleted successfully"}
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Проверяем подключение к базе данных
+        await auth_db.connect()
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+
+@app.get("/api/version")
+async def get_version():
+    """Get application version"""
+    try:
+        with open('/app/VERSION', 'r') as f:
+            version = f.read().strip()
+        return {"version": version}
+    except Exception as e:
+        return {"version": "unknown"}
+
 @app.get("/api/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """Получение информации о текущем пользователе"""

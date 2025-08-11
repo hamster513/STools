@@ -41,6 +41,11 @@
                         <i class="fas fa-users"></i>
                         <span>Пользователи</span>
                     </a>
+                    <div class="dropdown-divider"></div>
+                    <div class="version-info">
+                        <i class="fas fa-code-branch"></i>
+                        <span id="app-version">v0.1.0001</span>
+                    </div>
                 </div>
             </div>
             <div class="user-menu">
@@ -147,10 +152,20 @@
                                 <input type="checkbox" id="exploits-only" name="exploits_only" style="width: auto; height: auto; margin: 0; padding: 0;">
                                 <label for="exploits-only" style="display: inline; margin-left: 4px;">Только с эксплойтами</label>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="results-per-page">Записей на странице:</label>
+                                    <select id="results-per-page" name="limit">
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100" selected>100</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="form-actions">
-                                                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Найти
-                            </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Найти
+                                </button>
                                 <button type="button" id="clear-hosts-results" class="btn btn-secondary">
                                     <i class="fas fa-times"></i> Очистить
                                 </button>
@@ -166,6 +181,21 @@
                 <div class="hosts-search-results-container">
                     <div id="hosts-search-results" class="hosts-results">
                         <!-- Результаты поиска хостов будут загружены динамически -->
+                    </div>
+                    <!-- Пагинация -->
+                    <div id="hosts-pagination" class="pagination-container" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="pagination-info">Показано 0 из 0 записей</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="prev-page" class="btn btn-secondary" disabled>
+                                <i class="fas fa-chevron-left"></i> Предыдущая
+                            </button>
+                            <span id="page-numbers" class="page-numbers"></span>
+                            <button id="next-page" class="btn btn-secondary" disabled>
+                                Следующая <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -578,8 +608,9 @@
                     <h3>Импорт хостов из MP VM</h3>
                     <form id="hosts-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
-                            <label for="hosts-file">Загрузить CSV-файл:</label>
-                            <input type="file" id="hosts-file" name="file" accept=".csv" required>
+                            <label for="hosts-file">Загрузить файл хостов:</label>
+                            <input type="file" id="hosts-file" name="file" accept=".csv,.zip,.gz,.gzip" required>
+                            <small>Поддерживаемые форматы: CSV, ZIP, GZIP</small>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary" id="hosts-upload-btn">
@@ -593,6 +624,40 @@
                         </div>
                     </form>
                     <div id="hosts-status" style="margin-top:2rem;"></div>
+                    
+                    <!-- Прогресс-бар импорта -->
+                    <div id="import-progress-container" style="display:none; margin-top:2rem;">
+                        <h4>Прогресс импорта</h4>
+                        <div class="progress-info">
+                            <div class="progress-step">
+                                <span id="current-step-text">Подготовка...</span>
+                                <span id="step-progress-text">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-details">
+                                <div class="progress-item">
+                                    <span class="progress-label">Общий прогресс:</span>
+                                    <span id="overall-progress-text">0%</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Обработано записей:</span>
+                                    <span id="processed-records-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Всего записей:</span>
+                                    <span id="total-records-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Оставшееся время:</span>
+                                    <span id="estimated-time-text">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Импорт из VM MaxPatrol -->

@@ -1,5 +1,6 @@
 import os
 import asyncpg
+import asyncio
 from typing import Dict, List, Any, Optional
 import json
 from datetime import datetime
@@ -81,64 +82,118 @@ class Database:
             await self.release_connection(conn)
 
     async def insert_epss_records(self, records: list):
-        # Создаем отдельное соединение для массовой вставки
-        conn = await asyncpg.connect(self.database_url)
+        """Вставить записи EPSS с улучшенным управлением соединениями"""
+        conn = None
         try:
+            # Создаем отдельное соединение для массовой вставки
+            conn = await asyncpg.connect(self.database_url)
+            
+            # Проверяем, что соединение активно
+            await conn.execute("SELECT 1")
+            
             # Получаем количество записей до вставки
             count_before = await conn.fetchval("SELECT COUNT(*) FROM epss")
             print(f"EPSS records in database before insert: {count_before}")
             
-            async with conn.transaction():
-                # Группируем записи по CVE для обработки
-                cve_groups = {}
-                for rec in records:
-                    cve = rec['cve']
-                    if cve not in cve_groups:
-                        cve_groups[cve] = []
-                    cve_groups[cve].append(rec)
+            # Группируем записи по CVE для обработки
+            cve_groups = {}
+            for rec in records:
+                cve = rec['cve']
+                if cve not in cve_groups:
+                    cve_groups[cve] = []
+                cve_groups[cve].append(rec)
+            
+            inserted_count = 0
+            updated_count = 0
+            
+            # Обрабатываем записи батчами для избежания проблем с соединением
+            batch_size = 1000
+            cve_list = list(cve_groups.keys())
+            
+            for i in range(0, len(cve_list), batch_size):
+                batch_cves = cve_list[i:i + batch_size]
                 
-                inserted_count = 0
-                updated_count = 0
+                # Проверяем соединение перед каждым батчем
+                try:
+                    await conn.execute("SELECT 1")
+                except Exception as e:
+                    print(f"Connection lost, reconnecting... Error: {e}")
+                    await conn.close()
+                    conn = await asyncpg.connect(self.database_url)
                 
-                for cve, cve_records in cve_groups.items():
+                # Обрабатываем каждую запись отдельно с повторными попытками
+                for cve in batch_cves:
+                    cve_records = cve_groups[cve]
                     # Берем самую свежую запись для каждого CVE
                     latest_record = max(cve_records, key=lambda x: x['date'])
                     
-                    # Проверяем, существует ли запись для этого CVE
-                    existing = await conn.fetchval("SELECT id FROM epss WHERE cve = $1", cve)
-                    
-                    if existing:
-                        # Обновляем существующую запись
-                        query = """
-                            UPDATE epss 
-                            SET epss = $2, percentile = $3, cvss = $4, date = $5
-                            WHERE cve = $1
-                        """
-                        await conn.execute(query, 
-                            cve, latest_record['epss'], latest_record['percentile'], 
-                            latest_record.get('cvss'), latest_record['date'])
-                        updated_count += 1
-                    else:
-                        # Вставляем новую запись
-                        query = """
-                            INSERT INTO epss (cve, epss, percentile, cvss, date)
-                            VALUES ($1, $2, $3, $4, $5)
-                        """
-                        await conn.execute(query, 
-                            cve, latest_record['epss'], latest_record['percentile'], 
-                            latest_record.get('cvss'), latest_record['date'])
-                        inserted_count += 1
+                    max_retries = 3
+                    for retry in range(max_retries):
+                        try:
+                            # Проверяем соединение перед каждой операцией
+                            await conn.execute("SELECT 1")
+                            
+                            # Проверяем, существует ли запись для этого CVE
+                            existing = await conn.fetchval("SELECT id FROM epss WHERE cve = $1", cve)
+                            
+                            if existing:
+                                # Обновляем существующую запись
+                                query = """
+                                    UPDATE epss 
+                                    SET epss = $2, percentile = $3, cvss = $4, date = $5
+                                    WHERE cve = $1
+                                """
+                                await conn.execute(query, 
+                                    cve, latest_record['epss'], latest_record['percentile'], 
+                                    latest_record.get('cvss'), latest_record['date'])
+                                updated_count += 1
+                            else:
+                                # Вставляем новую запись
+                                query = """
+                                    INSERT INTO epss (cve, epss, percentile, cvss, date)
+                                    VALUES ($1, $2, $3, $4, $5)
+                                """
+                                await conn.execute(query, 
+                                    cve, latest_record['epss'], latest_record['percentile'], 
+                                    latest_record.get('cvss'), latest_record['date'])
+                                inserted_count += 1
+                            
+                            # Если успешно, выходим из цикла повторных попыток
+                            break
+                            
+                        except Exception as e:
+                            print(f"Error processing CVE {cve} (attempt {retry + 1}/{max_retries}): {e}")
+                            if retry < max_retries - 1:
+                                # Переподключаемся и продолжаем
+                                try:
+                                    await conn.close()
+                                except:
+                                    pass
+                                conn = await asyncpg.connect(self.database_url)
+                                await asyncio.sleep(1)  # Небольшая пауза перед повторной попыткой
+                            else:
+                                print(f"Failed to process CVE {cve} after {max_retries} attempts")
+                                continue
                 
-                # Получаем количество записей после вставки
-                count_after = await conn.fetchval("SELECT COUNT(*) FROM epss")
-                print(f"EPSS records in database after insert: {count_after}")
-                print(f"New EPSS records inserted: {inserted_count}")
-                print(f"Existing EPSS records updated: {updated_count}")
-                print(f"Total unique CVE records processed: {len(cve_groups)}")
-                print(f"Net change in EPSS database: {count_after - count_before}")
-                
+                print(f"Processed batch {i//batch_size + 1}/{(len(cve_list) + batch_size - 1)//batch_size}")
+            
+            # Получаем количество записей после вставки
+            count_after = await conn.fetchval("SELECT COUNT(*) FROM epss")
+            print(f"EPSS records in database after insert: {count_after}")
+            print(f"New EPSS records inserted: {inserted_count}")
+            print(f"Existing EPSS records updated: {updated_count}")
+            print(f"Total unique CVE records processed: {len(cve_groups)}")
+            print(f"Net change in EPSS database: {count_after - count_before}")
+            
+        except Exception as e:
+            print(f"Error in insert_epss_records: {e}")
+            raise e
         finally:
-            await conn.close()
+            if conn:
+                try:
+                    await conn.close()
+                except Exception as e:
+                    print(f"Error closing connection: {e}")
 
     async def count_epss_records(self):
         conn = await self.get_connection()
@@ -160,55 +215,85 @@ class Database:
             await self.release_connection(conn)
 
     async def insert_exploitdb_records(self, records: list):
-        # Создаем отдельное соединение для массовой вставки
-        conn = await asyncpg.connect(self.database_url)
+        """Вставить записи ExploitDB с улучшенным управлением соединениями"""
+        conn = None
         try:
+            # Создаем отдельное соединение для массовой вставки
+            conn = await asyncpg.connect(self.database_url)
+            
+            # Проверяем, что соединение активно
+            await conn.execute("SELECT 1")
+            
             # Получаем количество записей до вставки
             count_before = await conn.fetchval("SELECT COUNT(*) FROM exploitdb")
             print(f"Records in database before insert: {count_before}")
             
-            async with conn.transaction():
-                query = """
-                    INSERT INTO exploitdb (exploit_id, file_path, description, date_published, author, type, platform, port, date_added, date_updated, verified, codes, tags, aliases, screenshot_url, application_url, source_url)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-                    ON CONFLICT (exploit_id) DO UPDATE SET 
-                        file_path = $2, description = $3, date_published = $4, author = $5, type = $6, platform = $7, port = $8, date_added = $9, date_updated = $10, verified = $11, codes = $12, tags = $13, aliases = $14, screenshot_url = $15, application_url = $16, source_url = $17
-                """
-                inserted_count = 0
-                updated_count = 0
+            inserted_count = 0
+            updated_count = 0
+            
+            # Обрабатываем записи батчами для избежания проблем с соединением
+            batch_size = 1000
+            
+            for i in range(0, len(records), batch_size):
+                batch_records = records[i:i + batch_size]
                 
-                for rec in records:
-                    try:
-                        # Проверяем, существует ли запись
-                        existing = await conn.fetchval("SELECT exploit_id FROM exploitdb WHERE exploit_id = $1", rec['exploit_id'])
-                        
-                        await conn.execute(query, 
-                            rec['exploit_id'], rec.get('file_path'), rec.get('description'), 
-                            rec.get('date_published'), rec.get('author'), rec.get('type'), 
-                            rec.get('platform'), rec.get('port'), rec.get('date_added'), 
-                            rec.get('date_updated'), rec.get('verified', False), rec.get('codes'), 
-                            rec.get('tags'), rec.get('aliases'), rec.get('screenshot_url'), 
-                            rec.get('application_url'), rec.get('source_url'))
-                        
-                        if existing:
-                            updated_count += 1
-                        else:
-                            inserted_count += 1
+                # Проверяем соединение перед каждым батчем
+                try:
+                    await conn.execute("SELECT 1")
+                except Exception as e:
+                    print(f"Connection lost, reconnecting... Error: {e}")
+                    await conn.close()
+                    conn = await asyncpg.connect(self.database_url)
+                
+                async with conn.transaction():
+                    query = """
+                        INSERT INTO exploitdb (exploit_id, file_path, description, date_published, author, type, platform, port, date_added, date_updated, verified, codes, tags, aliases, screenshot_url, application_url, source_url)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                        ON CONFLICT (exploit_id) DO UPDATE SET 
+                            file_path = $2, description = $3, date_published = $4, author = $5, type = $6, platform = $7, port = $8, date_added = $9, date_updated = $10, verified = $11, codes = $12, tags = $13, aliases = $14, screenshot_url = $15, application_url = $16, source_url = $17
+                    """
+                    
+                    for rec in batch_records:
+                        try:
+                            # Проверяем, существует ли запись
+                            existing = await conn.fetchval("SELECT exploit_id FROM exploitdb WHERE exploit_id = $1", rec['exploit_id'])
                             
-                    except Exception as e:
-                        print(f"Error inserting record {rec['exploit_id']}: {e}")
-                        continue
+                            await conn.execute(query, 
+                                rec['exploit_id'], rec.get('file_path'), rec.get('description'), 
+                                rec.get('date_published'), rec.get('author'), rec.get('type'), 
+                                rec.get('platform'), rec.get('port'), rec.get('date_added'), 
+                                rec.get('date_updated'), rec.get('verified', False), rec.get('codes'), 
+                                rec.get('tags'), rec.get('aliases'), rec.get('screenshot_url'), 
+                                rec.get('application_url'), rec.get('source_url'))
+                            
+                            if existing:
+                                updated_count += 1
+                            else:
+                                inserted_count += 1
+                                
+                        except Exception as e:
+                            print(f"Error inserting record {rec['exploit_id']}: {e}")
+                            continue
                 
-                # Получаем количество записей после вставки
-                count_after = await conn.fetchval("SELECT COUNT(*) FROM exploitdb")
-                print(f"Records in database after insert: {count_after}")
-                print(f"New records inserted: {inserted_count}")
-                print(f"Existing records updated: {updated_count}")
-                print(f"Total records processed: {len(records)}")
-                print(f"Net change in database: {count_after - count_before}")
-                
+                print(f"Processed batch {i//batch_size + 1}/{(len(records) + batch_size - 1)//batch_size}")
+            
+            # Получаем количество записей после вставки
+            count_after = await conn.fetchval("SELECT COUNT(*) FROM exploitdb")
+            print(f"Records in database after insert: {count_after}")
+            print(f"New records inserted: {inserted_count}")
+            print(f"Existing records updated: {updated_count}")
+            print(f"Total records processed: {len(records)}")
+            print(f"Net change in database: {count_after - count_before}")
+            
+        except Exception as e:
+            print(f"Error in insert_exploitdb_records: {e}")
+            raise e
         finally:
-            await conn.close()
+            if conn:
+                try:
+                    await conn.close()
+                except Exception as e:
+                    print(f"Error closing connection: {e}")
 
     async def count_exploitdb_records(self):
         conn = await self.get_connection()
@@ -530,13 +615,14 @@ class Database:
             await conn.execute("DELETE FROM hosts")
             
             query = """
-                INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             """
             for rec in records:
                 await conn.execute(query, 
                     rec['hostname'], rec['ip_address'], rec['cve'], 
-                    rec['cvss'], rec['criticality'], rec['status'])
+                    rec['cvss'], rec['criticality'], rec['status'],
+                    rec.get('os_name', ''), rec.get('zone', ''))
             
             return len(records)
         except Exception as e:
@@ -544,6 +630,74 @@ class Database:
             raise e
         finally:
             await self.release_connection(conn)
+
+    async def insert_hosts_records_with_progress(self, records: list, progress_callback=None):
+        """Вставить записи хостов с отображением прогресса"""
+        conn = None
+        try:
+            # Создаем отдельное соединение для массовой вставки
+            conn = await asyncpg.connect(self.database_url)
+            
+            # Проверяем, что соединение активно
+            await conn.execute("SELECT 1")
+            
+            # Очищаем старые записи перед импортом
+            await conn.execute("DELETE FROM hosts")
+            print("🗑️ Старые записи очищены")
+            
+            # Обрабатываем записи батчами для отображения прогресса
+            batch_size = 1000
+            total_records = len(records)
+            inserted_count = 0
+            
+            query = """
+                INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            """
+            
+            for i in range(0, total_records, batch_size):
+                batch_records = records[i:i + batch_size]
+                
+                # Проверяем соединение перед каждым батчем
+                try:
+                    await conn.execute("SELECT 1")
+                except Exception as e:
+                    print(f"Connection lost, reconnecting... Error: {e}")
+                    await conn.close()
+                    conn = await asyncpg.connect(self.database_url)
+                
+                async with conn.transaction():
+                    for rec in batch_records:
+                        try:
+                            await conn.execute(query, 
+                                rec['hostname'], rec['ip_address'], rec['cve'], 
+                                rec['cvss'], rec['criticality'], rec['status'],
+                                rec.get('os_name', ''), rec.get('zone', ''))
+                            inserted_count += 1
+                        except Exception as e:
+                            print(f"Error inserting record for {rec.get('hostname', 'unknown')} ({rec.get('ip_address', 'no-ip')}): {e}")
+                            continue
+                
+                # Обновляем прогресс
+                progress_percent = min(100, 75 + (inserted_count / total_records) * 25)
+                if progress_callback:
+                    progress_callback('inserting', f'Сохранение в базу данных... ({inserted_count:,}/{total_records:,})', 
+                                    progress_percent, current_step_progress=inserted_count, 
+                                    processed_records=inserted_count)
+                
+                print(f"💾 Обработано записей: {inserted_count:,}/{total_records:,} ({progress_percent:.1f}%)")
+            
+            return inserted_count
+            
+        except Exception as e:
+            print(f"Error in insert_hosts_records_with_progress: {e}")
+            raise e
+        finally:
+            if conn:
+                try:
+                    await conn.close()
+                except Exception as e:
+                    print(f"Error closing connection: {e}")
 
     async def count_hosts_records(self):
         """Подсчитать количество записей хостов"""
@@ -557,7 +711,7 @@ class Database:
         finally:
             await self.release_connection(conn)
 
-    async def search_hosts(self, hostname_pattern: str = None, cve: str = None, ip_address: str = None, criticality: str = None):
+    async def search_hosts(self, hostname_pattern: str = None, cve: str = None, ip_address: str = None, criticality: str = None, exploits_only: bool = False, limit: int = 100, page: int = 1):
         """Поиск хостов по различным критериям с расширенными данными"""
         conn = await self.get_connection()
         try:
@@ -569,6 +723,8 @@ class Database:
                 param_count += 1
                 # Поддержка маски * для hostname
                 pattern = hostname_pattern.replace('*', '%')
+                if '%' not in pattern:
+                    pattern = f"%{pattern}%"
                 conditions.append(f"hostname ILIKE ${param_count}")
                 params.append(pattern)
             
@@ -584,18 +740,29 @@ class Database:
             
             if criticality:
                 param_count += 1
-                conditions.append(f"criticality ILIKE ${param_count}")
-                params.append(f"%{criticality}%")
+                conditions.append(f"criticality = ${param_count}")
+                params.append(criticality)
+            
+            if exploits_only:
+                conditions.append("has_exploits = TRUE")
             
             where_clause = " AND ".join(conditions) if conditions else "1=1"
+            
+            # Сначала получаем общее количество записей
+            count_query = f"SELECT COUNT(*) FROM hosts WHERE {where_clause}"
+            total_count = await conn.fetchval(count_query, *params)
+            
+            # Затем получаем данные с пагинацией
+            offset = (page - 1) * limit
             query = f"""
                 SELECT id, hostname, ip_address, cve, cvss, criticality, status,
-                       epss_score, epss_percentile, risk_score, risk_raw, impact_score,
+                       os_name, zone, epss_score, epss_percentile, risk_score, risk_raw, impact_score,
                        exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
                        epss_updated_at, exploits_updated_at, risk_updated_at, imported_at
                 FROM hosts 
                 WHERE {where_clause}
                 ORDER BY hostname, cve
+                LIMIT {limit} OFFSET {offset}
             """
             
             rows = await conn.fetch(query, *params)
@@ -610,6 +777,8 @@ class Database:
                     'cvss': float(row['cvss']) if row['cvss'] else None,
                     'criticality': row['criticality'],
                     'status': row['status'],
+                    'os_name': row['os_name'],
+                    'zone': row['zone'],
                     'epss_score': float(row['epss_score']) if row['epss_score'] else None,
                     'epss_percentile': float(row['epss_percentile']) if row['epss_percentile'] else None,
                     'risk_score': float(row['risk_score']) if row['risk_score'] else None,
@@ -625,10 +794,10 @@ class Database:
                     'imported_at': row['imported_at'].isoformat() if row['imported_at'] else None
                 })
             
-            return results
+            return results, total_count
         except Exception as e:
             print(f"Error searching hosts: {e}")
-            return []
+            return [], 0
         finally:
             await self.release_connection(conn)
 
@@ -638,7 +807,7 @@ class Database:
         try:
             query = """
                 SELECT id, hostname, ip_address, cve, cvss, criticality, status,
-                       epss_score, epss_percentile, risk_score, risk_raw, impact_score,
+                       os_name, zone, epss_score, epss_percentile, risk_score, risk_raw, impact_score,
                        exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
                        epss_updated_at, exploits_updated_at, risk_updated_at, imported_at
                 FROM hosts 
@@ -655,6 +824,8 @@ class Database:
                     'cvss': float(row['cvss']) if row['cvss'] else None,
                     'criticality': row['criticality'],
                     'status': row['status'],
+                    'os_name': row['os_name'],
+                    'zone': row['zone'],
                     'epss_score': float(row['epss_score']) if row['epss_score'] else None,
                     'epss_percentile': float(row['epss_percentile']) if row['epss_percentile'] else None,
                     'risk_score': float(row['risk_score']) if row['risk_score'] else None,
@@ -1050,3 +1221,13 @@ class Database:
                 print("Admin user created: admin/admin")
         finally:
             await self.release_connection(conn)
+
+# Глобальный экземпляр базы данных
+_db_instance = None
+
+def get_db():
+    """Получить экземпляр базы данных"""
+    global _db_instance
+    if _db_instance is None:
+        _db_instance = Database()
+    return _db_instance

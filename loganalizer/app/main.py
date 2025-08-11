@@ -148,6 +148,16 @@ async def health_check():
     except Exception as e:
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
+@app.get("/api/version")
+async def get_version():
+    """Get application version"""
+    try:
+        with open('/app/VERSION', 'r') as f:
+            version = f.read().strip()
+        return {"version": version}
+    except Exception as e:
+        return {"version": "unknown"}
+
 @app.get("/api/upload-progress/{upload_id}")
 async def get_upload_progress(upload_id: str):
     """Get upload progress via SSE"""

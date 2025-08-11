@@ -37,6 +37,10 @@ WORKDIR /app
 # Копируем код приложения
 COPY --chown=app:app . .
 
+# Копируем файл версии
+COPY --chown=app:app VERSION /app/VERSION
+RUN echo "Version: $(cat /app/VERSION)"
+
 # Порт
 EXPOSE 8000
 
@@ -44,5 +48,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Запуск приложения
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 
+# Запуск приложения с оптимизацией для больших файлов
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--loop", "uvloop", "--http", "httptools", "--timeout-keep-alive", "3600"] 
