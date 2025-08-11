@@ -33,6 +33,8 @@ class VulnAnalizer {
         // Загружаем статус хостов при инициализации
         setTimeout(() => {
             this.updateHostsStatus();
+            this.updateEPSSStatus();
+            this.updateExploitDBStatus();
         }, 100);
     }
 
@@ -764,9 +766,33 @@ class VulnAnalizer {
             
             if (data.success) {
                 statusDiv.innerHTML = `
-                    <div class="status-info">
-                        <i class="fas fa-database"></i>
-                        <span>Записей в базе: <strong>${data.count}</strong></span>
+                    <div style="margin-bottom: 15px;">
+                        <div class="status-info">
+                            <i class="fas fa-database"></i>
+                            <span>Записей в базе: <strong>${data.count}</strong></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Подсказка с ссылками для ExploitDB -->
+                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания ExploitDB</h4>
+                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <a href="https://raw.githubusercontent.com/offensive-security/exploitdb/master/files_exploits.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">ExploitDB Files (основная база)</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~15MB</span>
+                            </a>
+                            <a href="https://raw.githubusercontent.com/offensive-security/exploitdb/master/files_shellcodes.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">ExploitDB Shellcodes</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB</span>
+                            </a>
+                            <a href="https://github.com/offensive-security/exploitdb" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                📦 <span style="flex: 1;">GitHub репозиторий ExploitDB</span>
+                            </a>
+                            <a href="https://www.exploit-db.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🌐 <span style="flex: 1;">Официальный сайт ExploitDB</span>
+                            </a>
+                        </div>
                     </div>
                 `;
             } else {
@@ -796,7 +822,30 @@ class VulnAnalizer {
             const resp = await fetch(this.getApiBasePath() + '/epss/status');
             const data = await resp.json();
             if (data.success) {
-                statusDiv.innerHTML = `<b>Записей в базе EPSS:</b> ${data.count}`;
+                statusDiv.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <b>Записей в базе EPSS:</b> ${data.count}
+                    </div>
+                    
+                    <!-- Подсказка с ссылками для EPSS -->
+                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания EPSS</h4>
+                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <a href="https://epss.cyentia.com/epss_scores-current.csv.gz" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">EPSS Scores (текущая версия)</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~50MB</span>
+                            </a>
+                            <a href="https://epss.cyentia.com/epss_scores-current.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">EPSS Scores (без сжатия)</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~200MB</span>
+                            </a>
+                            <a href="https://epss.cyentia.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🌐 <span style="flex: 1;">Официальный сайт EPSS</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
             } else {
                 statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса EPSS</span>';
             }

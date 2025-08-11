@@ -3272,3 +3272,70 @@ input:focus, textarea:focus, select:focus {
         justify-content: center;
     }
 }
+
+.download-hint h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.download-hint h4::before {
+    content: "📋";
+    font-size: 1rem;
+}
+
+.download-hint p {
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.download-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.download-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all var(--transition-speed);
+}
+
+.download-link:hover {
+    background-color: rgba(37, 99, 235, 0.1);
+    text-decoration: underline;
+}
+
+.download-link::before {
+    content: "🔗";
+    font-size: 0.75rem;
+}
+
+.download-link[href*="github.com"]::before {
+    content: "📦";
+}
+
+.download-link[href*="exploit-db.com"]::before,
+.download-link[href*="epss.cyentia.com"]::before {
+    content: "🌐";
+}
+
+.download-link .link-text {
+    flex: 1;
+}
+
+.download-link .link-size {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
