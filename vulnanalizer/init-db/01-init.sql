@@ -131,3 +131,26 @@ CREATE TABLE IF NOT EXISTS vm_import_status (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Создание таблицы статуса фоновых задач
+CREATE TABLE IF NOT EXISTS background_tasks (
+    id SERIAL PRIMARY KEY,
+    task_type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'idle', -- idle, running, completed, error, cancelled
+    current_step TEXT,
+    total_items INTEGER DEFAULT 0,
+    processed_items INTEGER DEFAULT 0,
+    total_records INTEGER DEFAULT 0,
+    updated_records INTEGER DEFAULT 0,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    error_message TEXT,
+    cancelled BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание индексов для фоновых задач
+CREATE INDEX IF NOT EXISTS idx_background_tasks_task_type ON background_tasks(task_type);
+CREATE INDEX IF NOT EXISTS idx_background_tasks_status ON background_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_background_tasks_created_at ON background_tasks(created_at);

@@ -214,6 +214,18 @@ class Database:
         finally:
             await self.release_connection(conn)
 
+    async def get_all_epss_records(self):
+        """Получить все записи EPSS"""
+        conn = await self.get_connection()
+        try:
+            rows = await conn.fetch("SELECT cve, epss, percentile FROM epss ORDER BY cve")
+            return [dict(row) for row in rows]
+        except Exception as e:
+            print(f"Error getting all epss records: {e}")
+            raise
+        finally:
+            await self.release_connection(conn)
+
     async def insert_exploitdb_records(self, records: list):
         """Вставить записи ExploitDB с улучшенным управлением соединениями"""
         conn = None
@@ -310,6 +322,18 @@ class Database:
             return row['cnt'] if row else 0
         except Exception as e:
             print(f"Error counting exploitdb records: {e}")
+            raise
+        finally:
+            await self.release_connection(conn)
+
+    async def get_all_exploitdb_records(self):
+        """Получить все записи ExploitDB"""
+        conn = await self.get_connection()
+        try:
+            rows = await conn.fetch("SELECT exploit_id, description, date_published, verified, aliases, tags FROM exploitdb ORDER BY exploit_id")
+            return [dict(row) for row in rows]
+        except Exception as e:
+            print(f"Error getting all exploitdb records: {e}")
             raise
         finally:
             await self.release_connection(conn)
@@ -443,9 +467,9 @@ class Database:
         else:
             return latest_date
 
-    def _calculate_risk_score(self, epss: float, cvss: float, settings: dict) -> dict:
-        """Рассчитать риск по формуле: raw_risk = EPSS * (CVSS / 10) * Impact"""
-        if epss is None or cvss is None:
+    def _calculate_risk_score(self, epss: float, cvss: float = None, settings: dict = None) -> dict:
+        """Рассчитать риск по формуле: raw_risk = EPSS * Impact (без CVSS)"""
+        if epss is None:
             return {
                 'raw_risk': None,
                 'risk_score': None,
@@ -456,13 +480,16 @@ class Database:
         # Конвертируем decimal в float если нужно
         if hasattr(epss, 'as_tuple'):  # Это decimal.Decimal
             epss = float(epss)
-        if hasattr(cvss, 'as_tuple'):  # Это decimal.Decimal
-            cvss = float(cvss)
         
-        # Рассчитываем Impact на основе настроек
-        impact = self._calculate_impact(settings)
+        # Рассчитываем Impact на основе настроек (если есть)
+        if settings:
+            impact = self._calculate_impact(settings)
+        else:
+            # Используем базовый Impact если настройки не предоставлены
+            impact = 0.5
         
-        raw_risk = epss * (cvss / 10) * impact
+        # Рассчитываем риск только на основе EPSS и Impact
+        raw_risk = epss * impact
         risk_score = min(1, raw_risk) * 100
         
         return {
@@ -512,17 +539,47 @@ class Database:
         
         return impact
 
-    async def update_hosts_epss_and_exploits(self):
-        """Обновить данные EPSS и эксплойтов для всех хостов"""
+    async def update_hosts_epss_and_exploits_background(self, progress_callback=None):
+        """Обновить данные EPSS и эксплойтов для всех хостов в фоновом режиме"""
+        print("🔄 Starting simplified update_hosts_epss_and_exploits_background function")
         conn = await self.get_connection()
         try:
-            # Получаем все уникальные CVE из хостов
-            cve_query = "SELECT DISTINCT cve FROM hosts WHERE cve IS NOT NULL"
-            cve_rows = await conn.fetch(cve_query)
+            print("🔄 Got database connection")
             
+            # Получаем все уникальные CVE из хостов
+            cve_query = """
+                SELECT DISTINCT cve FROM hosts 
+                WHERE cve IS NOT NULL AND cve != '' 
+                ORDER BY cve
+                LIMIT 1000
+            """
+            print("🔄 Executing CVE query")
+            cve_rows = await conn.fetch(cve_query)
+            print(f"🔄 CVE query returned {len(cve_rows)} rows")
+            
+            if not cve_rows:
+                return {"success": True, "message": "Нет CVE для обновления", "updated_count": 0}
+            
+            total_cves = len(cve_rows)
             updated_count = 0
-            for cve_row in cve_rows:
+            skipped_cves = 0
+            processed_cves = 0
+            
+            print(f"🔄 Starting update: found {total_cves} unique CVEs")
+            
+            if progress_callback:
+                print("🔄 Calling progress_callback for initialization")
+                progress_callback('initializing', f'Найдено {total_cves} уникальных CVE для обновления', 
+                                total_cves=total_cves, processed_cves=0)
+            
+            print("🔄 Starting CVE processing loop")
+            for i, cve_row in enumerate(cve_rows):
                 cve = cve_row['cve']
+                print(f"🔄 Processing CVE {i+1}/{total_cves}: {cve}")
+                
+                if progress_callback:
+                    progress_callback('processing', f'Обработка CVE {i+1}/{total_cves}: {cve}', 
+                                    processed_cves=i+1, total_cves=total_cves)
                 
                 # Получаем данные EPSS для CVE
                 epss_data = await self.get_epss_by_cve(cve)
@@ -530,82 +587,118 @@ class Database:
                 # Получаем данные эксплойтов для CVE
                 exploitdb_data = await self.get_exploitdb_by_cve(cve)
                 
-                # Получаем настройки для расчета Impact
-                settings_query = "SELECT key, value FROM settings"
-                settings_rows = await conn.fetch(settings_query)
-                settings = {row['key']: row['value'] for row in settings_rows}
+                # Проверяем, есть ли данные для обновления
+                has_epss_data = epss_data is not None
+                has_exploit_data = exploitdb_data is not None
                 
-                # Обновляем все хосты с этим CVE
+                if not has_epss_data and not has_exploit_data:
+                    print(f"🔄 Skipping CVE {cve} - no EPSS or ExploitDB data found")
+                    skipped_cves += 1
+                    continue
+                
+                # Обновляем все хосты с этим CVE только если есть данные
                 hosts_query = "SELECT id, cvss, criticality FROM hosts WHERE cve = $1"
                 hosts_rows = await conn.fetch(hosts_query, cve)
                 
+                if not hosts_rows:
+                    print(f"🔄 No hosts found for CVE {cve}")
+                    skipped_cves += 1
+                    continue
+                
+                processed_cves += 1
+                
                 for host_row in hosts_rows:
-                    # Рассчитываем риск для каждого хоста
-                    risk_data = None
-                    if epss_data and epss_data.get('epss') is not None:
-                        cvss_score = epss_data.get('cvss') if epss_data.get('cvss') is not None else host_row['cvss']
-                        if cvss_score is not None:
-                            # Переопределяем критичность ресурса на основе хоста
-                            settings['impact_resource_criticality'] = host_row['criticality']
-                            risk_data = self._calculate_risk_score(epss_data['epss'], cvss_score, settings)
-                    
-                    # Обновляем запись хоста
+                    # Обновляем только если есть данные
                     update_query = """
                         UPDATE hosts SET
                             epss_score = $1,
                             epss_percentile = $2,
-                            risk_score = $3,
-                            risk_raw = $4,
-                            impact_score = $5,
-                            exploits_count = $6,
-                            verified_exploits_count = $7,
-                            has_exploits = $8,
-                            last_exploit_date = $9,
-                            epss_updated_at = $10,
-                            exploits_updated_at = $11,
-                            risk_updated_at = $12
-                        WHERE id = $13
+                            exploits_count = $3,
+                            verified_exploits_count = $4,
+                            has_exploits = $5,
+                            epss_updated_at = $6,
+                            exploits_updated_at = $7
+                        WHERE id = $8
                     """
                     
-                    # Обрабатываем дату последнего эксплойта
-                    last_exploit_date = None
-                    if exploitdb_data:
-                        exploit_dates = [e.get('date_published') for e in exploitdb_data if e.get('date_published')]
-                        if exploit_dates:
-                            # Берем самую позднюю дату
-                            latest_date = max(exploit_dates)
-                            if isinstance(latest_date, str):
-                                try:
-                                    # Парсим строку даты
-                                    last_exploit_date = datetime.strptime(latest_date, '%Y-%m-%d').date()
-                                except:
-                                    last_exploit_date = None
-                            else:
-                                last_exploit_date = latest_date
-                    
                     await conn.execute(update_query,
-                        epss_data.get('epss') if epss_data else None,
-                        epss_data.get('percentile') if epss_data else None,
-                        risk_data.get('risk_score') if risk_data else None,
-                        risk_data.get('raw_risk') if risk_data else None,
-                        risk_data.get('impact') if risk_data else None,
-                        len(exploitdb_data) if exploitdb_data else 0,
-                        len([e for e in exploitdb_data if e.get('verified', False)]) if exploitdb_data else 0,
-                        len(exploitdb_data) > 0 if exploitdb_data else False,
-                        last_exploit_date,
-                        datetime.now() if epss_data else None,
-                        datetime.now() if exploitdb_data else None,
-                        datetime.now() if risk_data else None,
+                        epss_data.get('epss') if has_epss_data else None,
+                        epss_data.get('percentile') if has_epss_data else None,
+                        len(exploitdb_data) if has_exploit_data else 0,
+                        len([e for e in exploitdb_data if e.get('verified', False)]) if has_exploit_data else 0,
+                        len(exploitdb_data) > 0 if has_exploit_data else False,
+                        datetime.now() if has_epss_data else None,
+                        datetime.now() if has_exploit_data else None,
                         host_row['id']
                     )
+                    
+                    # Рассчитываем риск если есть EPSS данные
+                    if has_epss_data and epss_data.get('epss'):
+                        try:
+                            # Получаем настройки для расчета Impact
+                            settings = await self.get_settings()
+                            
+                            # Рассчитываем риск без CVSS
+                            risk_result = self._calculate_risk_score(
+                                epss=epss_data.get('epss'),
+                                settings=settings
+                            )
+                            
+                            if risk_result['calculation_possible']:
+                                # Обновляем риск
+                                risk_update_query = """
+                                    UPDATE hosts SET
+                                        risk_score = $1,
+                                        risk_raw = $2,
+                                        risk_updated_at = $3
+                                    WHERE id = $4
+                                """
+                                await conn.execute(risk_update_query,
+                                    risk_result['risk_score'],
+                                    risk_result['raw_risk'],
+                                    datetime.now(),
+                                    host_row['id']
+                                )
+                        except Exception as risk_error:
+                            print(f"⚠️ Error calculating risk for host {host_row['id']}: {risk_error}")
+                    
                     updated_count += 1
+                
+                print(f"🔄 Updated {len(hosts_rows)} hosts for CVE {cve} (EPSS: {has_epss_data}, Exploits: {has_exploit_data})")
+                
+                # Обновляем прогресс каждые 10 CVE
+                if (i + 1) % 10 == 0 and progress_callback:
+                    print(f"🔄 Progress callback: processed_cves={i+1}, total_cves={total_cves}, updated_hosts={updated_count}, skipped={skipped_cves}")
+                    progress_callback('processing', f'Обработано {i+1}/{total_cves} CVE, обновлено {updated_count} хостов, пропущено {skipped_cves}', 
+                                    processed_cves=i+1, total_cves=total_cves, updated_hosts=updated_count)
             
-            return updated_count
+            print(f"🔄 Completed: updated {updated_count} hosts, processed {processed_cves} CVEs, skipped {skipped_cves} CVEs")
+            
+            # Принудительно обновляем статус на completed
+            if progress_callback:
+                progress_callback('completed', 'Завершено', 
+                                processed_cves=total_cves, total_cves=total_cves, 
+                                updated_hosts=updated_count)
+            
+            return {
+                "success": True,
+                "message": f"Обновлено {updated_count} записей хостов из {processed_cves} CVE (пропущено {skipped_cves} CVE без данных)",
+                "updated_count": updated_count,
+                "processed_cves": processed_cves,
+                "skipped_cves": skipped_cves
+            }
         except Exception as e:
-            print(f"Error updating hosts EPSS and exploits: {e}")
-            raise e
+            print(f"❌ Error updating hosts EPSS and exploits: {e}")
+            return {
+                "success": False,
+                "message": f"Ошибка обновления: {str(e)}",
+                "updated_count": 0,
+                "processed_cves": 0
+            }
         finally:
             await self.release_connection(conn)
+
+
 
     async def insert_hosts_records(self, records: list):
         """Вставить записи хостов"""
@@ -632,7 +725,7 @@ class Database:
             await self.release_connection(conn)
 
     async def insert_hosts_records_with_progress(self, records: list, progress_callback=None):
-        """Вставить записи хостов с отображением прогресса"""
+        """Вставить записи хостов с отображением прогресса и расчетом риска"""
         conn = None
         try:
             # Создаем отдельное соединение для массовой вставки
@@ -687,6 +780,111 @@ class Database:
                 
                 print(f"💾 Обработано записей: {inserted_count:,}/{total_records:,} ({progress_percent:.1f}%)")
             
+            # После вставки всех записей запускаем расчет риска
+            if progress_callback:
+                progress_callback('calculating_risk', 'Расчет рисков для загруженных хостов...', 90)
+            
+            print("🔍 Начинаем расчет рисков для загруженных хостов...")
+            
+            # Получаем настройки для расчета Impact
+            settings_query = "SELECT key, value FROM settings"
+            settings_rows = await conn.fetch(settings_query)
+            settings = {row['key']: row['value'] for row in settings_rows}
+            
+            # Получаем все уникальные CVE из загруженных хостов
+            cve_query = """
+                SELECT DISTINCT cve FROM hosts 
+                WHERE cve IS NOT NULL AND cve != '' 
+                ORDER BY cve
+            """
+            cve_rows = await conn.fetch(cve_query)
+            
+            if cve_rows:
+                print(f"📊 Найдено {len(cve_rows)} уникальных CVE для расчета риска")
+                
+                for i, cve_row in enumerate(cve_rows):
+                    cve = cve_row['cve']
+                    
+                    # Получаем данные EPSS для CVE
+                    epss_data = await self.get_epss_by_cve(cve)
+                    
+                    # Получаем данные эксплойтов для CVE
+                    exploitdb_data = await self.get_exploitdb_by_cve(cve)
+                    
+                    # Обновляем все хосты с этим CVE
+                    hosts_query = "SELECT id, cvss, criticality FROM hosts WHERE cve = $1"
+                    hosts_rows = await conn.fetch(hosts_query, cve)
+                    
+                    for host_row in hosts_rows:
+                        # Рассчитываем риск для каждого хоста
+                        risk_data = None
+                        if epss_data and epss_data.get('epss') is not None:
+                            cvss_score = epss_data.get('cvss') if epss_data.get('cvss') is not None else host_row['cvss']
+                            if cvss_score is not None:
+                                # Переопределяем критичность ресурса на основе хоста
+                                settings['impact_resource_criticality'] = host_row['criticality']
+                                risk_data = self._calculate_risk_score(epss_data['epss'], cvss_score, settings)
+                        
+                        # Обновляем запись хоста
+                        update_query = """
+                            UPDATE hosts SET
+                                epss_score = $1,
+                                epss_percentile = $2,
+                                risk_score = $3,
+                                risk_raw = $4,
+                                impact_score = $5,
+                                exploits_count = $6,
+                                verified_exploits_count = $7,
+                                has_exploits = $8,
+                                last_exploit_date = $9,
+                                epss_updated_at = $10,
+                                exploits_updated_at = $11,
+                                risk_updated_at = $12
+                            WHERE id = $13
+                        """
+                        
+                        # Обрабатываем дату последнего эксплойта
+                        last_exploit_date = None
+                        if exploitdb_data:
+                            exploit_dates = [e.get('date_published') for e in exploitdb_data if e.get('date_published')]
+                            if exploit_dates:
+                                # Берем самую позднюю дату
+                                latest_date = max(exploit_dates)
+                                if isinstance(latest_date, str):
+                                    try:
+                                        # Парсим строку даты
+                                        last_exploit_date = datetime.strptime(latest_date, '%Y-%m-%d').date()
+                                    except:
+                                        last_exploit_date = None
+                                else:
+                                    last_exploit_date = latest_date
+                        
+                        await conn.execute(update_query,
+                            epss_data.get('epss') if epss_data else None,
+                            epss_data.get('percentile') if epss_data else None,
+                            risk_data.get('risk_score') if risk_data else None,
+                            risk_data.get('raw_risk') if risk_data else None,
+                            risk_data.get('impact') if risk_data else None,
+                            len(exploitdb_data) if exploitdb_data else 0,
+                            len([e for e in exploitdb_data if e.get('verified', False)]) if exploitdb_data else 0,
+                            len(exploitdb_data) > 0 if exploitdb_data else False,
+                            last_exploit_date,
+                            datetime.now() if epss_data else None,
+                            datetime.now() if exploitdb_data else None,
+                            datetime.now() if risk_data else None,
+                            host_row['id']
+                        )
+                    
+                    # Обновляем прогресс расчета риска
+                    if progress_callback and (i + 1) % 10 == 0:
+                        risk_progress = 90 + ((i + 1) / len(cve_rows)) * 10
+                        progress_callback('calculating_risk', f'Расчет рисков... ({i+1}/{len(cve_rows)} CVE)', risk_progress)
+            
+            if progress_callback:
+                progress_callback('completed', 'Импорт и расчет рисков завершены', 100)
+            
+            print("✅ Расчет рисков завершен")
+            
             return inserted_count
             
         except Exception as e:
@@ -711,7 +909,7 @@ class Database:
         finally:
             await self.release_connection(conn)
 
-    async def search_hosts(self, hostname_pattern: str = None, cve: str = None, ip_address: str = None, criticality: str = None, exploits_only: bool = False, limit: int = 100, page: int = 1):
+    async def search_hosts(self, hostname_pattern: str = None, cve: str = None, ip_address: str = None, criticality: str = None, exploits_only: bool = False, epss_only: bool = False, limit: int = 100, page: int = 1):
         """Поиск хостов по различным критериям с расширенными данными"""
         conn = await self.get_connection()
         try:
@@ -745,6 +943,9 @@ class Database:
             
             if exploits_only:
                 conditions.append("has_exploits = TRUE")
+            
+            if epss_only:
+                conditions.append("epss_score IS NOT NULL")
             
             where_clause = " AND ".join(conditions) if conditions else "1=1"
             
@@ -1219,6 +1420,86 @@ class Database:
                     "admin", "admin", "admin@stools.local", True, True
                 )
                 print("Admin user created: admin/admin")
+        finally:
+            await self.release_connection(conn)
+
+    # Методы для работы с фоновыми задачами
+    async def create_background_task(self, task_type: str) -> int:
+        """Создать новую фоновую задачу"""
+        conn = await self.get_connection()
+        try:
+            query = """
+                INSERT INTO background_tasks (task_type, status, current_step, start_time)
+                VALUES ($1, 'processing', 'Инициализация...', CURRENT_TIMESTAMP)
+                RETURNING id
+            """
+            task_id = await conn.fetchval(query, task_type)
+            return task_id
+        finally:
+            await self.release_connection(conn)
+
+    async def update_background_task(self, task_id: int, **kwargs):
+        """Обновить статус фоновой задачи"""
+        conn = await self.get_connection()
+        try:
+            # Формируем SET часть запроса динамически
+            set_parts = []
+            params = []
+            param_count = 1
+            
+            for key, value in kwargs.items():
+                if key in ['status', 'current_step', 'total_items', 'processed_items', 
+                          'total_records', 'updated_records', 'error_message', 'cancelled']:
+                    set_parts.append(f"{key} = ${param_count}")
+                    params.append(value)
+                    param_count += 1
+            
+            if set_parts:
+                set_parts.append("updated_at = CURRENT_TIMESTAMP")
+                if 'status' in kwargs and kwargs['status'] in ['completed', 'error', 'cancelled']:
+                    set_parts.append("end_time = CURRENT_TIMESTAMP")
+                
+                query = f"""
+                    UPDATE background_tasks 
+                    SET {', '.join(set_parts)}
+                    WHERE id = ${param_count}
+                """
+                params.append(task_id)
+                await conn.execute(query, *params)
+        finally:
+            await self.release_connection(conn)
+
+    async def get_background_task(self, task_type: str) -> Optional[Dict[str, Any]]:
+        """Получить последнюю фоновую задачу определенного типа"""
+        conn = await self.get_connection()
+        try:
+            query = """
+                SELECT id, task_type, status, current_step, total_items, processed_items,
+                       total_records, updated_records, start_time, end_time, error_message, cancelled
+                FROM background_tasks 
+                WHERE task_type = $1 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """
+            row = await conn.fetchrow(query, task_type)
+            if row:
+                return dict(row)
+            return None
+        finally:
+            await self.release_connection(conn)
+
+    async def cancel_background_task(self, task_type: str) -> bool:
+        """Отменить фоновую задачу"""
+        conn = await self.get_connection()
+        try:
+            query = """
+                UPDATE background_tasks 
+                SET status = 'cancelled', current_step = 'Отменено пользователем', 
+                    cancelled = TRUE, end_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                WHERE task_type = $1 AND status IN ('running', 'processing')
+            """
+            result = await conn.execute(query, task_type)
+            return result != 'UPDATE 0'
         finally:
             await self.release_connection(conn)
 

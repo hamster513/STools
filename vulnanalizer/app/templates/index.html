@@ -152,6 +152,10 @@
                                 <input type="checkbox" id="exploits-only" name="exploits_only" style="width: auto; height: auto; margin: 0; padding: 0;">
                                 <label for="exploits-only" style="display: inline; margin-left: 4px;">Только с эксплойтами</label>
                             </div>
+                            <div class="form-group">
+                                <input type="checkbox" id="epss-only" name="epss_only" style="width: auto; height: auto; margin: 0; padding: 0;">
+                                <label for="epss-only" style="display: inline; margin-left: 4px;">Только с EPSS</label>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="results-per-page">Записей на странице:</label>
@@ -617,9 +621,13 @@
                                 <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
-                            <button type="button" id="update-hosts-data-btn" class="btn btn-warning">
-                                <i class="fas fa-sync-alt"></i> <span class="btn-text">Обновить данные EPSS/Эксплойтов</span>
+
+                            <button type="button" id="update-hosts-data-background-btn" class="btn btn-primary">
+                                <i class="fas fa-play"></i> <span class="btn-text">Запустить полное обновление</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="cancel-update-btn" class="btn btn-danger" style="display:none;">
+                                <i class="fas fa-stop"></i> <span class="btn-text">Остановить обновление</span>
                             </button>
                         </div>
                     </form>
@@ -654,6 +662,44 @@
                                 <div class="progress-item">
                                     <span class="progress-label">Оставшееся время:</span>
                                     <span id="estimated-time-text">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Прогресс фонового обновления -->
+                    <div id="background-update-progress-container" style="display:none; margin-top:2rem;">
+                        <h4>Прогресс обновления данных</h4>
+                        <div class="progress-info">
+                            <div class="progress-step">
+                                <span id="background-current-step-text">Инициализация...</span>
+                                <span id="background-step-progress-text">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div id="background-progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-details">
+                                <div class="progress-item">
+                                    <span class="progress-label">Прогресс:</span>
+                                    <span id="background-overall-progress-text">0%</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Обработано CVE:</span>
+                                    <span id="background-processed-cves-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Всего CVE:</span>
+                                    <span id="background-total-cves-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Обновлено хостов:</span>
+                                    <span id="background-updated-hosts-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Оставшееся время:</span>
+                                    <span id="background-estimated-time-text">-</span>
                                 </div>
                             </div>
                         </div>
@@ -708,6 +754,6 @@
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>
 
-    <script src="/vulnanalizer/static/js/app.js?v=2.8"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=3.0"></script>
 </body>
 </html> 

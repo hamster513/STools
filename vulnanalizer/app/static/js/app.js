@@ -41,6 +41,7 @@ class VulnAnalizer {
             this.updateHostsStatus();
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
+            this.checkBackgroundUpdateStatus();
         }, 100);
     }
 
@@ -752,61 +753,98 @@ class VulnAnalizer {
             });
         }
         
-        // Обновление данных EPSS и эксплойтов
-        const updateHostsDataBtn = document.getElementById('update-hosts-data-btn');
-        if (updateHostsDataBtn) {
-            updateHostsDataBtn.addEventListener('click', async () => {
-                const btnText = updateHostsDataBtn.querySelector('.btn-text');
-                const spinner = updateHostsDataBtn.querySelector('.fa-spinner');
+
+        
+        // Фоновое обновление данных EPSS и эксплойтов
+        const updateHostsDataBackgroundBtn = document.getElementById('update-hosts-data-background-btn');
+        const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+        
+        if (updateHostsDataBackgroundBtn) {
+            updateHostsDataBackgroundBtn.addEventListener('click', async () => {
+                const btnText = updateHostsDataBackgroundBtn.querySelector('.btn-text');
+                const spinner = updateHostsDataBackgroundBtn.querySelector('.fa-spinner');
                 
                 // Показываем индикатор загрузки
-                btnText.textContent = 'Обновление...';
+                btnText.textContent = 'Запуск...';
                 spinner.style.display = 'inline-block';
-                updateHostsDataBtn.disabled = true;
+                updateHostsDataBackgroundBtn.disabled = true;
                 
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('hosts', 'Начало обновления данных...', 0);
+                // Показываем кнопку отмены
+                if (cancelUpdateBtn) {
+                    cancelUpdateBtn.style.display = 'inline-block';
+                }
+                
+                // Показываем прогресс
+                this.showBackgroundUpdateProgress();
                 
                 try {
-                    this.updateOperationProgress('hosts', 'Получение списка хостов...', 15, 'Загрузка уникальных CVE...');
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    
-                    this.updateOperationProgress('hosts', 'Обновление EPSS данных...', 35, 'Загрузка и обновление EPSS оценок...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    this.updateOperationProgress('hosts', 'Обновление данных эксплойтов...', 55, 'Поиск и обновление эксплойтов...');
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                    
-                    this.updateOperationProgress('hosts', 'Расчет рисков...', 75, 'Вычисление оценок риска...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/hosts/update-data', {
+                    const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-background', {
                         method: 'POST'
                     });
                     const data = await resp.json();
                     
                     if (data.success) {
-                        this.updateOperationProgress('hosts', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('hosts', 'Данные успешно обновлены', data.message);
                         this.showNotification(data.message, 'success');
                         this.updateHostsStatus();
+                        
+                        // Если процесс завершился сразу, скрываем кнопку отмены
+                        const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+                        if (cancelUpdateBtn) {
+                            cancelUpdateBtn.style.display = 'none';
+                        }
                     } else {
-                        this.showOperationError('hosts', 'Ошибка обновления данных', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка обновления данных', 'error');
+                        this.showNotification(data.message, 'error');
+                        
+                        // При ошибке также скрываем кнопку отмены
+                        const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+                        if (cancelUpdateBtn) {
+                            cancelUpdateBtn.style.display = 'none';
+                        }
                     }
                 } catch (err) {
-                    console.error('Hosts data update error:', err);
-                    this.showOperationError('hosts', 'Ошибка обновления данных', err.message);
-                    this.showNotification('Ошибка обновления данных', 'error');
+                    console.error('Background update error:', err);
+                    this.showNotification('Ошибка запуска фонового обновления', 'error');
+                    
+                    // При ошибке скрываем кнопку отмены
+                    const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+                    if (cancelUpdateBtn) {
+                        cancelUpdateBtn.style.display = 'none';
+                    }
                 } finally {
                     // Восстанавливаем кнопку
-                    btnText.textContent = 'Обновить данные EPSS/Эксплойтов';
+                    btnText.textContent = 'Запустить полное обновление';
                     spinner.style.display = 'none';
-                    updateHostsDataBtn.disabled = false;
+                    updateHostsDataBackgroundBtn.disabled = false;
                 }
             });
         }
+        
+        if (cancelUpdateBtn) {
+            cancelUpdateBtn.addEventListener('click', async () => {
+                try {
+                    const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-cancel', {
+                        method: 'POST'
+                    });
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        this.showNotification(data.message, 'info');
+                        cancelUpdateBtn.style.display = 'none';
+                    } else {
+                        this.showNotification(data.message, 'warning');
+                    }
+                } catch (err) {
+                    console.error('Cancel update error:', err);
+                    this.showNotification('Ошибка отмены обновления', 'error');
+                }
+            });
+        }
+        
+        // Запускаем мониторинг прогресса фонового обновления
+        this.startBackgroundUpdateMonitoring();
+        
+        // Проверяем статус фонового обновления при загрузке страницы
+        this.checkBackgroundUpdateStatus();
         
         // Поиск хостов
         const hostsSearchForm = document.getElementById('hosts-search-form');
@@ -991,8 +1029,8 @@ class VulnAnalizer {
         
         // Добавляем параметры поиска
         for (let [key, value] of formData.entries()) {
-            if (key === 'exploits_only') {
-                // Для чекбокса добавляем значение только если он отмечен
+            if (key === 'exploits_only' || key === 'epss_only') {
+                // Для чекбоксов добавляем значение только если они отмечены
                 if (value === 'on') {
                     params.append(key, 'true');
                 }
@@ -1084,14 +1122,6 @@ class VulnAnalizer {
         
         resultsDiv.innerHTML = html;
         
-        // Автоматически рассчитываем риск для каждого хоста с задержкой
-        const allHosts = groupBy ? Object.values(this.groupHosts(hosts, groupBy)).flat() : hosts;
-        allHosts.forEach((host, index) => {
-            setTimeout(() => {
-                this.calculateHostRisk(host.id);
-            }, index * 100); // Задержка 100мс между запросами
-        });
-        
         // Отображаем пагинацию
         this.renderPagination();
     }
@@ -1158,6 +1188,40 @@ class VulnAnalizer {
     renderHostItem(host) {
         const criticalityClass = `criticality-${host.criticality.toLowerCase()}`;
         
+        // Индикация эксплойтов
+        let exploitsIndicator = '';
+        if (host.has_exploits) {
+            exploitsIndicator = `
+                <div class="host-exploits">
+                    <span class="exploit-badge" title="Есть эксплойты: ${host.exploits_count}">
+                        <i class="fas fa-bug"></i> ${host.exploits_count}
+                    </span>
+                </div>
+            `;
+        }
+        
+        // Отображение риска
+        let riskDisplay = '';
+        
+        if (host.risk_score !== null && host.risk_score !== undefined) {
+            const riskClass = host.risk_score >= 70 ? 'high-risk' : 
+                             host.risk_score >= 40 ? 'medium-risk' : 'low-risk';
+            
+            // Форматируем риск в зависимости от величины
+            let riskText;
+            if (host.risk_score < 0.1) {
+                riskText = host.risk_score.toFixed(2); // Показываем 2 знака для очень маленьких значений
+            } else if (host.risk_score < 1) {
+                riskText = host.risk_score.toFixed(1); // Показываем 1 знак для маленьких значений
+            } else {
+                riskText = Math.round(host.risk_score); // Округляем для больших значений
+            }
+            
+            riskDisplay = `<span class="risk-score ${riskClass}">Risk: ${riskText}%</span>`;
+        } else {
+            riskDisplay = '<span class="risk-score">Risk: N/A</span>';
+        }
+        
         return `
             <div class="host-item single-line">
                 <div class="host-name">${host.hostname}</div>
@@ -1168,7 +1232,8 @@ class VulnAnalizer {
                     <span class="${criticalityClass}">${host.criticality}</span>
                 </div>
                 <div class="host-status">${host.status}</div>
-                <div class="host-risk" id="host-risk-${host.id}"></div>
+                ${exploitsIndicator}
+                <div class="host-risk" id="host-risk-${host.id}">${riskDisplay}</div>
             </div>
         `;
     }
@@ -1280,7 +1345,12 @@ class VulnAnalizer {
         
         // Добавляем только заполненные параметры
         for (let [key, value] of formData.entries()) {
-            if (value.trim()) {
+            if (key === 'exploits_only' || key === 'epss_only') {
+                // Для чекбоксов добавляем значение только если они отмечены
+                if (value === 'on') {
+                    params.append(key, 'true');
+                }
+            } else if (value.trim()) {
                 params.append(key, value.trim());
             }
         }
@@ -2630,6 +2700,134 @@ class VulnAnalizer {
             return `${minutes}м ${secs}с`;
         } else {
             return `${secs}с`;
+        }
+    }
+
+    // Функции для работы с фоновым обновлением
+    showBackgroundUpdateProgress() {
+        const container = document.getElementById('background-update-progress-container');
+        if (container) {
+            container.style.display = 'block';
+        }
+    }
+
+    hideBackgroundUpdateProgress() {
+        const container = document.getElementById('background-update-progress-container');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    updateBackgroundUpdateProgress(data) {
+        // Обновляем статус
+        const statusText = document.getElementById('background-current-step-text');
+        if (statusText) {
+            statusText.textContent = data.current_step || 'Инициализация...';
+        }
+
+        // Обновляем прогресс
+        const progressText = document.getElementById('background-overall-progress-text');
+        if (progressText) {
+            progressText.textContent = Math.round(data.progress_percent || 0) + '%';
+        }
+
+        // Обновляем прогресс-бар
+        const progressBarFill = document.getElementById('background-progress-bar-fill');
+        if (progressBarFill) {
+            progressBarFill.style.width = (data.progress_percent || 0) + '%';
+        }
+
+        // Обновляем количество CVE
+        const processedCvesText = document.getElementById('background-processed-cves-text');
+        if (processedCvesText) {
+            processedCvesText.textContent = (data.processed_cves || 0).toLocaleString();
+        }
+
+        const totalCvesText = document.getElementById('background-total-cves-text');
+        if (totalCvesText) {
+            totalCvesText.textContent = (data.total_cves || 0).toLocaleString();
+        }
+
+        // Обновляем количество хостов
+        const updatedHostsText = document.getElementById('background-updated-hosts-text');
+        if (updatedHostsText) {
+            updatedHostsText.textContent = (data.updated_hosts || 0).toLocaleString();
+        }
+
+        // Обновляем оставшееся время
+        const estimatedTimeText = document.getElementById('background-estimated-time-text');
+        if (estimatedTimeText && data.estimated_time_seconds) {
+            estimatedTimeText.textContent = this.formatTime(data.estimated_time_seconds);
+        } else {
+            estimatedTimeText.textContent = '-';
+        }
+
+        // Показываем ошибку если есть
+        if (data.error_message) {
+            this.showNotification('Ошибка: ' + data.error_message, 'error');
+        }
+
+        // Скрываем прогресс если завершено
+        if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+            // Скрываем кнопку отмены
+            const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+            if (cancelUpdateBtn) {
+                cancelUpdateBtn.style.display = 'none';
+            }
+            
+            setTimeout(() => {
+                this.hideBackgroundUpdateProgress();
+            }, 3000);
+        }
+    }
+
+    startBackgroundUpdateMonitoring() {
+        return setInterval(async () => {
+            try {
+                const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-progress');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    
+                    this.updateBackgroundUpdateProgress(data);
+
+                    // Если обновление завершено или произошла ошибка, останавливаем мониторинг
+                    if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+                        return false; // Остановить интервал
+                    }
+                }
+            } catch (err) {
+                console.error('Background update monitoring error:', err);
+            }
+        }, 2000); // Обновляем каждые 2 секунды
+    }
+
+    async checkBackgroundUpdateStatus() {
+        // Проверить статус фонового обновления при загрузке страницы
+        try {
+            console.log('Checking background update status...');
+            const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-progress');
+            if (resp.ok) {
+                const data = await resp.json();
+                console.log('Background update status:', data);
+                
+                // Если есть активная задача, показываем прогресс
+                if (data.status === 'processing' || data.status === 'initializing') {
+                    this.showBackgroundUpdateProgress();
+                    this.updateBackgroundUpdateProgress(data);
+                    
+                    // Показываем кнопку отмены
+                    const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+                    if (cancelUpdateBtn) {
+                        cancelUpdateBtn.style.display = 'inline-block';
+                    }
+                    
+                    console.log('Active background update found, showing progress');
+                } else {
+                    console.log('No active background update found');
+                }
+            }
+        } catch (err) {
+            console.error('Error checking background update status:', err);
         }
     }
 }

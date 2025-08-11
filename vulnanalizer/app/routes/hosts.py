@@ -3,6 +3,7 @@
 """
 import csv
 import traceback
+import asyncio
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException, File, UploadFile, Query
@@ -297,13 +298,14 @@ async def search_hosts(
     ip_address: str = None,
     criticality: str = None,
     exploits_only: bool = False,
+    epss_only: bool = False,
     limit: int = 100,
     page: int = 1
 ):
     """Поиск хостов"""
     try:
         db = get_db()
-        results, total_count = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, limit, page)
+        results, total_count = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, epss_only, limit, page)
         return {
             "success": True, 
             "results": results,
@@ -317,16 +319,143 @@ async def search_hosts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/api/hosts/update-data")
-async def update_hosts_data():
-    """Обновить данные хостов (EPSS, CVSS, риски)"""
+
+
+
+@router.post("/api/hosts/update-data-background")
+async def start_background_update():
+    """Запустить фоновое обновление данных хостов"""
     try:
         db = get_db()
-        await db.update_hosts_data()
-        return {"success": True, "message": "Данные хостов обновлены"}
+        
+        # Проверяем, не запущена ли уже задача
+        existing_task = await db.get_background_task('hosts_update')
+        if existing_task and existing_task['status'] in ['processing', 'initializing']:
+            return {"success": False, "message": "Обновление уже запущено"}
+        
+        # Создаем новую задачу
+        task_id = await db.create_background_task('hosts_update')
+        
+        def progress_callback(status, step, **kwargs):
+            # Обновляем задачу в базе данных
+            asyncio.create_task(db.update_background_task(task_id, 
+                status=status, 
+                current_step=step,
+                total_items=kwargs.get('total_cves', 0),
+                processed_items=kwargs.get('processed_cves', 0),
+                total_records=kwargs.get('total_hosts', 0),
+                updated_records=kwargs.get('updated_hosts', 0)
+            ))
+        
+        # Запускаем фоновое обновление
+        result = await db.update_hosts_epss_and_exploits_background(progress_callback)
+        
+        # Обновляем финальный статус в базе данных
+        if result['success']:
+            await db.update_background_task(task_id, 
+                status='completed', 
+                current_step='Завершено',
+                total_items=result.get('processed_cves', 0),
+                processed_items=result.get('processed_cves', 0),
+                total_records=result.get('updated_count', 0),
+                updated_records=result.get('updated_count', 0)
+            )
+        else:
+            await db.update_background_task(task_id, 
+                status='error', 
+                current_step='Ошибка',
+                error_message=result.get('message', 'Неизвестная ошибка')
+            )
+        
+        return result
+        
     except Exception as e:
-        print('Hosts update error:', traceback.format_exc())
+        print('Background update error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/hosts/update-data-progress")
+async def get_background_update_progress():
+    """Получить прогресс фонового обновления данных"""
+    try:
+        db = get_db()
+        task = await db.get_background_task('hosts_update')
+        
+        if not task:
+            return {
+                "status": "idle",
+                "current_step": "Нет активных задач",
+                "total_cves": 0,
+                "processed_cves": 0,
+                "total_hosts": 0,
+                "updated_hosts": 0,
+                "progress_percent": 0,
+                "estimated_time_seconds": None,
+                "start_time": None,
+                "error_message": None
+            }
+        
+        # Рассчитываем оставшееся время
+        estimated_time = None
+        if (task['start_time'] and 
+            task['processed_items'] > 0 and 
+            task['total_items'] > 0):
+            
+            elapsed = (datetime.now() - task['start_time']).total_seconds()
+            if elapsed > 0:
+                rate = task['processed_items'] / elapsed
+                remaining_items = task['total_items'] - task['processed_items']
+                estimated_time = remaining_items / rate if rate > 0 else None
+        
+        # Рассчитываем процент прогресса
+        progress_percent = 0
+        if task['total_items'] > 0:
+            progress_percent = (task['processed_items'] / task['total_items']) * 100
+        
+        return {
+            "status": task['status'],
+            "current_step": task['current_step'] or "Инициализация...",
+            "total_cves": task['total_items'],
+            "processed_cves": task['processed_items'],
+            "total_hosts": task['total_records'],
+            "updated_hosts": task['updated_records'],
+            "progress_percent": round(progress_percent, 1),
+            "estimated_time_seconds": estimated_time,
+            "start_time": task['start_time'].isoformat() if task['start_time'] else None,
+            "error_message": task['error_message']
+        }
+    except Exception as e:
+        print('Error getting background update progress:', e)
+        return {
+            "status": "error",
+            "current_step": "Ошибка получения прогресса",
+            "total_cves": 0,
+            "processed_cves": 0,
+            "total_hosts": 0,
+            "updated_hosts": 0,
+            "progress_percent": 0,
+            "estimated_time_seconds": None,
+            "start_time": None,
+            "error_message": str(e)
+        }
+
+
+@router.post("/api/hosts/update-data-cancel")
+async def cancel_background_update():
+    """Отменить фоновое обновление данных"""
+    try:
+        db = get_db()
+        
+        # Отменяем задачу в базе данных
+        cancelled = await db.cancel_background_task('hosts_update')
+        
+        if cancelled:
+            return {"success": True, "message": "Обновление отменено"}
+        else:
+            return {"success": False, "message": "Нет активного процесса обновления"}
+    except Exception as e:
+        print('Error cancelling background update:', e)
+        return {"success": False, "message": f"Ошибка отмены: {str(e)}"}
 
 
 @router.get("/api/hosts/{host_id}/risk")
@@ -381,14 +510,15 @@ async def export_hosts(
     cve: str = None,
     ip_address: str = None,
     criticality: str = None,
-    exploits_only: bool = False
+    exploits_only: bool = False,
+    epss_only: bool = False
 ):
     """Экспорт хостов в Excel"""
     try:
         db = get_db()
         
         # Получаем данные хостов
-        hosts_data = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only)
+        hosts_data = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, epss_only)
         
         if not hosts_data:
             raise HTTPException(status_code=404, detail="Данные для экспорта не найдены")

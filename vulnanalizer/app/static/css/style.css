@@ -3576,3 +3576,71 @@ input:focus, textarea:focus, select:focus {
         order: 1;
     }
 }
+
+.host-item.single-line .host-status {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.host-item.single-line .host-exploits {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exploit-badge {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: help;
+    transition: all var(--transition-speed);
+}
+
+.exploit-badge:hover {
+    background-color: #b91c1c;
+    transform: scale(1.05);
+}
+
+.exploit-badge i {
+    font-size: 0.9em;
+}
+
+.host-item.single-line .host-risk {
+    flex: 0;
+    min-width: 80px;
+    max-width: 80px;
+    text-align: right;
+}
+
+/* Стили для отображения риска */
+.risk-score {
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.risk-score.high-risk {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--error-color);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.risk-score.medium-risk {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.risk-score.low-risk {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
