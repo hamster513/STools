@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS hosts (
     ip_address INET,
     cve VARCHAR(20),
     cvss DECIMAL(3,1),
+    cvss_source VARCHAR(20),
     criticality VARCHAR(20),
     status VARCHAR(50) DEFAULT 'Active',
     os_name VARCHAR(100),
@@ -154,3 +155,27 @@ CREATE TABLE IF NOT EXISTS background_tasks (
 CREATE INDEX IF NOT EXISTS idx_background_tasks_task_type ON background_tasks(task_type);
 CREATE INDEX IF NOT EXISTS idx_background_tasks_status ON background_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_background_tasks_created_at ON background_tasks(created_at);
+
+-- Создание таблицы CVE
+CREATE TABLE IF NOT EXISTS cve (
+    id SERIAL PRIMARY KEY,
+    cve_id VARCHAR(20) UNIQUE NOT NULL,
+    description TEXT,
+    cvss_v3_base_score DECIMAL(3,1),
+    cvss_v3_base_severity VARCHAR(20),
+    cvss_v2_base_score DECIMAL(3,1),
+    cvss_v2_base_severity VARCHAR(20),
+    exploitability_score DECIMAL(3,1),
+    impact_score DECIMAL(3,1),
+    published_date TIMESTAMP,
+    last_modified_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание индексов для CVE
+CREATE INDEX IF NOT EXISTS idx_cve_cve_id ON cve(cve_id);
+CREATE INDEX IF NOT EXISTS idx_cve_cvss_v3_base_score ON cve(cvss_v3_base_score);
+CREATE INDEX IF NOT EXISTS idx_cve_cvss_v2_base_score ON cve(cvss_v2_base_score);
+CREATE INDEX IF NOT EXISTS idx_cve_published_date ON cve(published_date);
+CREATE INDEX IF NOT EXISTS idx_cve_last_modified_date ON cve(last_modified_date);

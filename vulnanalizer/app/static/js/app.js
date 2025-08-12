@@ -31,6 +31,7 @@ class VulnAnalizer {
         this.setupForms();
         this.setupEPSS();
         this.setupExploitDB();
+        this.setupCVE();
         this.setupHosts();
         this.setupVM();
         this.setupUsers();
@@ -41,6 +42,7 @@ class VulnAnalizer {
             this.updateHostsStatus();
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
+            this.updateCVEStatus();
             this.checkBackgroundUpdateStatus();
         }, 100);
     }
@@ -388,6 +390,13 @@ class VulnAnalizer {
             });
         }
 
+        const clearCVEBtn = document.getElementById('clear-cve-btn');
+        if (clearCVEBtn) {
+            clearCVEBtn.addEventListener('click', () => {
+                this.clearCVE();
+            });
+        }
+
         // Загружаем начальные данные
         this.loadInitialData();
     }
@@ -631,6 +640,215 @@ class VulnAnalizer {
         }
     }
 
+    setupCVE() {
+        // Загрузка CSV
+        const cveForm = document.getElementById('cve-upload-form');
+        if (cveForm) {
+            cveForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('cve-file');
+                if (!fileInput.files.length) {
+                    this.showNotification('Выберите файл для загрузки', 'warning');
+                    return;
+                }
+                
+                const uploadBtn = document.getElementById('cve-upload-btn');
+                const btnText = uploadBtn.querySelector('.btn-text');
+                const spinner = uploadBtn.querySelector('.fa-spinner');
+                
+                // Показываем индикатор загрузки
+                btnText.textContent = 'Загрузка...';
+                spinner.style.display = 'inline-block';
+                uploadBtn.disabled = true;
+                
+                // Показываем прогресс в статусбаре
+                this.showOperationProgress('cve', 'Загрузка файла CVE...', 0);
+                
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                
+                try {
+                    // Симулируем прогресс загрузки
+                    this.updateOperationProgress('cve', 'Обработка файла CVE...', 25, 'Чтение CSV файла...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    this.updateOperationProgress('cve', 'Загрузка данных в базу...', 50, 'Валидация и подготовка данных...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    this.updateOperationProgress('cve', 'Сохранение записей...', 75, 'Запись в базу данных...');
+                    
+                    const resp = await fetch(this.getApiBasePath() + '/cve/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        this.updateOperationProgress('cve', 'Завершение операции...', 90, 'Финальная обработка...');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        
+                        this.showOperationComplete('cve', 'CVE данные успешно загружены', `Загружено записей: ${data.count}`);
+                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
+                        this.updateCVEStatus();
+                        fileInput.value = ''; // Очищаем поле файла
+                    } else {
+                        this.showOperationError('cve', 'Ошибка загрузки CVE', data.detail || 'Неизвестная ошибка');
+                        this.showNotification('Ошибка загрузки CVE', 'error');
+                    }
+                } catch (err) {
+                    console.error('CVE upload error:', err);
+                    this.showOperationError('cve', 'Ошибка загрузки CVE', err.message);
+                    this.showNotification('Ошибка загрузки CVE', 'error');
+                } finally {
+                    // Восстанавливаем кнопку
+                    btnText.textContent = 'Загрузить CSV';
+                    spinner.style.display = 'none';
+                    uploadBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Кнопка скачивания с сайта
+        const cveDownloadBtn = document.getElementById('cve-download-btn');
+        if (cveDownloadBtn) {
+            cveDownloadBtn.addEventListener('click', async () => {
+                const btnText = cveDownloadBtn.querySelector('.btn-text');
+                const spinner = cveDownloadBtn.querySelector('.fa-spinner');
+                
+                // Показываем индикатор загрузки
+                btnText.textContent = 'Скачивание...';
+                spinner.style.display = 'inline-block';
+                cveDownloadBtn.disabled = true;
+                
+                // Показываем кнопку отмены
+                const cveCancelBtn = document.getElementById('cve-cancel-btn');
+                if (cveCancelBtn) {
+                    cveCancelBtn.style.display = 'inline-block';
+                }
+                
+                // Показываем прогресс в статусбаре
+                this.showOperationProgress('cve', 'Подключение к серверу CVE...', 0);
+                
+                try {
+                    this.updateOperationProgress('cve', 'Скачивание файла...', 25, 'Загрузка с empiricalsecurity.com...');
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    
+                    this.updateOperationProgress('cve', 'Обработка данных...', 50, 'Распаковка и парсинг CSV...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    this.updateOperationProgress('cve', 'Сохранение в базу...', 75, 'Запись CVE данных...');
+                    
+                    const resp = await fetch(this.getApiBasePath() + '/cve/download', { method: 'POST' });
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        this.updateOperationProgress('cve', 'Завершение операции...', 90, 'Финальная обработка...');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        
+                        this.showOperationComplete('cve', 'CVE данные успешно скачаны', `Загружено записей: ${data.count}`);
+                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
+                        this.updateCVEStatus();
+                    } else {
+                        this.showOperationError('cve', 'Ошибка скачивания CVE', data.detail || 'Неизвестная ошибка');
+                        this.showNotification('Ошибка скачивания CVE', 'error');
+                    }
+                } catch (err) {
+                    console.error('CVE download error:', err);
+                    this.showOperationError('cve', 'Ошибка скачивания CVE', err.message);
+                    this.showNotification('Ошибка скачивания CVE', 'error');
+                } finally {
+                    // Восстанавливаем кнопку
+                    btnText.textContent = 'Скачать с NVD';
+                    spinner.style.display = 'none';
+                    cveDownloadBtn.disabled = false;
+                    
+                    // Скрываем кнопку отмены
+                    const cveCancelBtn = document.getElementById('cve-cancel-btn');
+                    if (cveCancelBtn) {
+                        cveCancelBtn.style.display = 'none';
+                    }
+                }
+            });
+        }
+        
+        // Кнопка отмены загрузки CVE
+        const cveCancelBtn = document.getElementById('cve-cancel-btn');
+        if (cveCancelBtn) {
+            cveCancelBtn.addEventListener('click', async () => {
+                const btnText = cveCancelBtn.querySelector('.btn-text');
+                const spinner = cveCancelBtn.querySelector('.fa-spinner');
+                
+                // Показываем индикатор
+                btnText.textContent = 'Отмена...';
+                spinner.style.display = 'inline-block';
+                cveCancelBtn.disabled = true;
+                
+                try {
+                    const resp = await fetch(this.getApiBasePath() + '/cve/cancel', { method: 'POST' });
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        this.showNotification('Загрузка CVE отменена', 'success');
+                        // Скрываем кнопку отмены
+                        cveCancelBtn.style.display = 'none';
+                        // Показываем кнопку скачивания
+                        const cveDownloadBtn = document.getElementById('cve-download-btn');
+                        if (cveDownloadBtn) {
+                            cveDownloadBtn.disabled = false;
+                        }
+                    } else {
+                        this.showNotification(data.message || 'Ошибка отмены загрузки', 'warning');
+                    }
+                } catch (err) {
+                    console.error('CVE cancel error:', err);
+                    this.showNotification('Ошибка отмены загрузки CVE', 'error');
+                } finally {
+                    // Восстанавливаем кнопку
+                    btnText.textContent = 'Остановить загрузку';
+                    spinner.style.display = 'none';
+                    cveCancelBtn.disabled = false;
+                }
+            });
+        }
+
+        // Кнопка получения ссылок для скачивания
+        const cveUrlsBtn = document.getElementById('cve-urls-btn');
+        if (cveUrlsBtn) {
+            cveUrlsBtn.addEventListener('click', async () => {
+                try {
+                    const resp = await fetch(this.getApiBasePath() + '/cve/download-urls');
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        let urlsHtml = '<div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; margin-top: 10px;">';
+                        urlsHtml += '<h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE по годам</h4>';
+                        urlsHtml += '<p style="margin: 0 0 8px 0; line-height: 1.4; font-size: 0.8rem;">Скачайте файлы по ссылкам ниже для offline загрузки:</p>';
+                        
+                        data.urls.forEach(urlInfo => {
+                            urlsHtml += `<div style="margin-bottom: 6px;">`;
+                            urlsHtml += `<a href="${urlInfo.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">`;
+                            urlsHtml += `🔗 <span style="flex: 1;">CVE ${urlInfo.year} (${urlInfo.filename})</span>`;
+                            urlsHtml += `</a>`;
+                            urlsHtml += `</div>`;
+                        });
+                        
+                        urlsHtml += '</div>';
+                        
+                        const statusDiv = document.getElementById('cve-status');
+                        if (statusDiv) {
+                            statusDiv.innerHTML = urlsHtml;
+                        }
+                    } else {
+                        this.showNotification('Ошибка получения ссылок CVE', 'error');
+                    }
+                } catch (err) {
+                    console.error('CVE URLs error:', err);
+                    this.showNotification('Ошибка получения ссылок CVE', 'error');
+                }
+            });
+        }
+    }
+
     setupHosts() {
         // Загрузка CSV хостов с поддержкой сжатых файлов
         const hostsForm = document.getElementById('hosts-upload-form');
@@ -755,19 +973,19 @@ class VulnAnalizer {
         
 
         
-        // Фоновое обновление данных EPSS и эксплойтов
-        const updateHostsDataBackgroundBtn = document.getElementById('update-hosts-data-background-btn');
+                // Фоновое обновление данных EPSS и эксплойтов
+        const updateHostsParallelBtn = document.getElementById('update-hosts-parallel-btn');
         const cancelUpdateBtn = document.getElementById('cancel-update-btn');
         
-        if (updateHostsDataBackgroundBtn) {
-            updateHostsDataBackgroundBtn.addEventListener('click', async () => {
-                const btnText = updateHostsDataBackgroundBtn.querySelector('.btn-text');
-                const spinner = updateHostsDataBackgroundBtn.querySelector('.fa-spinner');
+        if (updateHostsParallelBtn) {
+            updateHostsParallelBtn.addEventListener('click', async () => {
+                const btnText = updateHostsParallelBtn.querySelector('.btn-text');
+                const spinner = updateHostsParallelBtn.querySelector('.fa-spinner');
                 
                 // Показываем индикатор загрузки
                 btnText.textContent = 'Запуск...';
                 spinner.style.display = 'inline-block';
-                updateHostsDataBackgroundBtn.disabled = true;
+                updateHostsParallelBtn.disabled = true;
                 
                 // Показываем кнопку отмены
                 if (cancelUpdateBtn) {
@@ -778,13 +996,13 @@ class VulnAnalizer {
                 this.showBackgroundUpdateProgress();
                 
                 try {
-                    const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-background', {
+                    const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-background-parallel', {
                         method: 'POST'
                     });
                     const data = await resp.json();
                     
                     if (data.success) {
-                        this.showNotification(data.message, 'success');
+                        this.showNotification('Обновление запущено', 'success');
                         this.updateHostsStatus();
                         
                         // Если процесс завершился сразу, скрываем кнопку отмены
@@ -803,7 +1021,7 @@ class VulnAnalizer {
                     }
                 } catch (err) {
                     console.error('Background update error:', err);
-                    this.showNotification('Ошибка запуска фонового обновления', 'error');
+                    this.showNotification('Ошибка запуска обновления', 'error');
                     
                     // При ошибке скрываем кнопку отмены
                     const cancelUpdateBtn = document.getElementById('cancel-update-btn');
@@ -812,9 +1030,9 @@ class VulnAnalizer {
                     }
                 } finally {
                     // Восстанавливаем кнопку
-                    btnText.textContent = 'Запустить полное обновление';
+                    btnText.textContent = 'Полное обновление';
                     spinner.style.display = 'none';
-                    updateHostsDataBackgroundBtn.disabled = false;
+                    updateHostsParallelBtn.disabled = false;
                 }
             });
         }
@@ -981,6 +1199,42 @@ class VulnAnalizer {
             }
         } catch (err) {
             statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса EPSS</span>';
+        }
+    }
+
+    async updateCVEStatus() {
+        const statusDiv = document.getElementById('cve-status');
+        if (!statusDiv) return;
+        
+        try {
+            const resp = await fetch(this.getApiBasePath() + '/cve/status');
+            const data = await resp.json();
+            if (data.success) {
+                statusDiv.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <b>Записей в базе CVE:</b> ${data.count}
+                    </div>
+                    
+                    <!-- Подсказка с ссылками для CVE -->
+                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE</h4>
+                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <a href="https://nvd.nist.gov/feeds/json/cve/1.1/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">NVD CVE Feeds (официальный сайт)</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">JSON/GZ</span>
+                            </a>
+                            <a href="https://nvd.nist.gov/vuln/data-feeds" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🌐 <span style="flex: 1;">NVD Data Feeds (документация)</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса CVE</span>';
+            }
+        } catch (err) {
+            statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса CVE</span>';
         }
     }
 
@@ -1198,6 +1452,8 @@ class VulnAnalizer {
                     </span>
                 </div>
             `;
+        } else {
+            exploitsIndicator = '<div class="host-exploits"></div>';
         }
         
         // Отображение риска
@@ -1217,21 +1473,37 @@ class VulnAnalizer {
                 riskText = Math.round(host.risk_score); // Округляем для больших значений
             }
             
-            riskDisplay = `<span class="risk-score ${riskClass}">Risk: ${riskText}%</span>`;
+            riskDisplay = `<span class="risk-score ${riskClass}">${riskText}%</span>`;
         } else {
-            riskDisplay = '<span class="risk-score">Risk: N/A</span>';
+            riskDisplay = '<span class="risk-score">N/A</span>';
         }
         
         return `
             <div class="host-item single-line">
                 <div class="host-name">${host.hostname}</div>
                 <div class="host-ip">${host.ip_address}</div>
-                <div class="host-cve">${host.cve}</div>
-                <div class="host-cvss">CVSS: ${host.cvss || 'N/A'}</div>
                 <div class="host-criticality">
                     <span class="${criticalityClass}">${host.criticality}</span>
                 </div>
-                <div class="host-status">${host.status}</div>
+                <div class="host-cve">${host.cve}</div>
+                <div class="host-cvss">
+                    ${host.cvss ? 
+                        (host.cvss_source && host.cvss_source.includes('v2') ? 
+                            `v2: ${host.cvss}` : 
+                            (host.cvss_source && host.cvss_source.includes('v3') ? 
+                                `v3: ${host.cvss}` : 
+                                `${host.cvss}`
+                            )
+                        ) : 
+                        'N/A'
+                    }
+                </div>
+                <div class="host-status">
+                    ${host.epss_score !== null && host.epss_score !== undefined ? 
+                        `${(host.epss_score * 100).toFixed(2)}%` : 
+                        'N/A'
+                    }
+                </div>
                 ${exploitsIndicator}
                 <div class="host-risk" id="host-risk-${host.id}">${riskDisplay}</div>
             </div>
@@ -1757,6 +2029,39 @@ class VulnAnalizer {
         } finally {
             const btn = document.getElementById('clear-exploitdb-btn');
             btn.innerHTML = '<i class="fas fa-trash"></i> Очистить ExploitDB';
+            btn.disabled = false;
+        }
+    }
+
+    // Очистка таблицы CVE
+    async clearCVE() {
+        if (!confirm('Вы уверены, что хотите удалить все записи CVE? Это действие нельзя отменить.')) {
+            return;
+        }
+
+        try {
+            const btn = document.getElementById('clear-cve-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Очистка...';
+            btn.disabled = true;
+
+            const response = await fetch(this.getApiBasePath() + '/cve/clear', {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                this.showNotification('Таблица CVE очищена успешно!', 'success');
+                this.updateCVEStatus();
+            } else {
+                this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Clear CVE error:', error);
+            this.showNotification('Ошибка очистки CVE', 'error');
+        } finally {
+            const btn = document.getElementById('clear-cve-btn');
+            btn.innerHTML = '<i class="fas fa-trash"></i> Очистить CVE';
             btn.disabled = false;
         }
     }
@@ -2725,6 +3030,14 @@ class VulnAnalizer {
             statusText.textContent = data.current_step || 'Инициализация...';
         }
 
+        // Показываем кнопку отмены если задача активна
+        if (data.status === 'processing' || data.status === 'initializing') {
+            const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+            if (cancelUpdateBtn) {
+                cancelUpdateBtn.style.display = 'inline-block';
+            }
+        }
+
         // Обновляем прогресс
         const progressText = document.getElementById('background-overall-progress-text');
         if (progressText) {
@@ -2762,8 +3075,8 @@ class VulnAnalizer {
             estimatedTimeText.textContent = '-';
         }
 
-        // Показываем ошибку если есть
-        if (data.error_message) {
+        // Показываем ошибку если есть (но не для отмены)
+        if (data.error_message && data.status !== 'cancelled' && !data.error_message.toLowerCase().includes('отменено')) {
             this.showNotification('Ошибка: ' + data.error_message, 'error');
         }
 

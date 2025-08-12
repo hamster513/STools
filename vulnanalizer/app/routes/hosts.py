@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException, File, UploadFile, Query
 from fastapi.responses import StreamingResponse
+from starlette.responses import FileResponse
 
 from utils.file_utils import split_file_by_size, extract_compressed_file
 from utils.validation_utils import is_valid_ip
@@ -299,13 +300,14 @@ async def search_hosts(
     criticality: str = None,
     exploits_only: bool = False,
     epss_only: bool = False,
+    sort_by: str = None,
     limit: int = 100,
     page: int = 1
 ):
     """Поиск хостов"""
     try:
         db = get_db()
-        results, total_count = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, epss_only, limit, page)
+        results, total_count = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, epss_only, sort_by, limit, page)
         return {
             "success": True, 
             "results": results,
@@ -352,14 +354,25 @@ async def start_background_update():
         
         # Обновляем финальный статус в базе данных
         if result['success']:
-            await db.update_background_task(task_id, 
-                status='completed', 
-                current_step='Завершено',
-                total_items=result.get('processed_cves', 0),
-                processed_items=result.get('processed_cves', 0),
-                total_records=result.get('updated_count', 0),
-                updated_records=result.get('updated_count', 0)
-            )
+            # Проверяем, не была ли задача отменена
+            if 'отменено' in result.get('message', '').lower():
+                await db.update_background_task(task_id, 
+                    status='cancelled', 
+                    current_step='Отменено пользователем',
+                    total_items=result.get('processed_cves', 0),
+                    processed_items=result.get('processed_cves', 0),
+                    total_records=result.get('updated_count', 0),
+                    updated_records=result.get('updated_count', 0)
+                )
+            else:
+                await db.update_background_task(task_id, 
+                    status='completed', 
+                    current_step='Завершено',
+                    total_items=result.get('processed_cves', 0),
+                    processed_items=result.get('processed_cves', 0),
+                    total_records=result.get('updated_count', 0),
+                    updated_records=result.get('updated_count', 0)
+                )
         else:
             await db.update_background_task(task_id, 
                 status='error', 
@@ -458,6 +471,69 @@ async def cancel_background_update():
         return {"success": False, "message": f"Ошибка отмены: {str(e)}"}
 
 
+@router.post("/api/hosts/update-data-background-parallel")
+async def start_background_update_parallel():
+    """Запустить фоновое обновление данных хостов с параллельной обработкой"""
+    try:
+        db = get_db()
+        
+        # Проверяем, не запущена ли уже задача
+        existing_task = await db.get_background_task('hosts_update')
+        if existing_task and existing_task['status'] in ['processing', 'initializing']:
+            return {"success": False, "message": "Обновление уже запущено"}
+        
+        # Создаем новую задачу
+        task_id = await db.create_background_task('hosts_update')
+        
+        def progress_callback(status, step, **kwargs):
+            # Обновляем задачу в базе данных
+            asyncio.create_task(db.update_background_task(task_id, 
+                status=status, 
+                current_step=step,
+                total_items=kwargs.get('total_cves', 0),
+                processed_items=kwargs.get('processed_cves', 0),
+                total_records=kwargs.get('total_hosts', 0),
+                updated_records=kwargs.get('updated_hosts', 0)
+            ))
+        
+        # Запускаем параллельное фоновое обновление
+        result = await db.update_hosts_epss_and_exploits_background_parallel(progress_callback)
+        
+        # Обновляем финальный статус в базе данных
+        if result['success']:
+            # Проверяем, не была ли задача отменена
+            if 'отменено' in result.get('message', '').lower():
+                await db.update_background_task(task_id, 
+                    status='cancelled', 
+                    current_step='Отменено пользователем',
+                    total_items=result.get('processed_cves', 0),
+                    processed_items=result.get('processed_cves', 0),
+                    total_records=result.get('updated_count', 0),
+                    updated_records=result.get('updated_count', 0)
+                )
+            else:
+                await db.update_background_task(task_id, 
+                    status='completed', 
+                    current_step='Завершено',
+                    total_items=result.get('processed_cves', 0),
+                    processed_items=result.get('processed_cves', 0),
+                    total_records=result.get('updated_count', 0),
+                    updated_records=result.get('updated_count', 0)
+                )
+        else:
+            await db.update_background_task(task_id, 
+                status='error', 
+                current_step='Ошибка',
+                error_message=result.get('message', 'Неизвестная ошибка')
+            )
+        
+        return result
+        
+    except Exception as e:
+        print('Background update error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/api/hosts/{host_id}/risk")
 async def calculate_host_risk(host_id: int):
     """Рассчитать риск для конкретного хоста"""
@@ -536,6 +612,126 @@ async def export_hosts(
         raise
     except Exception as e:
         print('Hosts export error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/hosts/export-report")
+async def export_hosts_report(
+    format: str = "excel",
+    filters: dict = None,
+    include_charts: bool = True
+):
+    """Экспорт отчета по хостам"""
+    try:
+        db = get_db()
+        
+        # Применяем фильтры
+        where_conditions = []
+        params = []
+        param_count = 0
+        
+        if filters:
+            if filters.get('hostname'):
+                param_count += 1
+                where_conditions.append(f"hostname ILIKE ${param_count}")
+                params.append(f"%{filters['hostname']}%")
+            
+            if filters.get('cve'):
+                param_count += 1
+                where_conditions.append(f"cve ILIKE ${param_count}")
+                params.append(f"%{filters['cve']}%")
+            
+            if filters.get('criticality'):
+                param_count += 1
+                where_conditions.append(f"criticality = ${param_count}")
+                params.append(filters['criticality'])
+            
+            if filters.get('min_risk'):
+                param_count += 1
+                where_conditions.append(f"risk_score >= ${param_count}")
+                params.append(filters['min_risk'])
+            
+            if filters.get('has_exploits'):
+                where_conditions.append("has_exploits = TRUE")
+        
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        
+        # Получаем данные
+        query = f"""
+            SELECT 
+                hostname, ip_address, cve, cvss, cvss_source, criticality, 
+                status, os_name, zone, epss_score, epss_percentile, 
+                risk_score, exploits_count, has_exploits, last_exploit_date,
+                epss_updated_at, exploits_updated_at, risk_updated_at
+            FROM hosts 
+            WHERE {where_clause}
+            ORDER BY risk_score DESC NULLS LAST, hostname, cve
+        """
+        
+        conn = await db.get_connection()
+        rows = await conn.fetch(query, *params)
+        
+        if format.lower() == "excel":
+            # Создаем Excel файл
+            from services.excel_service import create_excel_report
+            
+            filename = f"vulnanalizer_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            file_path = await create_excel_report(rows, filename, include_charts)
+            
+            return FileResponse(
+                file_path,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename=filename
+            )
+        
+        elif format.lower() == "csv":
+            # Создаем CSV файл
+            import csv
+            import tempfile
+            
+            filename = f"vulnanalizer_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv')
+            
+            with temp_file:
+                writer = csv.writer(temp_file)
+                # Заголовки
+                writer.writerow([
+                    'Hostname', 'IP Address', 'CVE', 'CVSS', 'CVSS Source', 
+                    'Criticality', 'Status', 'OS', 'Zone', 'EPSS Score', 
+                    'EPSS Percentile', 'Risk Score', 'Exploits Count', 
+                    'Has Exploits', 'Last Exploit Date'
+                ])
+                
+                # Данные
+                for row in rows:
+                    writer.writerow([
+                        row['hostname'], row['ip_address'], row['cve'], 
+                        row['cvss'], row['cvss_source'], row['criticality'],
+                        row['status'], row['os_name'], row['zone'], 
+                        row['epss_score'], row['epss_percentile'], row['risk_score'],
+                        row['exploits_count'], row['has_exploits'], row['last_exploit_date']
+                    ])
+            
+            return FileResponse(
+                temp_file.name,
+                media_type="text/csv",
+                filename=filename
+            )
+        
+        elif format.lower() == "json":
+            # Возвращаем JSON
+            return {
+                "success": True,
+                "data": [dict(row) for row in rows],
+                "total_count": len(rows),
+                "exported_at": datetime.now().isoformat()
+            }
+        
+        else:
+            raise HTTPException(status_code=400, detail="Неподдерживаемый формат экспорта")
+            
+    except Exception as e:
+        print(f"Error exporting report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

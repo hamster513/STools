@@ -756,23 +756,9 @@ input:focus, textarea:focus, select:focus {
     font-weight: 600;
 }
 
-.epss-container {
-    max-width: 800px;
-    background-color: var(--surface-color);
-    padding: 2rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border-color);
-    margin-top: 2rem;
-}
+/* Удаляем старое определение epss-container, так как оно дублируется ниже */
 
-.epss-container h3 {
-    margin-bottom: 2rem;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-.exploitdb-container, .impact-container, .hosts-container, .clear-container, .vm-settings-container, .vm-import-container {
+.epss-container, .exploitdb-container, .impact-container, .hosts-container, .clear-container, .vm-settings-container, .vm-import-container, .cve-container {
     max-width: 800px;
     background-color: var(--surface-color);
     padding: 2rem;
@@ -821,7 +807,12 @@ input:focus, textarea:focus, select:focus {
     border-left: 4px solid var(--success-color);
 }
 
-.exploitdb-container h3, .impact-container h3, .hosts-container h3, .clear-container h3, .vm-settings-container h3, .vm-import-container h3 {
+.cve-container {
+    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-left: 4px solid var(--primary-color);
+}
+
+.epss-container h3, .exploitdb-container h3, .impact-container h3, .hosts-container h3, .clear-container h3, .vm-settings-container h3, .vm-import-container h3, .cve-container h3 {
     margin-bottom: 2rem;
     color: var(--text-primary);
     font-size: 1.5rem;
@@ -833,7 +824,7 @@ input:focus, textarea:focus, select:focus {
     gap: 0.75rem;
 }
 
-.exploitdb-container h3::before, .impact-container h3::before, .hosts-container h3::before, .clear-container h3::before, .vm-settings-container h3::before, .vm-import-container h3::before {
+.epss-container h3::before, .exploitdb-container h3::before, .impact-container h3::before, .hosts-container h3::before, .clear-container h3::before, .vm-settings-container h3::before, .vm-import-container h3::before, .cve-container h3::before {
     content: '';
     width: 4px;
     height: 24px;
@@ -862,6 +853,10 @@ input:focus, textarea:focus, select:focus {
 
 .vm-import-container h3::before {
     background-color: var(--success-color);
+}
+
+.cve-container h3::before {
+    background-color: var(--primary-color);
 }
 
 .clear-actions {
@@ -1254,72 +1249,63 @@ input:focus, textarea:focus, select:focus {
     font-weight: bold;
 }
 
-/* Адаптивные стили для хостов */
+/* Адаптивные стили для хостов с CSS Grid */
 .host-item.single-line {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.9rem;
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr;
     gap: 0.5rem;
-    flex-direction: row;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
     width: 100%;
-    max-width: 100%;
-    min-width: 100%;
     box-sizing: border-box;
 }
 
 .host-item.single-line > div {
-    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
 }
 
-.host-item.single-line .host-name {
-    flex: 2;
-    min-width: 150px;
-    max-width: 200px;
+/* Стили для заголовка таблицы хостов */
+.hosts-table-header {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--primary-color);
+    border-radius: 0.375rem 0.375rem 0 0;
+    margin-bottom: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.host-item.single-line .host-ip {
-    flex: 1;
-    min-width: 80px;
-    max-width: 120px;
+.hosts-table-header .host-item {
+    background-color: transparent;
+    border: none;
+    margin-bottom: 0;
+    padding: 0.5rem 0.75rem;
+    color: var(--primary-color);
+    font-size: 0.8rem;
 }
 
-.host-item.single-line .host-cve {
-    flex: 1;
-    min-width: 100px;
-    max-width: 150px;
+.hosts-table-header .host-item:hover {
+    border-color: transparent;
+    box-shadow: none;
 }
 
-.host-item.single-line .host-cvss {
-    flex: 0;
-    min-width: 80px;
-    max-width: 80px;
+.hosts-results {
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    max-height: 600px;
+    overflow-y: auto;
 }
 
-.host-item.single-line .host-criticality {
-    flex: 0;
-    min-width: 60px;
-    max-width: 60px;
-}
-
-.host-item.single-line .host-status {
-    flex: 0;
-    min-width: 50px;
-    max-width: 50px;
-}
-
-.host-item.single-line .host-risk {
-    flex: 0;
-    min-width: 80px;
-    max-width: 80px;
-    text-align: right;
-}
+/* CSS Grid автоматически распределяет колонки */
 
 /* Многострочный вид для узких экранов */
 @media (max-width: 1200px) {
@@ -1447,6 +1433,12 @@ input:focus, textarea:focus, select:focus {
 .host-status {
     color: var(--text-secondary);
     font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.host-status:contains("EPSS:") {
+    color: var(--info-color);
+    font-weight: 600;
 }
 
 .host-risk {

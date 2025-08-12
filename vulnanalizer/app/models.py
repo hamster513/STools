@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 class Settings(BaseModel):
@@ -35,6 +35,18 @@ class ExploitDBRecord(BaseModel):
     application_url: Optional[str] = None
     source_url: Optional[str] = None
 
+class CVERecord(BaseModel):
+    cve_id: str
+    description: Optional[str] = None
+    cvss_v3_base_score: Optional[float] = None
+    cvss_v3_base_severity: Optional[str] = None
+    cvss_v2_base_score: Optional[float] = None
+    cvss_v2_base_severity: Optional[str] = None
+    exploitability_score: Optional[float] = None
+    impact_score: Optional[float] = None
+    published_date: Optional[datetime] = None
+    last_modified_date: Optional[datetime] = None
+
 class HostRecord(BaseModel):
     id: Optional[int] = None
     hostname: str
@@ -66,3 +78,39 @@ class HostRiskData(BaseModel):
     exploit_data: Optional[list] = None
     risk_calculation: Optional[dict] = None
     last_updated: Optional[datetime] = None 
+
+class AlertRule(BaseModel):
+    """Правило для создания алертов"""
+    id: Optional[int] = None
+    name: str
+    description: Optional[str] = None
+    conditions: Dict[str, Any]  # Условия срабатывания
+    severity: str = "medium"  # low, medium, high, critical
+    enabled: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class Alert(BaseModel):
+    """Алерт"""
+    id: Optional[int] = None
+    rule_id: int
+    title: str
+    message: str
+    severity: str
+    host_count: int = 0
+    cve_count: int = 0
+    status: str = "new"  # new, acknowledged, resolved
+    created_at: Optional[datetime] = None
+    acknowledged_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+
+class DashboardStats(BaseModel):
+    """Статистика для дашборда"""
+    total_hosts: int
+    total_cves: int
+    high_risk_hosts: int
+    critical_hosts: int
+    hosts_with_exploits: int
+    avg_risk_score: float
+    recent_alerts: int
+    last_update: Optional[datetime] = None 
