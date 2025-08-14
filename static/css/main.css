@@ -5,6 +5,10 @@
 @import url('./base/reset.css');
 @import url('./base/typography.css');
 
+/* ===== THEMES ===== */
+@import url('./themes/light.css');
+@import url('./themes/dark.css');
+
 /* ===== LAYOUT ===== */
 @import url('./components/layout.css');
 
@@ -21,10 +25,10 @@
 @import url('./components/progress.css');
 
 /* ===== PAGES ===== */
-@import url('./pages/auth.css');
 @import url('./pages/vulnanalizer.css');
 @import url('./pages/loganalizer.css');
 @import url('./pages/dashboard.css');
+@import url('./pages/auth.css');
 
 /* ===== UTILITIES ===== */
 @import url('./utilities/spacing.css');
@@ -32,10 +36,6 @@
 @import url('./utilities/display.css');
 @import url('./utilities/flexbox.css');
 @import url('./utilities/grid.css');
-
-/* ===== THEMES ===== */
-@import url('./themes/light.css');
-@import url('./themes/dark.css');
 
 /* ===== COMPATIBILITY LAYER ===== */
 /* Удален compatibility.css - теперь используется единая система стилей */
