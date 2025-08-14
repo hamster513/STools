@@ -1,64 +1,64 @@
-/* Dark Theme */
+/* Dark Theme - Единая палитра как в окне авторизации */
 
 .dark-theme {
-    /* Colors */
-    --primary-color: #3b82f6;
-    --primary-color-dark: #2563eb;
-    --primary-color-light: #60a5fa;
+    /* Colors - основаны на палитре окна авторизации */
+    --primary-color: #4a4a4a;
+    --primary-color-dark: #2d2d2d;
+    --primary-color-light: #666666;
     
-    --secondary-color: #94a3b8;
-    --secondary-color-dark: #64748b;
-    --secondary-color-light: #cbd5e1;
+    --secondary-color: #666666;
+    --secondary-color-dark: #4a4a4a;
+    --secondary-color-light: #888888;
     
-    --background-color: #0f172a;
-    --surface-color: #1e293b;
-    --surface-color-dark: #334155;
-    --surface-color-light: #475569;
+    --background-color: #1a1a1a;
+    --surface-color: rgba(255, 255, 255, 0.1);
+    --surface-color-dark: rgba(0, 0, 0, 0.4);
+    --surface-color-light: rgba(255, 255, 255, 0.2);
     
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
-    --text-inverse: #0f172a;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.9);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-inverse: #1a1a1a;
     
-    --border-color: #334155;
-    --border-color-dark: #475569;
-    --border-color-light: #1e293b;
+    --border-color: rgba(255, 255, 255, 0.2);
+    --border-color-dark: rgba(255, 255, 255, 0.1);
+    --border-color-light: rgba(255, 255, 255, 0.3);
     
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    --shadow-color-dark: rgba(0, 0, 0, 0.5);
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --shadow-color-dark: rgba(0, 0, 0, 0.4);
     --shadow-color-light: rgba(0, 0, 0, 0.1);
     
-    /* Status colors */
-    --success-color: #22c55e;
-    --success-color-dark: #16a34a;
-    --success-color-light: #4ade80;
+    /* Status colors - адаптированы под новую палитру */
+    --success-color: #4ade80;
+    --success-color-dark: #22c55e;
+    --success-color-light: #86efac;
     
-    --error-color: #f87171;
-    --error-color-dark: #ef4444;
-    --error-color-light: #fca5a5;
+    --error-color: #fca5a5;
+    --error-color-dark: #f87171;
+    --error-color-light: #fecaca;
     
-    --warning-color: #fbbf24;
-    --warning-color-dark: #f59e0b;
-    --warning-color-light: #fcd34d;
+    --warning-color: #fcd34d;
+    --warning-color-dark: #fbbf24;
+    --warning-color-light: #fde047;
     
-    --info-color: #60a5fa;
-    --info-color-dark: #3b82f6;
-    --info-color-light: #93c5fd;
+    --info-color: #93c5fd;
+    --info-color-dark: #60a5fa;
+    --info-color-light: #bfdbfe;
     
-    --danger-color: #f87171;
-    --danger-color-dark: #ef4444;
-    --danger-color-light: #fca5a5;
+    --danger-color: #fca5a5;
+    --danger-color-dark: #f87171;
+    --danger-color-light: #fecaca;
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 var(--shadow-color-light);
-    --shadow-md: 0 4px 6px -1px var(--shadow-color);
-    --shadow-lg: 0 10px 15px -3px var(--shadow-color);
-    --shadow-xl: 0 20px 25px -5px var(--shadow-color-dark);
-    --shadow-2xl: 0 25px 50px -12px var(--shadow-color-dark);
+    /* Shadows - как в окне авторизации */
+    --shadow-sm: 0 8px 25px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 15px 35px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 25px 45px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 35px 55px rgba(0, 0, 0, 0.5);
+    --shadow-2xl: 0 45px 65px rgba(0, 0, 0, 0.6);
     
-    /* Focus rings */
-    --focus-ring-color: var(--primary-color);
-    --focus-ring-width: 2px;
+    /* Focus rings - как в окне авторизации */
+    --focus-ring-color: rgba(255, 255, 255, 0.5);
+    --focus-ring-width: 3px;
     --focus-ring-offset: 2px;
     
     /* Overlays */
@@ -66,32 +66,37 @@
     --overlay-color-light: rgba(0, 0, 0, 0.3);
     --overlay-color-dark: rgba(0, 0, 0, 0.9);
     
-    /* Backdrop blur */
-    --backdrop-blur: blur(8px);
-    --backdrop-blur-sm: blur(4px);
-    --backdrop-blur-lg: blur(16px);
+    /* Backdrop blur - как в окне авторизации */
+    --backdrop-blur: blur(20px);
+    --backdrop-blur-sm: blur(10px);
+    --backdrop-blur-lg: blur(30px);
 }
 
 /* Dark theme specific component overrides */
 .dark-theme .card {
-    background-color: var(--surface-color);
+    background: var(--surface-color);
+    backdrop-filter: var(--backdrop-blur);
     border-color: var(--border-color);
     box-shadow: var(--shadow-sm);
 }
 
 .dark-theme .card:hover {
     box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .dark-theme .btn-primary {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, #4a4a4a 0%, #666666 100%);
     border-color: var(--primary-color);
-    color: var(--text-inverse);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
 }
 
 .dark-theme .btn-primary:hover {
-    background-color: var(--primary-color-dark);
-    border-color: var(--primary-color-dark);
+    background: linear-gradient(135deg, #666666 0%, #888888 100%);
+    border-color: var(--primary-color-light);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
 }
 
 .dark-theme .btn-secondary {
@@ -117,14 +122,17 @@
 }
 
 .dark-theme .input {
-    background-color: var(--surface-color);
+    background: var(--surface-color-dark);
     border-color: var(--border-color);
     color: var(--text-primary);
+    backdrop-filter: var(--backdrop-blur-sm);
 }
 
 .dark-theme .input:focus {
-    border-color: var(--primary-color);
+    border-color: var(--focus-ring-color);
+    background: var(--surface-color-dark);
     box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    transform: translateY(-2px);
 }
 
 .dark-theme .input::placeholder {
@@ -132,12 +140,14 @@
 }
 
 .dark-theme .table {
-    background-color: var(--surface-color);
+    background: var(--surface-color);
+    backdrop-filter: var(--backdrop-blur-sm);
     border-color: var(--border-color);
 }
 
 .dark-theme .table th {
-    background-color: var(--surface-color-dark);
+    background: var(--surface-color-dark);
+    backdrop-filter: var(--backdrop-blur-sm);
     border-color: var(--border-color);
     color: var(--text-primary);
 }
@@ -148,27 +158,32 @@
 }
 
 .dark-theme .table tr:hover {
-    background-color: var(--surface-color-dark);
+    background: var(--surface-color-dark);
+    backdrop-filter: var(--backdrop-blur-sm);
 }
 
 .dark-theme .modal-overlay {
-    background-color: var(--overlay-color);
+    background: var(--overlay-color);
+    backdrop-filter: var(--backdrop-blur);
 }
 
 .dark-theme .modal {
-    background-color: var(--surface-color);
+    background: var(--surface-color);
+    backdrop-filter: var(--backdrop-blur);
     border-color: var(--border-color);
     box-shadow: var(--shadow-xl);
 }
 
 .dark-theme .dropdown-menu {
-    background-color: var(--surface-color);
+    background: var(--surface-color);
+    backdrop-filter: var(--backdrop-blur);
     border-color: var(--border-color);
     box-shadow: var(--shadow-lg);
 }
 
 .dark-theme .dropdown-item:hover {
-    background-color: var(--surface-color-dark);
+    background: var(--surface-color-dark);
+    backdrop-filter: var(--backdrop-blur-sm);
 }
 
 .dark-theme .alert {
@@ -208,21 +223,25 @@
 }
 
 .dark-theme .sidebar {
-    background-color: var(--surface-color);
+    background: var(--surface-color);
+    backdrop-filter: var(--backdrop-blur);
     border-color: var(--border-color);
 }
 
 .dark-theme .nav-link:hover {
-    background-color: var(--surface-color-dark);
+    background: var(--surface-color-dark);
+    backdrop-filter: var(--backdrop-blur-sm);
 }
 
 .dark-theme .nav-link.active {
-    background-color: var(--primary-color);
-    color: var(--text-inverse);
+    background: linear-gradient(135deg, #4a4a4a 0%, #666666 100%);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
 }
 
 .dark-theme .top-bar {
-    background-color: var(--surface-color);
+    background: var(--surface-color);
+    backdrop-filter: var(--backdrop-blur);
     border-color: var(--border-color);
     box-shadow: var(--shadow-sm);
 }

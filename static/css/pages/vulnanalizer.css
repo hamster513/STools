@@ -1,6 +1,15 @@
-/* VulnAnalizer Page Styles */
+/* VulnAnalizer Page Styles - Специфичные стили */
 
-/* Main Container */
+/* 
+УДАЛЕНО (дублировались со стандартными стилями):
+- Стили форм (.form-group, .form-row, input, select, checkbox)
+- Стили кнопок (.btn, .btn-primary, .btn-secondary, .btn-success)
+- Стили таблиц (.hosts-table-container, .hosts-table-header, .host-item)
+- Стили пагинации (.pagination-container, .pagination-controls)
+- Стили контейнеров (.container, sidebar-collapsed)
+*/
+
+/* Main Container - специфичный для VulnAnalizer */
 .vulnanalizer-container {
     display: grid;
     grid-template-rows: auto 1fr;
@@ -8,36 +17,6 @@
     height: 100vh;
     overflow: hidden;
 }
-
-/* Container with sidebar */
-.container {
-    max-width: 1200px;
-    margin-left: 280px;
-    padding: var(--spacing-lg);
-    min-height: 100vh;
-    transition: margin-left 0.3s ease;
-    background: var(--background-color);
-}
-
-.container.sidebar-collapsed {
-    margin-left: 80px;
-}
-
-/* Общие стили для всех приложений */
-.loganalizer-container .container {
-    max-width: 1200px;
-    margin-left: 280px;
-    padding: var(--spacing-lg);
-    min-height: 100vh;
-    transition: margin-left 0.3s ease;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1f1f1f 100%);
-}
-
-.loganalizer-container .container.sidebar-collapsed {
-    margin-left: 80px;
-}
-
-/* Sidebar - используем общие стили из navigation.css */
 
 /* ===== УПРАВЛЕНИЕ СТРАНИЦАМИ ===== */
 .page-content {
@@ -51,14 +30,7 @@
 
 
 /* ===== СТРАНИЦА ПОИСКА ===== */
-.analysis-container {
-    background: var(--surface-color);
-    backdrop-filter: blur(10px);
-    border-radius: var(--border-radius-lg);
-    border: 1px solid var(--border-color);
-    padding: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
-}
+/* Используем стандартный стиль блока .content-block */
 
 .hosts-search-form h3 {
     color: var(--text-primary);
@@ -81,182 +53,16 @@
     border-radius: 2px;
 }
 
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-}
-
-.analysis-container .form-group {
-    margin-bottom: var(--spacing-md);
-}
-
-.analysis-container .form-group label {
-    display: block;
-    color: var(--text-primary);
-    font-weight: 500;
-    margin-bottom: var(--spacing-xs);
-    font-size: var(--font-size-sm);
-}
-
-.analysis-container .form-group input[type="text"],
-.analysis-container .form-group select {
-    width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    background: var(--surface-color);
-    color: var(--text-primary);
-    font-size: var(--font-size-sm);
-    transition: all 0.3s ease;
-}
-
-.analysis-container .form-group input[type="text"]:focus,
-.analysis-container .form-group select:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
-}
-
-.analysis-container .form-group input[type="text"]:hover,
-.analysis-container .form-group select:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(0, 0, 0, 0.4);
-}
-
-.analysis-container .form-group input[type="text"]::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.analysis-container .form-group input[type="checkbox"] {
-    width: auto;
-    height: auto;
-    margin: 0;
-    padding: 0;
-    margin-right: var(--spacing-xs);
-    accent-color: #4a4a4a;
-}
-
-.analysis-container .form-group input[type="checkbox"] + label {
-    display: inline;
-    margin-left: var(--spacing-xs);
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 400;
-}
-
-.form-actions {
-    display: flex;
-    gap: var(--spacing-md);
-    justify-content: center;
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.analysis-container .form-actions .btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--border-radius);
-    font-weight: 500;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
-.form-actions .btn-primary {
-    background: linear-gradient(135deg, #4a4a4a 0%, #666666 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.form-actions .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-    background: linear-gradient(135deg, #5a5a5a 0%, #767676 100%);
-}
-
-.form-actions .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.form-actions .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    transform: translateY(-2px);
-}
-
-.form-actions .btn-success {
-    background: linear-gradient(135deg, #2d5a2d 0%, #4a7c4a 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.form-actions .btn-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-    background: linear-gradient(135deg, #3d6a3d 0%, #5a8c5a 100%);
-}
+/* Используем стандартные стили форм и кнопок */
 
 /* ===== РЕЗУЛЬТАТЫ ПОИСКА ===== */
+/* Используем стандартный стиль блока .content-block */
 .hosts-search-results-container {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-radius: var(--border-radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
     margin-top: var(--spacing-lg);
 }
 
-.hosts-table-header {
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: var(--spacing-md);
-}
-
-.host-item {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1.5fr 1fr 1fr 1fr 1fr;
-    gap: var(--spacing-md);
-    align-items: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 500;
-    font-size: var(--font-size-sm);
-}
-
-.host-item.single-line {
-    border-bottom: none;
-    background: transparent;
-}
-
-.host-item.single-line > div {
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-    text-transform: uppercase;
-    font-size: var(--font-size-xs);
-    letter-spacing: 0.5px;
-}
-
-.hosts-results {
-    max-height: 600px;
-    overflow-y: auto;
-}
-
-.hosts-results .host-item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.hosts-results .host-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    transform: translateX(4px);
-}
+/* Используем стандартные стили таблиц */
 
 .host-name {
     font-weight: 500;
@@ -279,13 +85,13 @@
 
 .host-criticality.critical {
     background: rgba(220, 53, 69, 0.2);
-    color: #ff6b6b;
+    color: var(--error-color);
     border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
 .host-criticality.high {
     background: rgba(255, 193, 7, 0.2);
-    color: #ffd93d;
+    color: var(--warning-color);
     border: 1px solid rgba(255, 193, 7, 0.3);
 }
 
@@ -330,65 +136,7 @@
 }
 
 /* ===== ПАГИНАЦИЯ ===== */
-.pagination-container {
-    background: rgba(0, 0, 0, 0.2);
-    padding: var(--spacing-md);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.pagination-info {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: var(--font-size-sm);
-}
-
-.pagination-controls {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.pagination-controls .btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--border-radius);
-    transition: all 0.3s ease;
-}
-
-.pagination-controls .btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    transform: translateY(-1px);
-}
-
-.pagination-controls .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.page-numbers {
-    display: flex;
-    gap: var(--spacing-xs);
-}
-
-.page-numbers .btn {
-    min-width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--font-size-sm);
-}
-
-.page-numbers .btn.active {
-    background: linear-gradient(135deg, #4a4a4a 0%, #666666 100%);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.3);
-}
+/* Используем стандартные стили пагинации */
 
 /* Main Content */
 .vulnanalizer-main {
@@ -419,114 +167,7 @@
     gap: var(--spacing-sm);
 }
 
-/* Data Import Sections */
-.import-sections {
-    display: grid;
-    gap: var(--spacing-lg);
-}
-
-.import-section {
-    display: grid;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    background-color: var(--surface-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-}
-
-.import-section-header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.import-section-title {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.import-section-icon {
-    width: 24px;
-    height: 24px;
-    color: var(--primary-color);
-}
-
-.import-section-status {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: var(--spacing-xs);
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-}
-
-.import-section-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, auto));
-    gap: var(--spacing-sm);
-}
-
-/* File Upload Areas */
-.file-upload-container {
-    display: grid;
-    gap: var(--spacing-md);
-}
-
-.file-upload-area {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    border: 2px dashed var(--border-color);
-    border-radius: var(--border-radius);
-    background-color: var(--background-color);
-    transition: all var(--transition-speed);
-    cursor: pointer;
-}
-
-.file-upload-area:hover {
-    border-color: var(--primary-color);
-    background-color: rgba(37, 99, 235, 0.05);
-}
-
-.file-upload-area.dragover {
-    border-color: var(--primary-color);
-    background-color: rgba(37, 99, 235, 0.1);
-}
-
-.file-upload-text {
-    display: grid;
-    gap: var(--spacing-xs);
-}
-
-.file-upload-title {
-    font-size: var(--font-size-base);
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.file-upload-subtitle {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-}
-
-.file-upload-button {
-    padding: var(--spacing-sm) var(--spacing-md);
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-    transition: all var(--transition-speed);
-}
-
-.file-upload-button:hover {
-    background-color: var(--primary-hover);
-}
+/* Удалено - неиспользуемые стили import-section и file-upload */
 
 /* Progress Indicators */
 .progress-container {
@@ -637,59 +278,7 @@
     color: var(--text-secondary);
 }
 
-/* Hosts Table */
-.hosts-table-container {
-    display: grid;
-    gap: var(--spacing-md);
-    background-color: var(--surface-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-}
-
-.hosts-table-header {
-    display: grid;
-    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    background-color: var(--surface-color);
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 600;
-    color: var(--text-primary);
-    font-size: var(--font-size-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.hosts-table-header-cell {
-    display: grid;
-    align-items: center;
-    padding: var(--spacing-sm);
-    text-align: left;
-}
-
-.hosts-results {
-    display: grid;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-md);
-}
-
-.host-item {
-    display: grid;
-    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    border-bottom: 1px solid var(--border-color);
-    transition: background-color var(--transition-speed);
-}
-
-.host-item:hover {
-    background-color: var(--background-color);
-}
-
-.host-item:last-child {
-    border-bottom: none;
-}
+/* Используем стандартные стили таблиц */
 
 .host-name {
     font-weight: 500;
@@ -739,7 +328,7 @@
 }
 
 .severity-high {
-    color: #dc2626;
+    color: var(--error-color-dark);
 }
 
 .severity-medium {
@@ -764,7 +353,7 @@
 }
 
 .risk-score.high {
-    color: #dc2626;
+    color: var(--error-color-dark);
 }
 
 .risk-score.medium {

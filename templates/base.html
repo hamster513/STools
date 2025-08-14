@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}STools{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/main.css?v=5.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="light-theme">
+    <!-- Верхняя панель -->
+    <div class="top-panel">
+        <div class="system-tabs">
+            <a href="/vulnanalizer/" class="system-tab" id="vulnanalizer-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">VulnAnalizer</span>
+                    <span class="system-tab-desc">Анализ безопасности</span>
+                </div>
+            </a>
+            <a href="/loganalizer/" class="system-tab" id="loganalizer-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">LogAnalizer</span>
+                    <span class="system-tab-desc">Анализ логов</span>
+                </div>
+            </a>
+        </div>
+        
+        <div class="top-panel-right">
+            <!-- Меню настроек -->
+            <div class="dropdown-container">
+                <button id="settings-toggle" class="dropdown-button">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div id="settings-dropdown" class="dropdown-menu">
+                    <a href="#" id="users-link" class="dropdown-item">
+                        <i class="fas fa-users"></i>
+                        <span>Пользователи</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <div class="version-info">
+                        <i class="fas fa-code-branch"></i>
+                        <span id="app-version">v0.1.0001</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Меню пользователя -->
+            <div class="dropdown-container">
+                <button id="user-toggle" class="dropdown-button">
+                    <i class="fas fa-user"></i>
+                </button>
+                <div id="user-dropdown" class="dropdown-menu">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-details">
+                            <span id="user-name" class="user-name">Пользователь</span>
+                            <span class="user-role">Администратор</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="theme-link" class="dropdown-item">
+                        <i class="fas fa-moon"></i>
+                        <span id="theme-text">Темная</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="logout-link" class="dropdown-item">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Выйти</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковая панель -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-toggle" id="sidebar-toggle">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-tabs">
+                {% block sidebar_tabs %}{% endblock %}
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="page-container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Уведомления -->
+    <div id="notifications" class="notifications"></div>
+
+    <!-- Скрипты -->
+    <script src="/static/js/ui-manager.js?v=5.0"></script>
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Инициализация UI менеджера
+        document.addEventListener('DOMContentLoaded', () => {
+            window.uiManager = new UIManager();
+            
+            // Устанавливаем активную вкладку в зависимости от текущей страницы
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/vulnanalizer/')) {
+                document.getElementById('vulnanalizer-tab').classList.add('active');
+            } else if (currentPath.includes('/loganalizer/')) {
+                document.getElementById('loganalizer-tab').classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -2,22 +2,22 @@
 
 :root {
     /* Color Palette - Light Theme */
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
-    --secondary-color: #64748b;
+    --primary-color: #4a4a4a;
+    --primary-hover: #2d2d2d;
+    --secondary-color: #666666;
     --background-color: #ffffff;
     --surface-color: #f8fafc;
-    --text-primary: #1e293b;
+    --text-primary: #2d2d2d;
     --text-secondary: #64748b;
     --border-color: #e2e8f0;
     --shadow-color: rgba(0, 0, 0, 0.1);
     
     /* Status Colors */
-    --success-color: #10b981;
-    --error-color: #ef4444;
-    --warning-color: #f59e0b;
-    --danger-color: #dc3545;
-    --info-color: #3b82f6;
+    --success-color: #4ade80;
+    --error-color: #fca5a5;
+    --warning-color: #fcd34d;
+    --danger-color: #fca5a5;
+    --info-color: #93c5fd;
     
     /* Typography */
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -39,10 +39,21 @@
     /* Layout */
     --sidebar-width: 280px;
     --sidebar-width-collapsed: 60px;
-    --top-bar-height: 60px;
+    --top-panel-height: 60px;
     --border-radius: 8px;
     --border-radius-sm: 4px;
     --border-radius-lg: 12px;
+    
+    /* Z-index */
+    --z-top-panel: 1000;
+    --z-sidebar: 900;
+    --z-dropdown: 1100;
+    --z-modal: 1200;
+    --z-tooltip: 1300;
+    
+    /* Focus */
+    --focus-ring-color: rgba(79, 70, 229, 0.1);
+    --focus-ring-width: 3px;
     
     /* Transitions */
     --transition-speed: 0.3s;
@@ -60,21 +71,4 @@
     --z-tooltip: 1100;
 }
 
-/* Dark Theme */
-.dark-theme {
-    --primary-color: #3b82f6;
-    --primary-hover: #2563eb;
-    --secondary-color: #94a3b8;
-    --background-color: #0f172a;
-    --surface-color: #1e293b;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --border-color: #334155;
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    
-    --success-color: #22c55e;
-    --error-color: #f87171;
-    --warning-color: #fbbf24;
-    --danger-color: #f87171;
-    --info-color: #60a5fa;
-}
+/* Dark Theme - Удалено, теперь используется themes/dark.css */

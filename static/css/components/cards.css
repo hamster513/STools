@@ -136,3 +136,80 @@
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
 }
+
+/* ===== СТАНДАРТНЫЙ БЛОК ===== */
+/* 
+Универсальный стиль для всех блоков контента
+
+ИСПОЛЬЗОВАНИЕ:
+- Базовый блок: <div class="content-block">...</div>
+- С цветовой индикацией: <div class="content-block content-block-primary">...</div>
+- Разные размеры: <div class="content-block content-block-sm">...</div>
+- Без отступа: <div class="content-block content-block-no-margin">...</div>
+
+ВАРИАНТЫ:
+- content-block-primary (синий)
+- content-block-success (зеленый) 
+- content-block-warning (желтый)
+- content-block-error (красный)
+- content-block-info (голубой)
+
+РАЗМЕРЫ:
+- content-block-sm (маленький)
+- content-block-lg (большой)
+- content-block-no-margin (без отступа снизу)
+*/
+
+/* Универсальный стиль для всех блоков контента */
+.content-block {
+    background: var(--surface-color);
+    backdrop-filter: blur(10px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-speed);
+}
+
+.content-block:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+/* Варианты блоков */
+.content-block-primary {
+    border-left: 4px solid var(--primary-color);
+}
+
+.content-block-success {
+    border-left: 4px solid var(--success-color);
+}
+
+.content-block-warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.content-block-error {
+    border-left: 4px solid var(--error-color);
+}
+
+.content-block-info {
+    border-left: 4px solid var(--info-color);
+}
+
+/* Размеры блоков */
+.content-block-sm {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.content-block-lg {
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Блок без отступа снизу */
+.content-block-no-margin {
+    margin-bottom: 0;
+}

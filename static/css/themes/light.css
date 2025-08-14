@@ -2,13 +2,13 @@
 
 .light-theme {
     /* Colors */
-    --primary-color: #4f46e5;
+    --primary-color: #4a4a4a;
     --primary-color-dark: #4338ca;
     --primary-color-light: #6366f1;
     
     --secondary-color: #64748b;
-    --secondary-color-dark: #475569;
-    --secondary-color-light: #94a3b8;
+    --secondary-color-dark: #4a4a4a;
+    --secondary-color-light: #888888;
     
     --background-color: #f5f7fa;
     --surface-color: #ffffff;
@@ -30,20 +30,20 @@
     
     /* Status colors */
     --success-color: #10b981;
-    --success-color-dark: #059669;
+    --success-color-dark: #22c55e;
     --success-color-light: #34d399;
     
     --error-color: #ef4444;
-    --error-color-dark: #dc2626;
+    --error-color-dark: #f87171;
     --error-color-light: #f87171;
     
     --warning-color: #f59e0b;
-    --warning-color-dark: #d97706;
+    --warning-color-dark: #fbbf24;
     --warning-color-light: #fbbf24;
     
-    --info-color: #3b82f6;
-    --info-color-dark: #2563eb;
-    --info-color-light: #60a5fa;
+    --info-color: #93c5fd;
+    --info-color-dark: #60a5fa;
+    --info-color-light: #bfdbfe;
     
     --danger-color: #dc3545;
     --danger-color-dark: #c82333;

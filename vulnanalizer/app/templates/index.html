@@ -10,33 +10,31 @@
 </head>
 <body class="light-theme">
     <!-- Верхняя панель переключения сервисов -->
-    <div class="top-bar modern-top-bar">
-        <div class="service-switcher">
-            <a href="/vulnanalizer/" class="service-link active modern-service-link" id="vulnanalizer-link">
-                <div class="service-icon">
+    <div class="top-panel">
+        <div class="system-tabs">
+            <a href="/vulnanalizer/" class="system-tab active" id="vulnanalizer-tab">
+                <div class="system-tab-icon">
                     <i class="fas fa-shield-alt"></i>
                 </div>
-                <div class="service-info">
-                    <span class="service-name">VulnAnalizer</span>
-                    <span class="service-desc">Анализ безопасности</span>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">VulnAnalizer</span>
                 </div>
             </a>
-            <a href="/loganalizer/" class="service-link modern-service-link" id="loganalizer-link">
-                <div class="service-icon">
+            <a href="/loganalizer/" class="system-tab" id="loganalizer-tab">
+                <div class="system-tab-icon">
                     <i class="fas fa-file-alt"></i>
                 </div>
-                <div class="service-info">
-                    <span class="service-name">LogAnalizer</span>
-                    <span class="service-desc">Анализ логов</span>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">LogAnalizer</span>
                 </div>
             </a>
         </div>
-        <div class="top-bar-right">
-            <div class="settings-menu">
-                <button id="settings-toggle" class="settings-btn modern-btn">
+        <div class="top-panel-right">
+            <div class="dropdown-container">
+                <button id="settings-toggle" class="dropdown-button">
                     <i class="fas fa-cog"></i>
                 </button>
-                <div id="settings-dropdown" class="settings-dropdown modern-dropdown">
+                <div id="settings-dropdown" class="dropdown-menu">
                     <a href="#" id="users-link" class="dropdown-item">
                         <i class="fas fa-users"></i>
                         <span>Пользователи</span>
@@ -48,11 +46,11 @@
                     </div>
                 </div>
             </div>
-            <div class="user-menu">
-                <button id="user-toggle" class="user-btn modern-btn">
+            <div class="dropdown-container">
+                <button id="user-toggle" class="dropdown-button">
                     <i class="fas fa-user"></i>
                 </button>
-                <div id="user-dropdown" class="user-dropdown modern-dropdown">
+                <div id="user-dropdown" class="dropdown-menu">
                     <div class="user-info">
                         <div class="user-avatar">
                             <i class="fas fa-user"></i>
@@ -78,41 +76,41 @@
     </div>
 
     <!-- Боковое меню -->
-    <aside class="sidebar modern-sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-toggle" id="sidebar-toggle">
             <i class="fas fa-chevron-left"></i>
         </div>
         <nav class="sidebar-nav">
             <div class="sidebar-tabs">
                 <a href="#" class="sidebar-tab active" data-page="analysis">
-                    <div class="tab-icon">
+                    <div class="sidebar-tab-icon">
                         <i class="fas fa-search-plus"></i>
                     </div>
-                    <span class="tab-title">Поиск</span>
+                    <span class="sidebar-tab-title">Поиск</span>
                 </a>
                 <a href="#" class="sidebar-tab" data-page="hosts">
-                    <div class="tab-icon">
+                    <div class="sidebar-tab-icon">
                         <i class="fas fa-database"></i>
                     </div>
-                    <span class="tab-title">Импорт</span>
+                    <span class="sidebar-tab-title">Импорт</span>
                 </a>
                 <a href="#" class="sidebar-tab" data-page="settings">
-                    <div class="tab-icon">
+                    <div class="sidebar-tab-icon">
                         <i class="fas fa-sliders-h"></i>
                     </div>
-                    <span class="tab-title">Настройки</span>
+                    <span class="sidebar-tab-title">Настройки</span>
                 </a>
             </div>
         </nav>
     </aside>
 
     <!-- Основной контент -->
-    <div class="container">
-        <main class="main-content">
+    <main class="main-content">
+        <div class="page-container">
 
             <!-- Страница анализа -->
             <div id="analysis-page" class="page-content">
-                <div class="analysis-container">
+                <div class="analysis-container content-block">
                     <div class="hosts-search-form">
                         <h3>Критерии поиска</h3>
                         <form id="hosts-search-form">
@@ -190,7 +188,7 @@
                 </div>
                 
                 <!-- Отдельный контейнер для результатов поиска -->
-                <div class="hosts-search-results-container">
+                <div class="hosts-search-results-container content-block content-block-no-margin">
                     <!-- Заголовок таблицы с подписями колонок -->
                     <div class="hosts-table-header">
                         <div class="host-item single-line">
@@ -423,7 +421,7 @@
 
             <!-- Страница настроек -->
             <div id="settings-page" class="page-content">
-                <div class="settings-container">
+                <div class="settings-container content-block">
                                             <h3>Подключение к базе данных</h3>
                     <form id="settings-form">
                         <div class="form-row">
@@ -462,7 +460,7 @@
                 </div>
                 
                 <!-- Настройки Impact -->
-                <div class="impact-container">
+                <div class="impact-container content-block">
                                             <h3>Расчет риска (Impact)</h3>
                     <form id="impact-form">
                         <div class="form-group">
@@ -510,7 +508,7 @@
                 </div>
                 
                 <!-- Настройки VM MaxPatrol -->
-                <div class="vm-settings-container">
+                <div class="vm-settings-container content-block">
                                             <h3>Интеграция с MaxPatrol VM</h3>
                     <form id="vm-settings-form">
                         <div class="form-group">
@@ -552,7 +550,7 @@
                 </div>
                 
                 <!-- Отдельный блок EPSS -->
-                <div class="epss-container">
+                <div class="epss-container content-block">
                     <h3>Загрузка базы EPSS</h3>
                     
                     <form id="epss-upload-form" enctype="multipart/form-data">
@@ -576,7 +574,7 @@
                 </div>
                 
                 <!-- Отдельный блок Exploit DB -->
-                <div class="exploitdb-container">
+                <div class="exploitdb-container content-block">
                     <h3>Загрузка базы Exploit DB</h3>
                     <form id="exploitdb-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
@@ -599,11 +597,8 @@
                 </div>
                 
                 <!-- Отдельный блок CVE -->
-                <div class="cve-container" style="max-width: 800px; background: linear-gradient(135deg, #f8fafc 0%, rgba(59, 130, 246, 0.05) 100%); padding: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; margin-top: 2rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-left: 4px solid #2563eb;">
-                    <h3 style="margin-bottom: 2rem; color: #1e293b; font-size: 1.5rem; font-weight: 600; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="content: ''; width: 4px; height: 24px; border-radius: 2px; background-color: #2563eb; display: inline-block;"></span>
-                        Загрузка базы CVE
-                    </h3>
+                <div class="cve-container content-block content-block-info">
+                    <h3>Загрузка базы CVE</h3>
                     <form id="cve-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
                             <label for="cve-file">Загрузить JSON-файл:</label>
@@ -633,7 +628,7 @@
                 </div>
 
                 <!-- Секция очистки таблиц -->
-                <div class="clear-container">
+                <div class="clear-container content-block">
                     <h3>Очистка таблиц</h3>
                     <div class="clear-actions">
                         <div class="clear-item">
@@ -670,7 +665,7 @@
 
             <!-- Страница хостов -->
             <div id="hosts-page" class="page-content">
-                <div class="hosts-container">
+                <div class="hosts-container content-block">
                     <h3>Импорт хостов из MP VM</h3>
                     <form id="hosts-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
@@ -809,9 +804,8 @@
 
 
 
-        </main>
-    </div>
-    </div>
+        </div>
+    </main>
 
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>

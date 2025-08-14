@@ -58,8 +58,8 @@
 }
 
 .btn-success:hover:not(:disabled) {
-    background-color: #059669;
-    border-color: #059669;
+    background-color: var(--success-color-dark);
+    border-color: var(--success-color-dark);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
@@ -71,8 +71,8 @@
 }
 
 .btn-danger:hover:not(:disabled) {
-    background-color: #b91c1c;
-    border-color: #b91c1c;
+    background-color: var(--danger-color-dark);
+    border-color: var(--danger-color-dark);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
@@ -84,8 +84,8 @@
 }
 
 .btn-warning:hover:not(:disabled) {
-    background-color: #d97706;
-    border-color: #d97706;
+    background-color: var(--warning-color-dark);
+    border-color: var(--warning-color-dark);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
@@ -97,8 +97,8 @@
 }
 
 .btn-info:hover:not(:disabled) {
-    background-color: #2563eb;
-    border-color: #2563eb;
+    background-color: var(--info-color-dark);
+    border-color: var(--info-color-dark);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }

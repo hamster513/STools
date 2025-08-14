@@ -10,33 +10,33 @@
 </head>
 <body>
     <!-- Верхняя панель переключения сервисов -->
-    <div class="top-bar modern-top-bar">
-        <div class="service-switcher">
-            <a href="/vulnanalizer/" class="service-link modern-service-link" id="vulnanalizer-link">
-                <div class="service-icon">
+    <div class="top-panel">
+        <div class="system-tabs">
+            <a href="/vulnanalizer/" class="system-tab" id="vulnanalizer-tab">
+                <div class="system-tab-icon">
                     <i class="fas fa-shield-alt"></i>
                 </div>
-                <div class="service-info">
-                    <span class="service-name">VulnAnalizer</span>
-                    <span class="service-desc">Анализ безопасности</span>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">VulnAnalizer</span>
+                    <span class="system-tab-desc">Анализ безопасности</span>
                 </div>
             </a>
-            <a href="/loganalizer/" class="service-link active modern-service-link" id="loganalizer-link">
-                <div class="service-icon">
+            <a href="/loganalizer/" class="system-tab active" id="loganalizer-tab">
+                <div class="system-tab-icon">
                     <i class="fas fa-file-alt"></i>
                 </div>
-                <div class="service-info">
-                    <span class="service-name">LogAnalizer</span>
-                    <span class="service-desc">Анализ логов</span>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">LogAnalizer</span>
+                    <span class="system-tab-desc">Анализ логов</span>
                 </div>
             </a>
         </div>
-        <div class="top-bar-right">
-            <div class="settings-menu">
-                <button id="settings-toggle" class="settings-btn modern-btn">
+        <div class="top-panel-right">
+            <div class="dropdown-container">
+                <button id="settings-toggle" class="dropdown-button">
                     <i class="fas fa-cog"></i>
                 </button>
-                <div id="settings-dropdown" class="settings-dropdown modern-dropdown">
+                <div id="settings-dropdown" class="dropdown-menu">
                     <a href="#" id="users-link" class="dropdown-item">
                         <i class="fas fa-users"></i>
                         <span>Пользователи</span>
@@ -48,11 +48,11 @@
                     </div>
                 </div>
             </div>
-            <div class="user-menu">
-                <button id="user-toggle" class="user-btn modern-btn">
+            <div class="dropdown-container">
+                <button id="user-toggle" class="dropdown-button">
                     <i class="fas fa-user"></i>
                 </button>
-                <div id="user-dropdown" class="user-dropdown modern-dropdown">
+                <div id="user-dropdown" class="dropdown-menu">
                     <div class="user-info">
                         <div class="user-avatar">
                             <i class="fas fa-user"></i>
@@ -77,39 +77,38 @@
         </div>
     </div>
 
-    <!-- Основной контейнер -->
-    <div class="container">
-        <!-- Боковое меню -->
-        <aside class="sidebar modern-sidebar" id="sidebar">
-            <div class="sidebar-toggle" id="sidebar-toggle">
-                <i class="fas fa-chevron-left"></i>
-            </div>
-            <nav class="sidebar-nav">
-                <div class="sidebar-tabs">
-                    <a href="#" class="sidebar-tab active" data-page="import">
-                        <div class="tab-icon">
-                            <i class="fas fa-file-upload"></i>
-                        </div>
-                        <span class="tab-title">Импорт</span>
-                    </a>
-                    <a href="#" class="sidebar-tab" data-page="analysis">
-                        <div class="tab-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <span class="tab-title">Анализ</span>
-                    </a>
+    <!-- Боковое меню -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-toggle" id="sidebar-toggle">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-tabs">
+                <a href="#" class="sidebar-tab active" data-page="import">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Импорт</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="analysis">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Анализ</span>
+                </a>
                     <a href="#" class="sidebar-tab" data-page="settings">
-                        <div class="tab-icon">
+                        <div class="sidebar-tab-icon">
                             <i class="fas fa-tools"></i>
                         </div>
-                        <span class="tab-title">Настройки</span>
+                        <span class="sidebar-tab-title">Настройки</span>
                     </a>
                 </div>
             </nav>
         </aside>
 
-        <!-- Основной контент -->
-        <main class="main-content">
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="page-container">
             <!-- Уведомления -->
             <div id="notifications" class="notifications"></div>
 
@@ -331,8 +330,8 @@
                     </button>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
     <!-- Модальное окно предварительного просмотра -->
     <div id="preview-modal" class="modal">

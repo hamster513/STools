@@ -141,7 +141,7 @@
 }
 
 .severity-high {
-    color: #dc2626;
+    color: var(--error-color-dark);
 }
 
 .severity-medium {
@@ -166,7 +166,7 @@
 }
 
 .risk-score.high {
-    color: #dc2626;
+    color: var(--error-color-dark);
 }
 
 .risk-score.medium {
