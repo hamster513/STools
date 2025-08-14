@@ -247,10 +247,10 @@
 /* Form Actions */
 .form-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, auto));
-    gap: var(--spacing-sm);
+    grid-template-columns: repeat(auto-fit, minmax(100px, auto));
+    gap: var(--spacing-xs);
     justify-items: center;
-    padding-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
     border-top: 1px solid var(--border-color);
 }
 

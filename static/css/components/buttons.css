@@ -7,7 +7,7 @@
     align-items: center;
     justify-items: center;
     gap: var(--spacing-xs);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-xs) var(--spacing-sm);
     border: 1px solid transparent;
     border-radius: var(--border-radius);
     font-size: var(--font-size-sm);
@@ -17,7 +17,7 @@
     transition: all var(--transition-speed);
     user-select: none;
     white-space: nowrap;
-    min-height: 36px;
+    min-height: 32px;
 }
 
 .btn:disabled {
@@ -105,44 +105,44 @@
 
 /* Button Sizes */
 .btn-sm {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-xs);
     font-size: var(--font-size-xs);
-    min-height: 28px;
+    min-height: 24px;
 }
 
 .btn-lg {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     font-size: var(--font-size-base);
-    min-height: 44px;
+    min-height: 40px;
 }
 
 .btn-xl {
-    padding: var(--spacing-lg) var(--spacing-xl);
+    padding: var(--spacing-md) var(--spacing-lg);
     font-size: var(--font-size-lg);
-    min-height: 52px;
+    min-height: 48px;
 }
 
 /* Button with Icon */
 .btn-icon {
     grid-template-columns: 1fr;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     padding: var(--spacing-xs);
 }
 
 .btn-icon.btn-sm {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
 }
 
 .btn-icon.btn-lg {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
 }
 
 .btn-icon.btn-xl {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
 }
 
 /* Button Groups */
@@ -197,8 +197,8 @@
 /* Button Container */
 .btn-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, auto));
-    gap: var(--spacing-sm);
+    grid-template-columns: repeat(auto-fit, minmax(100px, auto));
+    gap: var(--spacing-xs);
     align-items: center;
 }
 
