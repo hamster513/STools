@@ -181,7 +181,8 @@
 .epss-container.content-block,
 .exploitdb-container.content-block,
 .cve-container.content-block {
-    border: 3px solid var(--border-color);
+    padding: var(--spacing-xl) var(--spacing-xl);
+    border: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
 }
 
