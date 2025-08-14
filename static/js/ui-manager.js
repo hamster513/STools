@@ -214,7 +214,28 @@ class UIManager {
 
     async initVersionInfo() {
         try {
-            const response = await fetch('/api/version');
+            // Определяем базовый путь для API в зависимости от текущего приложения
+            const currentPath = window.location.pathname;
+            let apiBasePath = '/api';
+            
+            if (currentPath.includes('/vulnanalizer/')) {
+                apiBasePath = '/vulnanalizer/api';
+            } else if (currentPath.includes('/loganalizer/')) {
+                apiBasePath = '/loganalizer/api';
+            }
+            
+            const response = await fetch(`${apiBasePath}/version`);
+            
+            // Проверяем, что ответ успешный и содержит JSON
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON');
+            }
+            
             const data = await response.json();
             
             const versionElement = document.getElementById('app-version');
@@ -222,7 +243,14 @@ class UIManager {
                 versionElement.textContent = `v${data.version}`;
             }
         } catch (error) {
-            console.error('Error loading app version:', error);
+            // Тихо обрабатываем ошибку, не засоряя консоль
+            console.debug('Version info not available:', error.message);
+            
+            // Устанавливаем версию по умолчанию
+            const versionElement = document.getElementById('app-version');
+            if (versionElement) {
+                versionElement.textContent = 'v1.0.0';
+            }
         }
     }
 
