@@ -16,6 +16,7 @@ class UIManager {
         this.initSidebar();
         this.initDropdowns();
         this.initTopPanel();
+        this.initDropZones();
         this.bindGlobalEvents();
     }
 
@@ -325,6 +326,51 @@ class UIManager {
                 usersTab.classList.add('active');
             }
         }
+    }
+
+    // ===== DROP ZONES =====
+    initDropZones() {
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        
+        fileInputs.forEach(input => {
+            this.setupDropZone(input);
+        });
+    }
+
+    setupDropZone(input) {
+        // Предотвращаем стандартное поведение браузера
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            input.addEventListener(eventName, this.preventDefaults, false);
+        });
+
+        // Обработчики для визуальной обратной связи
+        ['dragenter', 'dragover'].forEach(eventName => {
+            input.addEventListener(eventName, () => {
+                input.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            input.addEventListener(eventName, () => {
+                input.classList.remove('drag-over');
+            }, false);
+        });
+
+        // Обработка сброшенных файлов
+        input.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                input.files = files;
+                // Вызываем событие change для активации обработчиков
+                const event = new Event('change', { bubbles: true });
+                input.dispatchEvent(event);
+            }
+        }, false);
+    }
+
+    preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     // ===== УТИЛИТЫ =====

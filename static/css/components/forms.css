@@ -80,7 +80,7 @@
     transition: all var(--transition-speed);
 }
 
-/* Стандартные стили для input file */
+/* Стандартные стили для input file (drop zone) */
 input[type="file"] {
     width: 100%;
     min-height: 80px;
@@ -92,6 +92,7 @@ input[type="file"] {
     cursor: pointer;
     transition: all var(--transition-speed);
     box-sizing: border-box;
+    position: relative;
 }
 
 input[type="file"]:hover {
@@ -103,6 +104,52 @@ input[type="file"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Состояние drag over для drop zone */
+input[type="file"].drag-over {
+    border-color: var(--primary-color);
+    background-color: rgba(37, 99, 235, 0.1);
+    transform: scale(1.02);
+}
+
+/* Стили для drop zone с текстом */
+.drop-zone {
+    width: 100%;
+    min-height: 80px;
+    padding: var(--spacing-lg);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    box-sizing: border-box;
+    position: relative;
+}
+
+.drop-zone:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+.drop-zone.drag-over {
+    border-color: var(--primary-color);
+    background-color: rgba(37, 99, 235, 0.1);
+    transform: scale(1.02);
+}
+
+.drop-zone-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.drop-zone-text strong {
+    color: var(--primary-color);
+    font-weight: 600;
 }
 
 .form-input input:focus,
