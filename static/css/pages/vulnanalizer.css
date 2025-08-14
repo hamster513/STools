@@ -177,6 +177,21 @@
     max-width: 100% !important;
 }
 
+/* Специальные стили для блоков загрузки баз данных */
+.epss-container.content-block,
+.exploitdb-container.content-block,
+.cve-container.content-block {
+    border: 3px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+.epss-container.content-block:hover,
+.exploitdb-container.content-block:hover,
+.cve-container.content-block:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-lg);
+}
+
 .content-header {
     display: grid;
     grid-template-columns: 1fr auto;
