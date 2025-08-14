@@ -29,7 +29,7 @@
 
 /* Адаптивная ширина при сворачивании боковой панели */
 .layout-sidebar-collapsed .page-container {
-    max-width: calc(1200px + (var(--sidebar-width) - var(--sidebar-width-collapsed)));
+    max-width: 1200px;
 }
 
 .page-header {
