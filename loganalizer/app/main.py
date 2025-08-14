@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,6 +42,19 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Настройка шаблонов с кэшированием
 templates = Jinja2Templates(directory="templates")
+
+# Кастомный роут для CSS файла с заголовками для предотвращения кэширования
+@app.get("/static/css/main.css")
+async def get_main_css():
+    return FileResponse(
+        "../../static/css/main.css",
+        media_type="text/css",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 # Инициализация базы данных
 db = Database()

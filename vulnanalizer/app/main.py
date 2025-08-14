@@ -36,8 +36,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Кастомный роут для CSS файла с заголовками для предотвращения кэширования
 @app.get("/static/css/style.css")
-async def get_css():
-    """Возвращает CSS файл с заголовками для предотвращения кэширования"""
+async def get_style_css():
     return FileResponse(
         "static/css/style.css",
         media_type="text/css",
@@ -47,6 +46,12 @@ async def get_css():
             "Expires": "0"
         }
     )
+
+
+
+
+
+
 
 # Подключаем роуты
 app.include_router(system_router)
@@ -65,7 +70,9 @@ async def startup():
     from database import get_db
     db = get_db()
     try:
-        db.execute("SELECT 1")
+        conn = await db.get_connection()
+        await conn.execute("SELECT 1")
+        await db.release_connection(conn)
         print("✅ База данных подключена")
     except Exception as e:
         print(f"❌ Ошибка подключения к базе данных: {e}")

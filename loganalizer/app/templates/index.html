@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogAnalizer - Анализ логов</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/loganalizer/static/css/style.css?v=1.2">
+    <link rel="stylesheet" href="/static/css/main.css?v=4.0">
     <link rel="icon" type="image/svg+xml" href="/loganalizer/static/favicon.svg">
 </head>
 <body>
@@ -82,35 +82,29 @@
         <!-- Боковое меню -->
         <aside class="sidebar modern-sidebar" id="sidebar">
             <div class="sidebar-toggle" id="sidebar-toggle">
-                <i class="fas fa-bars"></i>
+                <i class="fas fa-chevron-left"></i>
             </div>
             <nav class="sidebar-nav">
-                <ul>
-                    <li>
-                        <a href="#" class="nav-link active modern-nav-link" data-page="import">
-                            <div class="nav-icon">
-                                <i class="fas fa-file-upload"></i>
-                            </div>
-                            <span class="nav-title">Импорт</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="nav-link modern-nav-link" data-page="analysis">
-                            <div class="nav-icon">
-                                <i class="fas fa-chart-bar"></i>
-                            </div>
-                            <span class="nav-title">Анализ</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="nav-link modern-nav-link" data-page="settings">
-                            <div class="nav-icon">
-                                <i class="fas fa-tools"></i>
-                            </div>
-                            <span class="nav-title">Настройки</span>
-                        </a>
-                    </li>
-                </ul>
+                <div class="sidebar-tabs">
+                    <a href="#" class="sidebar-tab active" data-page="import">
+                        <div class="tab-icon">
+                            <i class="fas fa-file-upload"></i>
+                        </div>
+                        <span class="tab-title">Импорт</span>
+                    </a>
+                    <a href="#" class="sidebar-tab" data-page="analysis">
+                        <div class="tab-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="tab-title">Анализ</span>
+                    </a>
+                    <a href="#" class="sidebar-tab" data-page="settings">
+                        <div class="tab-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <span class="tab-title">Настройки</span>
+                    </a>
+                </div>
             </nav>
         </aside>
 

@@ -17,11 +17,7 @@ async def read_root():
         return HTMLResponse(content=f.read())
 
 
-@router.get("/login", response_class=HTMLResponse)
-async def login_page():
-    """Страница входа"""
-    with open("templates/login.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+
 
 
 @router.get("/api/settings")

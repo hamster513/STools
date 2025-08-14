@@ -1,6 +1,7 @@
 """
 Сервис аутентификации и JWT токенов
 """
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 import jwt
@@ -8,7 +9,7 @@ from fastapi import HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # Настройки JWT
-SECRET_KEY = "your-secret-key-here"  # В продакшене должен быть в переменных окружения
+SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -35,7 +36,7 @@ def verify_token(token: str) -> Optional[dict]:
         return payload
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.InvalidTokenError:
         return None
 
 

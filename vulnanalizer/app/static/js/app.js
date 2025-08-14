@@ -37,6 +37,9 @@ class VulnAnalizer {
         this.setupUsers();
         this.setupSidebar();
         
+        // Инициализируем активную страницу
+        this.initializeActivePage();
+        
         // Загружаем статус хостов при инициализации
         setTimeout(() => {
             this.updateHostsStatus();
@@ -49,33 +52,48 @@ class VulnAnalizer {
 
     checkAuth() {
         const token = localStorage.getItem('auth_token');
+        console.log('checkAuth: token from localStorage:', token ? 'exists' : 'not found');
+        
         if (!token) {
             // Если нет токена, перенаправляем на страницу входа
-            window.location.href = '/vulnanalizer/login';
+            console.log('checkAuth: no token, redirecting to login');
+            window.location.href = '/auth/';
             return;
         }
 
         // Проверяем токен
+        console.log('checkAuth: checking token with /api/users/me');
         fetch('/vulnanalizer/api/users/me', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         }).then(response => {
+            console.log('checkAuth: /api/users/me response status:', response.status);
             if (response.ok) {
                 return response.json();
             } else {
+                console.log('checkAuth: auth failed, clearing localStorage and redirecting');
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user_info');
-                window.location.href = '/vulnanalizer/login';
+                window.location.href = '/auth/';
                 throw new Error('Auth failed');
             }
         }).then(userData => {
             // Сохраняем информацию о пользователе
-            localStorage.setItem('user_info', JSON.stringify(userData));
-        }).catch(() => {
+            console.log('checkAuth: userData from /api/users/me:', userData);
+            console.log('checkAuth: userData.user:', userData.user);
+            console.log('checkAuth: userData.user.is_admin:', userData.user?.is_admin);
+            
+            // Сохраняем только объект пользователя, а не весь ответ API
+            if (userData.user) {
+                localStorage.setItem('user_info', JSON.stringify(userData.user));
+            } else {
+                localStorage.setItem('user_info', JSON.stringify(userData));
+            }
+        }).catch((error) => {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_info');
-            window.location.href = '/vulnanalizer/login';
+            window.location.href = '/auth/';
         });
     }
 
@@ -117,18 +135,38 @@ class VulnAnalizer {
         }
     }
 
-    setupNavigation() {
-        const navLinks = document.querySelectorAll('.nav-link');
+    initializeActivePage() {
+        // Скрываем все страницы
+        const allPages = document.querySelectorAll('.page-content');
+        allPages.forEach(page => {
+            page.classList.remove('active');
+        });
         
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
+        // Показываем первую страницу (analysis) по умолчанию
+        const analysisPage = document.getElementById('analysis-page');
+        if (analysisPage) {
+            analysisPage.classList.add('active');
+        }
+        
+        // Устанавливаем активную вкладку
+        const analysisTab = document.querySelector('.sidebar-tab[data-page="analysis"]');
+        if (analysisTab) {
+            analysisTab.classList.add('active');
+        }
+    }
+
+    setupNavigation() {
+        const sidebarTabs = document.querySelectorAll('.sidebar-tab');
+        
+        sidebarTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
                 e.preventDefault();
                 
-                // Убираем активный класс со всех ссылок
-                navLinks.forEach(l => l.classList.remove('active'));
+                // Убираем активный класс со всех вкладок
+                sidebarTabs.forEach(t => t.classList.remove('active'));
                 
-                // Добавляем активный класс к текущей ссылке
-                link.classList.add('active');
+                // Добавляем активный класс к текущей вкладке
+                tab.classList.add('active');
                 
                 // Скрываем все страницы
                 document.querySelectorAll('.page-content').forEach(page => {
@@ -136,10 +174,12 @@ class VulnAnalizer {
                 });
                 
                 // Показываем нужную страницу
-                const targetPage = link.getAttribute('data-page');
+                const targetPage = tab.getAttribute('data-page');
                 const targetElement = document.getElementById(`${targetPage}-page`);
                 if (targetElement) {
                     targetElement.classList.add('active');
+                } else {
+                    console.error(`Page element not found: ${targetPage}-page`);
                 }
                 
                 // Обновляем заголовок страницы
@@ -251,7 +291,7 @@ class VulnAnalizer {
         localStorage.removeItem('user_info');
         
         // Перенаправляем на страницу входа
-        window.location.href = '/vulnanalizer/login';
+        window.location.href = '/auth/';
     }
 
     openUsersPage() {
@@ -2527,22 +2567,41 @@ class VulnAnalizer {
     setupSidebar() {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebar-toggle');
+        const container = document.querySelector('.container');
         
         if (!sidebar || !sidebarToggle) return;
 
-        // Загружаем состояние из localStorage
+        // Функция для обновления иконки
+        const updateToggleIcon = (isCollapsed) => {
+            const icon = sidebarToggle.querySelector('i');
+            if (icon) {
+                icon.className = isCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+            }
+        };
+
+        // Загружаем состояние из localStorage (по умолчанию sidebar развернута)
         const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
         if (isCollapsed) {
             sidebar.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
+            updateToggleIcon(true);
+        } else {
+            // Если состояние не сохранено, считаем что sidebar развернута
+            sidebar.classList.remove('collapsed');
+            document.body.classList.remove('sidebar-collapsed');
+            localStorage.setItem('sidebar_collapsed', 'false');
+            updateToggleIcon(false);
         }
 
         // Обработчик для кнопки сворачивания
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed');
             
-            // Сохраняем состояние
+            // Сохраняем состояние и обновляем иконку
             const isNowCollapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('sidebar_collapsed', isNowCollapsed.toString());
+            updateToggleIcon(isNowCollapsed);
         });
     }
 
@@ -2582,13 +2641,29 @@ class VulnAnalizer {
         try {
             // Проверяем, является ли текущий пользователь администратором
             const userInfo = localStorage.getItem('user_info');
+            console.log('user_info from localStorage:', userInfo);
+            
             if (!userInfo) {
                 this.showNotification('Ошибка: информация о пользователе не найдена', 'error');
                 return;
             }
 
             const currentUser = JSON.parse(userInfo);
-            if (!currentUser.is_admin) {
+            console.log('currentUser parsed:', currentUser);
+            
+            // Обрабатываем оба возможных формата user_info
+            let isAdmin = false;
+            if (currentUser.is_admin !== undefined) {
+                // Прямой формат: {id: 3, username: "admin", is_admin: true}
+                isAdmin = currentUser.is_admin;
+            } else if (currentUser.user && currentUser.user.is_admin !== undefined) {
+                // Формат API ответа: {success: true, user: {id: 3, is_admin: true}}
+                isAdmin = currentUser.user.is_admin;
+            }
+            
+            console.log('isAdmin determined:', isAdmin);
+            
+            if (!isAdmin) {
                 this.showNotification('Доступ запрещен: требуются права администратора', 'error');
                 // Скрываем страницу пользователей для не-админов
                 this.hideUsersPage();

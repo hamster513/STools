@@ -92,12 +92,32 @@ class LogAnalizer {
     }
 
     setupNavigation() {
-        const navLinks = document.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
+        const sidebarTabs = document.querySelectorAll('.sidebar-tab');
+        
+        sidebarTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
                 e.preventDefault();
-                const page = link.getAttribute('data-page');
-                this.switchPage(page);
+                
+                // Убираем активный класс со всех вкладок
+                sidebarTabs.forEach(t => t.classList.remove('active'));
+                
+                // Добавляем активный класс к текущей вкладке
+                tab.classList.add('active');
+                
+                // Скрываем все страницы
+                document.querySelectorAll('.page-content').forEach(page => {
+                    page.classList.remove('active');
+                });
+                
+                // Показываем нужную страницу
+                const targetPage = tab.getAttribute('data-page');
+                const targetElement = document.getElementById(`${targetPage}-page`);
+                if (targetElement) {
+                    targetElement.classList.add('active');
+                }
+                
+                // Обновляем заголовок страницы
+                this.switchPage(targetPage);
             });
         });
     }
@@ -1601,22 +1621,41 @@ class LogAnalizer {
         setupSidebar() {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebar-toggle');
-   
+        const container = document.querySelector('.container');
+        
         if (!sidebar || !sidebarToggle) return;
 
-        // Загружаем состояние из localStorage
+        // Функция для обновления иконки
+        const updateToggleIcon = (isCollapsed) => {
+            const icon = sidebarToggle.querySelector('i');
+            if (icon) {
+                icon.className = isCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+            }
+        };
+
+        // Загружаем состояние из localStorage (по умолчанию sidebar развернута)
         const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
         if (isCollapsed) {
             sidebar.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
+            updateToggleIcon(true);
+        } else {
+            // Если состояние не сохранено, считаем что sidebar развернута
+            sidebar.classList.remove('collapsed');
+            document.body.classList.remove('sidebar-collapsed');
+            localStorage.setItem('sidebar_collapsed', 'false');
+            updateToggleIcon(false);
         }
 
         // Обработчик для кнопки сворачивания
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed');
             
-            // Сохраняем состояние
+            // Сохраняем состояние и обновляем иконку
             const isNowCollapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('sidebar_collapsed', isNowCollapsed.toString());
+            updateToggleIcon(isNowCollapsed);
         });
     }
 

@@ -1168,17 +1168,6 @@ input:focus, textarea:focus, select:focus {
 }
 
 .hosts-results {
-    margin-top: 2rem;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    box-sizing: border-box !important;
-}
-
-.hosts-results {
     width: 100% !important;
     max-width: 100% !important;
     margin-left: 0 !important;
