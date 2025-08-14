@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест кнопок</title>
+    <link rel="stylesheet" href="/static/css/main.css?v=4.0">
+    <style>
+        .test-container {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .button-test {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .button-test h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .size-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body class="light-theme">
+    <div class="test-container">
+        <h1>Тест стилей кнопок</h1>
+        
+        <div class="button-test">
+            <h3>Базовые кнопки (без размера)</h3>
+            <div class="button-row">
+                <button class="btn btn-primary">Обычная кнопка</button>
+                <button class="btn btn-secondary">Вторичная</button>
+                <button class="btn btn-success">Успех</button>
+                <button class="btn btn-danger">Опасность</button>
+            </div>
+            <div class="size-info">
+                Ожидаемая высота: 32px, отступы: var(--spacing-xs) var(--spacing-sm)
+            </div>
+        </div>
+        
+        <div class="button-test">
+            <h3>Маленькие кнопки (btn-sm)</h3>
+            <div class="button-row">
+                <button class="btn btn-primary btn-sm">Маленькая кнопка</button>
+                <button class="btn btn-secondary btn-sm">Вторичная</button>
+                <button class="btn btn-success btn-sm">Успех</button>
+                <button class="btn btn-danger btn-sm">Опасность</button>
+            </div>
+            <div class="size-info">
+                Ожидаемая высота: 24px, отступы: var(--spacing-xs) var(--spacing-xs), шрифт: var(--font-size-xs)
+            </div>
+        </div>
+        
+        <div class="button-test">
+            <h3>Большие кнопки (btn-lg)</h3>
+            <div class="button-row">
+                <button class="btn btn-primary btn-lg">Большая кнопка</button>
+                <button class="btn btn-secondary btn-lg">Вторичная</button>
+                <button class="btn btn-success btn-lg">Успех</button>
+                <button class="btn btn-danger btn-lg">Опасность</button>
+            </div>
+            <div class="size-info">
+                Ожидаемая высота: 40px, отступы: var(--spacing-sm) var(--spacing-md), шрифт: var(--font-size-base)
+            </div>
+        </div>
+        
+        <div class="button-test">
+            <h3>Кнопки с иконками</h3>
+            <div class="button-row">
+                <button class="btn btn-primary btn-sm">
+                    <i class="fas fa-search"></i> Найти
+                </button>
+                <button class="btn btn-secondary btn-sm">
+                    <i class="fas fa-times"></i> Очистить
+                </button>
+                <button class="btn btn-success btn-sm">
+                    <i class="fas fa-file-excel"></i> Экспорт
+                </button>
+            </div>
+        </div>
+        
+        <div class="button-test">
+            <h3>Иконочные кнопки</h3>
+            <div class="button-row">
+                <button class="btn btn-primary btn-icon btn-sm">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="btn btn-secondary btn-icon btn-sm">
+                    <i class="fas fa-times"></i>
+                </button>
+                <button class="btn btn-success btn-icon btn-sm">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="size-info">
+                Ожидаемый размер: 24x24px
+            </div>
+        </div>
+        
+        <div class="button-test">
+            <h3>CSS переменные</h3>
+            <div class="size-info">
+                --spacing-xs: 0.25rem (4px)<br>
+                --spacing-sm: 0.5rem (8px)<br>
+                --spacing-md: 1rem (16px)<br>
+                --font-size-xs: 0.75rem (12px)<br>
+                --font-size-sm: 0.875rem (14px)<br>
+                --font-size-base: 1rem (16px)
+            </div>
+        </div>
+    </div>
+</body>
+</html>

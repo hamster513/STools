@@ -105,21 +105,21 @@
 
 /* Button Sizes */
 .btn-sm {
-    padding: var(--spacing-xs) var(--spacing-xs);
-    font-size: var(--font-size-xs);
-    min-height: 24px;
+    padding: var(--spacing-xs) var(--spacing-xs) !important;
+    font-size: var(--font-size-xs) !important;
+    min-height: 24px !important;
 }
 
 .btn-lg {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-base);
-    min-height: 40px;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    font-size: var(--font-size-base) !important;
+    min-height: 40px !important;
 }
 
 .btn-xl {
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: var(--font-size-lg);
-    min-height: 48px;
+    padding: var(--spacing-md) var(--spacing-lg) !important;
+    font-size: var(--font-size-lg) !important;
+    min-height: 48px !important;
 }
 
 /* Button with Icon */
@@ -131,18 +131,18 @@
 }
 
 .btn-icon.btn-sm {
-    width: 24px;
-    height: 24px;
+    width: 24px !important;
+    height: 24px !important;
 }
 
 .btn-icon.btn-lg {
-    width: 40px;
-    height: 40px;
+    width: 40px !important;
+    height: 40px !important;
 }
 
 .btn-icon.btn-xl {
-    width: 48px;
-    height: 48px;
+    width: 48px !important;
+    height: 48px !important;
 }
 
 /* Button Groups */
