@@ -19,6 +19,12 @@
     transition: all var(--transition-speed);
 }
 
+/* Адаптивная ширина основного контейнера */
+.layout-sidebar-collapsed .vulnanalizer-container {
+    width: calc(100% + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+    max-width: calc(100% + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+}
+
 /* ===== УПРАВЛЕНИЕ СТРАНИЦАМИ ===== */
 .page-content {
     display: none !important;
@@ -152,8 +158,23 @@
 
 /* Адаптивные отступы при сворачивании боковой панели */
 .layout-sidebar-collapsed .vulnanalizer-main {
-    padding-left: calc(var(--spacing-lg) + (var(--sidebar-width) - var(--sidebar-width-collapsed)));
-    padding-right: calc(var(--spacing-lg) + (var(--sidebar-width) - var(--sidebar-width-collapsed)));
+    padding-left: calc(var(--spacing-lg) + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+    padding-right: calc(var(--spacing-lg) + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+}
+
+/* Адаптивная ширина блоков контента */
+.layout-sidebar-collapsed .content-block {
+    width: calc(100% + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+    max-width: calc(100% + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+}
+
+/* Адаптивная ширина контейнеров */
+.layout-sidebar-collapsed .epss-container,
+.layout-sidebar-collapsed .exploitdb-container,
+.layout-sidebar-collapsed .cve-container,
+.layout-sidebar-collapsed .clear-container {
+    width: calc(100% + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
+    max-width: calc(100% + (var(--sidebar-width) - var(--sidebar-width-collapsed))) !important;
 }
 
 .content-header {

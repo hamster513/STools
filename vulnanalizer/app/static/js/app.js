@@ -1,5 +1,8 @@
 class VulnAnalizer {
     constructor() {
+        // Инициализируем UIManager для управления боковой панелью и темами
+        this.uiManager = new UIManager();
+        
         this.init();
         this.operationStatus = {}; // Хранит статус текущих операций
         this.paginationState = {
@@ -24,7 +27,6 @@ class VulnAnalizer {
         // Проверяем авторизацию
         this.checkAuth();
         
-        this.initTheme();
         this.setupNavigation();
         this.setupSettings();
         this.setupUserMenu();
@@ -35,7 +37,6 @@ class VulnAnalizer {
         this.setupHosts();
         this.setupVM();
         this.setupUsers();
-        this.setupSidebar();
         
         // Инициализируем активную страницу
         this.initializeActivePage();
