@@ -12,6 +12,11 @@
     padding: var(--spacing-lg);
 }
 
+/* Адаптивное поведение при сворачивании боковой панели */
+.layout-sidebar-collapsed .main-content {
+    left: var(--sidebar-width-collapsed);
+}
+
 /* Состояния управляются через layout.css */
 
 /* Контейнеры страниц */
@@ -19,6 +24,12 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: var(--spacing-lg);
+    transition: max-width var(--transition-speed);
+}
+
+/* Адаптивная ширина при сворачивании боковой панели */
+.layout-sidebar-collapsed .page-container {
+    max-width: calc(1200px + (var(--sidebar-width) - var(--sidebar-width-collapsed)));
 }
 
 .page-header {
@@ -49,6 +60,8 @@
     margin-bottom: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-speed);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .content-block:hover {

@@ -1,10 +1,6 @@
 /* ===== LAYOUT STATES - НЕЗАВИСИМОЕ УПРАВЛЕНИЕ СОСТОЯНИЯМИ ===== */
 
 /* Состояния боковой панели */
-.layout-sidebar-collapsed .main-content {
-    left: var(--sidebar-width-collapsed);
-}
-
 .layout-sidebar-collapsed .sidebar {
     width: var(--sidebar-width-collapsed);
 }

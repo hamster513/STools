@@ -16,6 +16,7 @@
     gap: var(--spacing-lg);
     height: 100vh;
     overflow: hidden;
+    transition: all var(--transition-speed);
 }
 
 /* ===== УПРАВЛЕНИЕ СТРАНИЦАМИ ===== */
@@ -146,6 +147,13 @@
     padding: var(--spacing-lg);
     overflow-y: auto;
     background: transparent !important;
+    transition: padding var(--transition-speed);
+}
+
+/* Адаптивные отступы при сворачивании боковой панели */
+.layout-sidebar-collapsed .vulnanalizer-main {
+    padding-left: calc(var(--spacing-lg) + (var(--sidebar-width) - var(--sidebar-width-collapsed)));
+    padding-right: calc(var(--spacing-lg) + (var(--sidebar-width) - var(--sidebar-width-collapsed)));
 }
 
 .content-header {
@@ -213,6 +221,7 @@
     background-color: var(--surface-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
+    transition: all var(--transition-speed);
 }
 
 .search-form {
@@ -258,6 +267,7 @@
 .results-section {
     display: grid;
     gap: var(--spacing-md);
+    transition: all var(--transition-speed);
 }
 
 .results-header {
@@ -437,6 +447,12 @@
     
     .vulnanalizer-main {
         padding: var(--spacing-md);
+    }
+    
+    /* На мобильных устройствах отключаем адаптивные отступы */
+    .layout-sidebar-collapsed .vulnanalizer-main {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
     }
     
     .content-header {
