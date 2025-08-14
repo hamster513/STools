@@ -173,13 +173,13 @@
                                 </div>
                             </div>
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary btn-sm">
                                     <i class="fas fa-search"></i> Найти
                                 </button>
-                                <button type="button" id="clear-hosts-results" class="btn btn-secondary">
+                                <button type="button" id="clear-hosts-results" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-times"></i> Очистить
                                 </button>
-                                <button type="button" id="export-hosts" class="btn btn-success">
+                                <button type="button" id="export-hosts" class="btn btn-success btn-sm">
                                     <i class="fas fa-file-excel"></i> Экспорт в Excel
                                 </button>
                             </div>
@@ -211,11 +211,11 @@
                             <span id="pagination-info">Показано 0 из 0 записей</span>
                         </div>
                         <div class="pagination-controls">
-                            <button id="prev-page" class="btn btn-secondary" disabled>
+                            <button id="prev-page" class="btn btn-secondary btn-sm" disabled>
                                 <i class="fas fa-chevron-left"></i> Предыдущая
                             </button>
                             <span id="page-numbers" class="page-numbers"></span>
-                            <button id="next-page" class="btn btn-secondary" disabled>
+                            <button id="next-page" class="btn btn-secondary btn-sm" disabled>
                                 Следующая <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
@@ -232,7 +232,7 @@
                             <p class="users-subtitle">Управление пользователями системы</p>
                         </div>
                         <div class="header-right">
-                            <button id="add-user-btn" class="btn btn-primary btn-modern">
+                            <button id="add-user-btn" class="btn btn-primary btn-modern btn-sm">
                                 <i class="fas fa-plus"></i>
                                 <span>Добавить пользователя</span>
                             </button>
@@ -449,10 +449,10 @@
                             <input type="password" id="db-password" name="database_password" required>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary btn-sm">
                                 <i class="fas fa-save"></i> Сохранить
                             </button>
-                            <button type="button" id="test-connection" class="btn btn-primary">
+                            <button type="button" id="test-connection" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plug"></i> Проверить подключение
                             </button>
                         </div>
@@ -500,7 +500,7 @@
                             <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary btn-sm">
                                 <i class="fas fa-save"></i> Сохранить Impact
                             </button>
                         </div>
@@ -539,7 +539,7 @@
                             <small>Секретный ключ для OAuth2 аутентификации</small>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" id="vm-settings-btn">
+                            <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
                                 <i class="fas fa-save"></i> Сохранить VM
                             </button>
                             <button type="button" id="vm-test-connection-btn" class="btn btn-info">
@@ -559,11 +559,11 @@
                             <input type="file" id="epss-file" name="file" accept=".csv" required>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" id="epss-upload-btn">
+                            <button type="submit" class="btn btn-primary btn-sm" id="epss-upload-btn">
                                 <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
-                            <button type="button" id="epss-download-btn" class="btn btn-primary">
+                            <button type="button" id="epss-download-btn" class="btn btn-primary btn-sm">
                                 <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
@@ -582,11 +582,11 @@
                             <input type="file" id="exploitdb-file" name="file" accept=".csv" required>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" id="exploitdb-upload-btn">
+                            <button type="submit" class="btn btn-primary btn-sm" id="exploitdb-upload-btn">
                                 <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
-                            <button type="button" id="exploitdb-download-btn" class="btn btn-primary">
+                            <button type="button" id="exploitdb-download-btn" class="btn btn-primary btn-sm">
                                 <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
@@ -606,18 +606,18 @@
                             <small>Поддерживаемые форматы: JSON, GZ (архив)</small>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" id="cve-upload-btn">
+                            <button type="submit" class="btn btn-primary btn-sm" id="cve-upload-btn">
                                 <i class="fas fa-upload"></i> <span class="btn-text">Загрузить файл</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
-                            <button type="button" id="cve-download-btn" class="btn btn-primary">
+                            <button type="button" id="cve-download-btn" class="btn btn-primary btn-sm">
                                 <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с NVD</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
-                            <button type="button" id="cve-urls-btn" class="btn btn-info">
+                            <button type="button" id="cve-urls-btn" class="btn btn-info btn-sm">
                                 <i class="fas fa-link"></i> Ссылки для скачивания
                             </button>
-                            <button type="button" id="cve-cancel-btn" class="btn btn-danger" style="display:none;">
+                            <button type="button" id="cve-cancel-btn" class="btn btn-danger btn-sm" style="display:none;">
                                 <i class="fas fa-stop"></i> <span class="btn-text">Остановить загрузку</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
@@ -634,21 +634,21 @@
                         <div class="clear-item">
                             <h4>Хосты</h4>
                             <p>Удалить все записи хостов из базы данных</p>
-                            <button type="button" id="clear-hosts-btn" class="btn btn-danger">
+                            <button type="button" id="clear-hosts-btn" class="btn btn-danger btn-sm">
                                 <i class="fas fa-trash"></i> Очистить хосты
                             </button>
                         </div>
                         <div class="clear-item">
                             <h4>EPSS</h4>
                             <p>Удалить все записи EPSS из базы данных</p>
-                            <button type="button" id="clear-epss-btn" class="btn btn-danger">
+                            <button type="button" id="clear-epss-btn" class="btn btn-danger btn-sm">
                                 <i class="fas fa-trash"></i> Очистить EPSS
                             </button>
                         </div>
                         <div class="clear-item">
                             <h4>ExploitDB</h4>
                             <p>Удалить все записи ExploitDB из базы данных</p>
-                            <button type="button" id="clear-exploitdb-btn" class="btn btn-danger">
+                            <button type="button" id="clear-exploitdb-btn" class="btn btn-danger btn-sm">
                                 <i class="fas fa-trash"></i> Очистить ExploitDB
                             </button>
                         </div>
@@ -674,16 +674,16 @@
                             <small>Поддерживаемые форматы: CSV, ZIP, GZIP</small>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" id="hosts-upload-btn">
+                            <button type="submit" class="btn btn-primary btn-sm" id="hosts-upload-btn">
                                 <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
 
-                            <button type="button" id="update-hosts-parallel-btn" class="btn btn-primary">
+                            <button type="button" id="update-hosts-parallel-btn" class="btn btn-primary btn-sm">
                                 <i class="fas fa-sync-alt"></i> <span class="btn-text">Полное обновление</span>
                                 <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                             </button>
-                            <button type="button" id="cancel-update-btn" class="btn btn-danger" style="display:none;">
+                            <button type="button" id="cancel-update-btn" class="btn btn-danger btn-sm" style="display:none;">
                                 <i class="fas fa-stop"></i> <span class="btn-text">Остановить обновление</span>
                             </button>
                         </div>
@@ -788,10 +788,10 @@
                             <p><strong>Статус:</strong> <span id="vm-import-status">Не настроено</span></p>
                         </div>
                         <div class="form-actions">
-                            <button type="button" id="vm-import-btn" class="btn btn-success">
+                            <button type="button" id="vm-import-btn" class="btn btn-success btn-sm">
                                 <i class="fas fa-download"></i> Импорт хостов из VM
                             </button>
-                            <button type="button" id="vm-refresh-status-btn" class="btn btn-secondary">
+                            <button type="button" id="vm-refresh-status-btn" class="btn btn-secondary btn-sm">
                                 <i class="fas fa-sync-alt"></i> Обновить статус
                             </button>
                         </div>
