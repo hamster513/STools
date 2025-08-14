@@ -80,6 +80,31 @@
     transition: all var(--transition-speed);
 }
 
+/* Стандартные стили для input file */
+input[type="file"] {
+    width: 100%;
+    min-height: 80px;
+    padding: var(--spacing-lg);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    box-sizing: border-box;
+}
+
+input[type="file"]:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+input[type="file"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
 .form-input input:focus,
 .form-input textarea:focus,
 .form-input select:focus {
