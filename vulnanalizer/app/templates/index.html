@@ -140,13 +140,15 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <input type="checkbox" id="exploits-only" name="exploits_only" style="width: auto; height: auto; margin: 0; padding: 0;">
-                                <label for="exploits-only" style="display: inline; margin-left: 4px;">Только с эксплойтами</label>
-                            </div>
-                            <div class="form-group">
-                                <input type="checkbox" id="epss-only" name="epss_only" style="width: auto; height: auto; margin: 0; padding: 0;">
-                                <label for="epss-only" style="display: inline; margin-left: 4px;">Только с EPSS</label>
+                            <div class="form-row">
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="exploits-only" name="exploits_only">
+                                    <label for="exploits-only">Только с эксплойтами</label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="epss-only" name="epss_only">
+                                    <label for="epss-only">Только с EPSS</label>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
@@ -489,10 +491,6 @@
                         <div class="form-group">
                             <label for="risk-threshold">Порог риска (красная зона): <span id="threshold-value">75</span>%</label>
                             <input type="range" id="risk-threshold" name="risk_threshold" min="0" max="100" value="75" class="threshold-slider">
-                            <div class="threshold-labels">
-                                <span>0%</span>
-                                <span>100%</span>
-                            </div>
                         </div>
                         <div class="form-group">
                             <label for="max-concurrent-requests">Максимум одновременных запросов к БД:</label>

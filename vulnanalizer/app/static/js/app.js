@@ -1379,7 +1379,23 @@ class VulnAnalizer {
             };
         }
         
-        let html = `<h4>Найдено хостов: ${this.paginationState.totalCount}</h4>`;
+        // Создаем отдельный элемент для отображения количества найденных хостов
+        const resultsContainer = document.querySelector('.hosts-search-results-container');
+        const existingCountElement = resultsContainer.querySelector('.hosts-count');
+        
+        if (existingCountElement) {
+            existingCountElement.remove();
+        }
+        
+        const countElement = document.createElement('div');
+        countElement.className = 'hosts-count';
+        countElement.innerHTML = `<h4>Найдено хостов: ${this.paginationState.totalCount}</h4>`;
+        
+        // Вставляем элемент с количеством перед заголовком таблицы
+        const tableHeader = resultsContainer.querySelector('.hosts-table-header');
+        resultsContainer.insertBefore(countElement, tableHeader);
+        
+        let html = '';
         
         if (groupBy) {
             // Группируем хосты
@@ -1815,13 +1831,8 @@ class VulnAnalizer {
     // Загрузка начальных данных
     async loadInitialData() {
         try {
-            // Загружаем настройки
-            const settingsResponse = await fetch(this.getApiBasePath() + '/settings');
-            const settingsData = await settingsResponse.json();
-            
-            if (settingsData.success) {
-                this.populateSettings(settingsData.data);
-            }
+            // Загружаем настройки Impact
+            await this.loadImpactSettings();
         } catch (error) {
             console.error('Error loading initial data:', error);
             this.showNotification('Ошибка загрузки данных', 'error');
@@ -1896,6 +1907,34 @@ class VulnAnalizer {
         }
     }
 
+    // Загрузка настроек Impact
+    async loadImpactSettings() {
+        try {
+            const response = await fetch(this.getApiBasePath() + '/settings');
+            const settings = await response.json();
+            
+            // Устанавливаем значения в форму
+            const form = document.getElementById('impact-form');
+            if (form) {
+                const resourceCriticality = document.getElementById('impact-resource-criticality');
+                const confidentialData = document.getElementById('impact-confidential-data');
+                const internetAccess = document.getElementById('impact-internet-access');
+                
+                if (resourceCriticality) {
+                    resourceCriticality.value = settings.impact_resource_criticality || 'Medium';
+                }
+                if (confidentialData) {
+                    confidentialData.value = settings.impact_confidential_data || 'Отсутствуют';
+                }
+                if (internetAccess) {
+                    internetAccess.value = settings.impact_internet_access || 'Недоступен';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading impact settings:', error);
+        }
+    }
+
     // Сохранение настроек Impact
     async saveImpactSettings() {
         const form = document.getElementById('impact-form');
@@ -1906,6 +1945,9 @@ class VulnAnalizer {
             settings[key] = value;
         }
 
+        console.log('DEBUG: Form data entries:', Array.from(formData.entries()));
+        console.log('DEBUG: Settings object:', settings);
+
         try {
             const response = await fetch(this.getApiBasePath() + '/settings', {
                 method: 'POST',
@@ -1915,7 +1957,16 @@ class VulnAnalizer {
                 body: JSON.stringify(settings)
             });
 
+            console.log('DEBUG: Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('DEBUG: Response error text:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
             const data = await response.json();
+            console.log('DEBUG: Response data:', data);
             
             if (data.success) {
                 // Сохраняем порог риска в localStorage для быстрого доступа

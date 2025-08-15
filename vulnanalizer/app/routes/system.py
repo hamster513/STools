@@ -24,11 +24,60 @@ async def read_root():
 async def get_settings():
     """Получить настройки приложения"""
     try:
-        with open("data/settings.json", "r", encoding="utf-8") as f:
-            import json
-            return json.load(f)
+        import os
+        import tempfile
+        
+        # Ищем файл настроек в возможных местах
+        possible_paths = [
+            os.path.join(os.getcwd(), "data", "settings.json"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "settings.json"),
+            os.path.join(tempfile.gettempdir(), "settings.json"),
+            "/tmp/settings.json",
+        ]
+        
+        settings_file = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        import json
+                        settings = json.load(f)
+                    settings_file = path
+                    print(f"DEBUG: Loaded settings from: {settings_file}")
+                    break
+                except Exception as e:
+                    print(f"DEBUG: Cannot read {path}: {e}")
+                    continue
+        
+        if settings_file is None:
+            # Возвращаем настройки по умолчанию
+            return {
+                "impact_resource_criticality": "Medium",
+                "impact_confidential_data": "Отсутствуют",
+                "impact_internet_access": "Недоступен"
+            }
+            
+        # Проверяем, что все необходимые поля присутствуют
+        required_fields = ["impact_resource_criticality", "impact_confidential_data", "impact_internet_access"]
+        for field in required_fields:
+            if field not in settings:
+                # Если какое-то поле отсутствует, возвращаем настройки по умолчанию
+                return {
+                    "impact_resource_criticality": "Medium",
+                    "impact_confidential_data": "Отсутствуют",
+                    "impact_internet_access": "Недоступен"
+                }
+        
+        return settings
     except FileNotFoundError:
         # Возвращаем настройки по умолчанию
+        return {
+            "impact_resource_criticality": "Medium",
+            "impact_confidential_data": "Отсутствуют",
+            "impact_internet_access": "Недоступен"
+        }
+    except json.JSONDecodeError as e:
+        # Если файл поврежден, возвращаем настройки по умолчанию
         return {
             "impact_resource_criticality": "Medium",
             "impact_confidential_data": "Отсутствуют",
@@ -40,12 +89,76 @@ async def get_settings():
 async def update_settings(settings: dict):
     """Обновить настройки приложения"""
     try:
-        os.makedirs("data", exist_ok=True)
-        with open("data/settings.json", "w", encoding="utf-8") as f:
+        print(f"DEBUG: Received settings: {settings}")
+        
+        # Проверяем, что settings содержит необходимые поля Impact
+        required_impact_fields = ["impact_resource_criticality", "impact_confidential_data", "impact_internet_access"]
+        for field in required_impact_fields:
+            if field not in settings:
+                print(f"DEBUG: Missing field: {field}")
+                raise ValueError(f"Отсутствует обязательное поле Impact: {field}")
+        
+        print(f"DEBUG: All required fields present")
+        
+        # Определяем путь для сохранения настроек
+        import os
+        import tempfile
+        
+        # Пробуем разные варианты путей
+        possible_paths = [
+            os.path.join(os.getcwd(), "data"),  # Текущая рабочая директория
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"),  # Рядом с файлом
+            tempfile.gettempdir(),  # Временная директория
+            "/tmp",  # Стандартная временная директория
+        ]
+        
+        data_dir = None
+        for path in possible_paths:
+            try:
+                os.makedirs(path, exist_ok=True)
+                test_file = os.path.join(path, "test_write.tmp")
+                with open(test_file, "w") as f:
+                    f.write("test")
+                os.remove(test_file)
+                data_dir = path
+                print(f"DEBUG: Using data directory: {data_dir}")
+                break
+            except Exception as e:
+                print(f"DEBUG: Cannot use {path}: {e}")
+                continue
+        
+        if data_dir is None:
+            raise Exception("Не удалось найти директорию для записи настроек")
+        
+        settings_file = os.path.join(data_dir, "settings.json")
+        print(f"DEBUG: Settings file: {settings_file}")
+        
+        # Фильтруем только настройки Impact для сохранения
+        impact_settings = {
+            "impact_resource_criticality": settings["impact_resource_criticality"],
+            "impact_confidential_data": settings["impact_confidential_data"],
+            "impact_internet_access": settings["impact_internet_access"]
+        }
+        
+        print(f"DEBUG: Impact settings to save: {impact_settings}")
+        
+        # Сохраняем настройки Impact
+        with open(settings_file, "w", encoding="utf-8") as f:
             import json
-            json.dump(settings, f, ensure_ascii=False, indent=2)
-        return {"message": "Настройки обновлены"}
+            json.dump(impact_settings, f, ensure_ascii=False, indent=2)
+        
+        print(f"DEBUG: Settings saved successfully")
+        return {"success": True, "message": "Настройки Impact обновлены"}
+    except ValueError as e:
+        print(f"DEBUG: ValueError: {e}")
+        raise HTTPException(status_code=400, detail=f"Некорректные данные настроек: {str(e)}")
+    except PermissionError as e:
+        print(f"DEBUG: PermissionError: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка прав доступа при сохранении настроек: {str(e)}")
     except Exception as e:
+        print(f"DEBUG: Unexpected error: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка сохранения настроек: {str(e)}")
 
 

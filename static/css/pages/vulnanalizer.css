@@ -41,23 +41,62 @@
 
 .hosts-search-form h3 {
     color: var(--text-primary);
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-lg);
     font-weight: 600;
-    margin-bottom: var(--spacing-lg);
-    text-align: center;
+    margin-bottom: var(--spacing-md);
+    text-align: left;
     position: relative;
 }
 
 .hosts-search-form h3::before {
     content: '';
     position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 3px;
+    bottom: -4px;
+    left: 0;
+    width: 40px;
+    height: 2px;
     background: linear-gradient(135deg, #4a4a4a 0%, #666666 100%);
-    border-radius: 2px;
+    border-radius: 1px;
+}
+
+/* Компактная форма поиска */
+.hosts-search-form {
+    padding: var(--spacing-md);
+}
+
+.hosts-search-form .form-row {
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.hosts-search-form .form-group {
+    margin-bottom: var(--spacing-sm);
+}
+
+.hosts-search-form .form-actions {
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+/* Стили для чекбоксов */
+.hosts-search-form .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: 0;
+}
+
+.hosts-search-form .checkbox-group input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.hosts-search-form .checkbox-group label {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
 }
 
 /* Используем стандартные стили форм и кнопок */
@@ -70,77 +109,6 @@
 }
 
 /* Используем стандартные стили таблиц */
-
-.host-name {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.host-ip {
-    font-family: 'Courier New', monospace;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.host-criticality {
-    text-align: center;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius);
-    font-weight: 600;
-    font-size: var(--font-size-xs);
-    text-transform: uppercase;
-}
-
-.host-criticality.critical {
-    background: rgba(220, 53, 69, 0.2);
-    color: var(--error-color);
-    border: 1px solid rgba(220, 53, 69, 0.3);
-}
-
-.host-criticality.high {
-    background: rgba(255, 193, 7, 0.2);
-    color: var(--warning-color);
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.host-criticality.medium {
-    background: rgba(23, 162, 184, 0.2);
-    color: #6bc6d3;
-    border: 1px solid rgba(23, 162, 184, 0.3);
-}
-
-.host-criticality.low {
-    background: rgba(40, 167, 69, 0.2);
-    color: #6bcf7f;
-    border: 1px solid rgba(40, 167, 69, 0.3);
-}
-
-.host-cve {
-    font-family: 'Courier New', monospace;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.host-cvss {
-    text-align: center;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.host-status {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.host-exploits {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.host-risk {
-    text-align: center;
-    font-weight: 600;
-    color: var(--text-primary);
-}
 
 /* ===== ПАГИНАЦИЯ ===== */
 /* Используем стандартные стили пагинации */
@@ -328,48 +296,6 @@
 }
 
 /* Используем стандартные стили таблиц */
-
-.host-name {
-    font-weight: 500;
-    color: var(--primary-color);
-    word-break: break-word;
-}
-
-.host-ip {
-    font-family: 'Courier New', monospace;
-    font-size: var(--font-size-xs);
-    color: var(--text-primary);
-}
-
-.host-criticality {
-    text-align: center;
-    font-weight: 500;
-}
-
-.host-cve {
-    font-weight: 500;
-    color: var(--danger-color);
-    word-break: break-word;
-}
-
-.host-cvss {
-    font-weight: 600;
-    text-align: center;
-}
-
-.host-status {
-    text-align: center;
-    font-weight: 500;
-}
-
-.host-exploits {
-    text-align: center;
-}
-
-.host-risk {
-    text-align: left;
-    font-weight: 600;
-}
 
 /* Severity Colors */
 .severity-critical {
@@ -576,64 +502,4 @@
     font-style: italic;
 }
 
-/* Notifications */
-.notification {
-    position: fixed;
-    top: var(--spacing-lg);
-    right: var(--spacing-lg);
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-    z-index: var(--z-tooltip);
-    max-width: 400px;
-    animation: slideIn 0.3s ease-out;
-}
-
-.notification.success {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.notification.error {
-    background-color: var(--danger-color);
-    color: white;
-}
-
-.notification.warning {
-    background-color: var(--warning-color);
-    color: white;
-}
-
-.notification.info {
-    background-color: var(--info-color);
-    color: white;
-}
-
-.notification-close {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: var(--font-size-lg);
-    opacity: 0.7;
-    transition: opacity var(--transition-speed);
-}
-
-.notification-close:hover {
-    opacity: 1;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
+/* Используем стандартные стили уведомлений */
