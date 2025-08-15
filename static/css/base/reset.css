@@ -74,11 +74,33 @@ textarea {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     padding: var(--spacing-sm);
-    transition: border-color var(--transition-speed);
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    transition: border-color var(--transition-speed), background-color var(--transition-speed), color var(--transition-speed);
 }
 
 input:focus,
 textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+select {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm);
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    transition: border-color var(--transition-speed), background-color var(--transition-speed), color var(--transition-speed);
+}
+
+select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);

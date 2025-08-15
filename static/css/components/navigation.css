@@ -50,14 +50,14 @@ body.sidebar-collapsed .top-bar {
 }
 
 .service-link:hover {
-    color: white;
+    color: var(--text-inverse);
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
     box-shadow: rgba(0, 0, 0, 0.15);
 }
 
 .service-link.active {
-    color: white;
+    color: var(--text-inverse);
     background: rgba(255, 255, 255, 0.2);
     box-shadow: rgba(0, 0, 0, 0.3);
     transform: translateY(-1px);
@@ -328,7 +328,7 @@ body.sidebar-collapsed .top-bar {
     height: var(--spacing-xl);
     border-radius: var(--border-radius);
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-inverse);
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -415,7 +415,7 @@ body.sidebar-collapsed .top-bar {
     border-radius: var(--border-radius);
     margin: var(--spacing-xs) var(--spacing-md);
     border-left: none;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary);
 }
 
 .modern-nav-link:hover,
@@ -423,7 +423,7 @@ body.sidebar-collapsed .top-bar {
     background-color: rgba(255, 255, 255, 0.1);
     border-left: none;
     transform: translateX(4px);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .modern-nav-link .nav-icon {
@@ -550,13 +550,13 @@ body.sidebar-collapsed .top-bar {
 
 .pagination-item:hover {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--primary-color);
 }
 
 .pagination-item.active {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--primary-color);
 }
 

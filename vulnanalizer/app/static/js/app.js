@@ -296,6 +296,32 @@ class VulnAnalizer {
     }
 
     openUsersPage() {
+        // Проверяем права администратора перед открытием страницы
+        const userInfo = localStorage.getItem('user_info');
+        if (!userInfo) {
+            this.showNotification('Ошибка: информация о пользователе не найдена', 'error');
+            return;
+        }
+
+        try {
+            const currentUser = JSON.parse(userInfo);
+            let isAdmin = false;
+            if (currentUser.is_admin !== undefined) {
+                isAdmin = currentUser.is_admin;
+            } else if (currentUser.user && currentUser.user.is_admin !== undefined) {
+                isAdmin = currentUser.user.is_admin;
+            }
+            
+            if (!isAdmin) {
+                this.showNotification('Доступ запрещен: требуются права администратора', 'error');
+                return;
+            }
+        } catch (e) {
+            console.error('Error parsing user info:', e);
+            this.showNotification('Ошибка: неверный формат данных пользователя', 'error');
+            return;
+        }
+
         // Открываем страницу управления пользователями в том же окне
         // Скрываем все страницы
         document.querySelectorAll('.page-content').forEach(page => {
@@ -306,6 +332,7 @@ class VulnAnalizer {
         const usersPage = document.getElementById('users-page');
         if (usersPage) {
             usersPage.classList.add('active');
+            usersPage.style.display = 'block'; // Убеждаемся, что страница видна
         }
         
         // Обновляем активную ссылку в навигации
@@ -2717,8 +2744,6 @@ class VulnAnalizer {
             
             if (!isAdmin) {
                 this.showNotification('Доступ запрещен: требуются права администратора', 'error');
-                // Скрываем страницу пользователей для не-админов
-                this.hideUsersPage();
                 return;
             }
 

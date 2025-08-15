@@ -248,13 +248,13 @@
 /* Host name styling */
 .host-name {
     font-weight: 500;
-    color: #ffffff !important;
+    color: var(--text-primary) !important;
 }
 
 /* Host IP styling */
 .host-ip {
     font-family: 'Courier New', monospace;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary);
 }
 
 /* Host criticality styling */
@@ -308,13 +308,13 @@
 /* Host status styling */
 .host-status {
     text-align: center;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary);
 }
 
 /* Host exploits styling */
 .host-exploits {
     text-align: center;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary);
 }
 
 /* Host risk styling */
@@ -472,7 +472,7 @@
 .pagination-page:hover,
 .pagination-page.active {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--primary-color);
 }
 

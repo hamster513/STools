@@ -301,22 +301,22 @@
 
 .notification.success {
     background-color: var(--success-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .notification.error {
     background-color: var(--danger-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .notification.warning {
     background-color: var(--warning-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .notification.info {
     background-color: var(--info-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .notification-close {

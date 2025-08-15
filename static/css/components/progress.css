@@ -234,13 +234,13 @@
 .progress-step.active .progress-step-indicator {
     border-color: var(--primary-color);
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .progress-step.completed .progress-step-indicator {
     border-color: var(--success-color);
     background-color: var(--success-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .progress-step-label {

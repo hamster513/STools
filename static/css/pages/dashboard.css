@@ -73,7 +73,7 @@
     display: grid;
     place-items: center;
     font-size: var(--font-size-xl);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .stat-icon.primary {

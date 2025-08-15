@@ -29,7 +29,7 @@
 /* Button Variants */
 .btn-primary {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--primary-color);
 }
 
@@ -53,7 +53,7 @@
 
 .btn-success {
     background-color: var(--success-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--success-color);
 }
 
@@ -66,7 +66,7 @@
 
 .btn-danger {
     background-color: var(--danger-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--danger-color);
 }
 
@@ -79,7 +79,7 @@
 
 .btn-warning {
     background-color: var(--warning-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--warning-color);
 }
 
@@ -92,7 +92,7 @@
 
 .btn-info {
     background-color: var(--info-color);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--info-color);
 }
 

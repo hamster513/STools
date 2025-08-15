@@ -136,17 +136,17 @@
 
 .confirmation-modal.warning .confirmation-icon {
     background-color: var(--warning-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .confirmation-modal.error .confirmation-icon {
     background-color: var(--error-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .confirmation-modal.success .confirmation-icon {
     background-color: var(--success-color);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .confirmation-title {

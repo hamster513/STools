@@ -65,6 +65,8 @@
 }
 
 .hosts-search-form .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
 }
@@ -82,8 +84,9 @@
 .hosts-search-form .checkbox-group {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     margin-bottom: 0;
+    flex-direction: row;
 }
 
 .hosts-search-form .checkbox-group input[type="checkbox"] {
@@ -91,12 +94,20 @@
     height: auto;
     margin: 0;
     padding: 0;
+    flex-shrink: 0;
 }
 
 .hosts-search-form .checkbox-group label {
     margin: 0;
     font-size: var(--font-size-sm);
     cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Специальные стили для строки с чекбоксами */
+.hosts-search-form .form-row:has(.checkbox-group) {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
 }
 
 /* Используем стандартные стили форм и кнопок */
@@ -351,7 +362,7 @@
     width: 20px;
     height: 20px;
     background-color: var(--danger-color);
-    color: white;
+    color: var(--text-inverse);
     border-radius: 50%;
     font-size: var(--font-size-xs);
     font-weight: 600;
