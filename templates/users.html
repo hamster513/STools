@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями - STools{% endblock %}
+
+{% block content %}
+<div class="users-page">
+    <div class="users-container content-block">
+        <h3>Управление пользователями</h3>
+        <p class="users-description">
+            Управляйте пользователями системы. Создавайте новых пользователей, редактируйте существующих и управляйте их правами доступа.
+        </p>
+        
+        <div class="users-actions">
+            <button type="button" id="add-user-btn" class="btn btn-success btn-sm">
+                <i class="fas fa-user-plus"></i> Добавить пользователя
+            </button>
+            <button type="button" id="refresh-users-btn" class="btn btn-secondary btn-sm">
+                <i class="fas fa-sync-alt"></i> Обновить список
+            </button>
+        </div>
+        
+        <div id="users-list" style="margin-top:2rem;"></div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления/редактирования пользователя -->
+<div id="user-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="user-modal-title">Добавить пользователя</h3>
+            <button class="modal-close" onclick="closeUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="user-form">
+                <div class="form-group">
+                    <label for="username">Имя пользователя:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" name="password">
+                    <small>Оставьте пустым, чтобы не изменять</small>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="is_admin" name="is_admin">
+                        Администратор
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="is_active" name="is_active" checked>
+                        Активен
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" onclick="saveUser()">Сохранить</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/users.js?v=1.0"></script>
+{% endblock %}
+

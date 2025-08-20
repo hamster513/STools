@@ -11,7 +11,14 @@ import json
 
 from database import AuthDatabase
 
-app = FastAPI(title="STools Auth Service", version="1.0.0")
+def get_version():
+    try:
+        with open('VERSION', 'r') as f:
+            return f.read().strip()
+    except:
+        return "0.5.00"
+
+app = FastAPI(title="STools Auth Service", version=get_version())
 
 # Настройки JWT
 SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
@@ -105,6 +112,7 @@ class UserCreate(BaseModel):
     email: Optional[str] = None
     password: str
     is_admin: bool = False
+    is_active: bool = True
 
 class UserUpdate(BaseModel):
     username: str
@@ -148,6 +156,18 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     users = await auth_db.get_all_users()
     return {"users": users}
 
+@app.get("/api/users/{user_id}")
+async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
+    """Получение пользователя по ID (только для админов)"""
+    if not current_user['is_admin']:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    user = await auth_db.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user
+
 @app.post("/api/users")
 async def create_user(
     user_data: UserCreate,
@@ -164,7 +184,7 @@ async def create_user(
     if user_data.email and await auth_db.check_email_exists(user_data.email):
         raise HTTPException(status_code=400, detail="Email already exists")
     
-    user = await auth_db.create_user(user_data.username, user_data.email, user_data.password, user_data.is_admin)
+    user = await auth_db.create_user(user_data.username, user_data.email, user_data.password, user_data.is_admin, user_data.is_active)
     return {"message": "User created successfully", "user": user}
 
 @app.put("/api/users/{user_id}")

@@ -141,6 +141,33 @@ async def download_epss():
         raise HTTPException(status_code=500, detail=error_msg)
 
 
+@router.get("/api/epss/search")
+async def search_epss(
+    cve: str = None,
+    limit: int = 100,
+    page: int = 1
+):
+    """Поиск EPSS данных"""
+    try:
+        db = get_db()
+        results, total_count = await db.search_epss(
+            cve_pattern=cve,
+            limit=limit,
+            page=page
+        )
+        return {
+            "success": True, 
+            "results": results,
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit
+        }
+    except Exception as e:
+        print('EPSS search error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/api/epss/status")
 async def epss_status():
     """Получить статус EPSS данных"""

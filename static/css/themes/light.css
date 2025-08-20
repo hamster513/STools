@@ -159,6 +159,7 @@
 
 .light-theme .dropdown-menu {
     background-color: var(--surface-color);
+    backdrop-filter: blur(2px);
     border-color: var(--border-color);
     box-shadow: var(--shadow-lg);
 }

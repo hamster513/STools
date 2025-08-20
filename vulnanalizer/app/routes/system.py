@@ -3,6 +3,7 @@
 """
 import os
 import psutil
+import re
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from database import get_db
@@ -17,71 +18,251 @@ async def read_root():
         return HTMLResponse(content=f.read())
 
 
+@router.get("/api/background-tasks/status")
+async def get_background_tasks_status():
+    """Получить статус всех фоновых задач"""
+    try:
+        db = get_db()
+        conn = await db.get_connection()
+        # Явно используем схему vulnanalizer, чтобы не получать пустые результаты из public
+        await conn.execute('SET search_path TO vulnanalizer')
+        
+        # Получаем все активные задачи
+        query = """
+            SELECT id, task_type, status, current_step, total_items, processed_items,
+                   total_records, processed_records, updated_records, start_time, end_time, error_message, 
+                   cancelled, parameters, description, created_at, updated_at
+            FROM background_tasks 
+            WHERE status IN ('processing', 'running', 'initializing', 'idle')
+            ORDER BY created_at DESC
+        """
+        active_tasks = await conn.fetch(query)
+        
+        # Получаем последние завершенные задачи
+        query_completed = """
+            SELECT id, task_type, status, current_step, total_items, processed_items,
+                   total_records, processed_records, updated_records, start_time, end_time, error_message, 
+                   cancelled, parameters, description, created_at, updated_at
+            FROM background_tasks 
+            WHERE status IN ('completed', 'error', 'cancelled')
+            ORDER BY created_at DESC
+            LIMIT 10
+        """
+        completed_tasks = await conn.fetch(query_completed)
+        
+        # Форматируем результаты
+        def format_task(task):
+            return {
+                'id': task['id'],
+                'task_type': task['task_type'],
+                'status': task['status'],
+                'current_step': task['current_step'],
+                'total_items': task['total_items'],
+                'processed_items': task['processed_items'],
+                'total_records': task['total_records'],
+                'processed_records': task['processed_records'],
+                'updated_records': task['updated_records'],
+                'start_time': task['start_time'].isoformat() if task['start_time'] else None,
+                'end_time': task['end_time'].isoformat() if task['end_time'] else None,
+                'error_message': task['error_message'],
+                'cancelled': task['cancelled'],
+                'parameters': task['parameters'],
+                'description': task['description'],
+                'created_at': task['created_at'].isoformat() if task['created_at'] else None,
+                'updated_at': task['updated_at'].isoformat() if task['updated_at'] else None,
+                'progress_percent': calculate_task_progress(task)
+            }
+        
+        return {
+            "success": True,
+            "active_tasks": [format_task(task) for task in active_tasks],
+            "recent_completed_tasks": [format_task(task) for task in completed_tasks],
+            "total_active": len(active_tasks),
+            "total_completed": len(completed_tasks)
+        }
+        
+    except Exception as e:
+        print(f"Error getting background tasks status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await db.release_connection(conn)
 
+
+def calculate_task_progress(task):
+    """Рассчитать прогресс задачи с учетом типа задачи"""
+    if task['task_type'] == 'hosts_import':
+        # Для задач импорта хостов используем processed_records и total_records
+        if task['status'] == 'processing':
+            current_step = task['current_step'] or ''
+            
+            # Если есть данные о записях, используем их для расчета прогресса
+            if task['total_records'] and task['total_records'] > 0:
+                base_progress = (task['processed_records'] or 0) / task['total_records'] * 80  # 80% за импорт
+                
+                # Если идет расчет рисков, добавляем дополнительный прогресс
+                if 'Расчет рисков' in current_step:
+                    # Извлекаем прогресс из строки "Расчет рисков (200/845 CVE)"
+                    match = re.search(r'\((\d+)/(\d+)\)', current_step)
+                    if not match:
+                        # Попробуем другой паттерн
+                        match = re.search(r'(\d+)/(\d+)', current_step)
+                    if match:
+                        processed_cve = int(match.group(1))
+                        total_cve = int(match.group(2))
+                        risk_progress = (processed_cve / total_cve) * 20  # 20% за расчет рисков
+                        return min(100, base_progress + risk_progress)
+                    else:
+                        return min(100, base_progress + 10)  # Импорт завершен, расчет рисков начался
+                else:
+                    return min(100, base_progress)  # Только импорт
+            else:
+                # Fallback на старую логику, если нет данных о записях
+                if 'Расчет рисков' in current_step:
+                    match = re.search(r'\((\d+)/(\d+)\)', current_step)
+                    if not match:
+                        match = re.search(r'(\d+)/(\d+)', current_step)
+                    if match:
+                        processed_cve = int(match.group(1))
+                        total_cve = int(match.group(2))
+                        risk_progress = (processed_cve / total_cve) * 50
+                        return 50 + risk_progress
+                    else:
+                        return 50
+                else:
+                    return 50
+        elif task['status'] == 'completed':
+            return 100
+        else:
+            return 0
+    else:
+        # Для других задач используем стандартную формулу
+        return (
+            (task['processed_items'] / task['total_items'] * 100) 
+            if task['total_items'] and task['total_items'] > 0 
+            else 0
+        )
+
+@router.post("/api/background-tasks/{task_id}/update-status")
+async def update_background_task_status(
+    task_id: int, 
+    status: str = None, 
+    current_step: str = None,
+    processed_records: int = None,
+    total_records: int = None
+):
+    """Обновить статус фоновой задачи"""
+    try:
+        db = get_db()
+        
+        updates = {}
+        if status:
+            updates['status'] = status
+        if current_step:
+            updates['current_step'] = current_step
+        if processed_records is not None:
+            updates['processed_records'] = processed_records
+        if total_records is not None:
+            updates['total_records'] = total_records
+            
+        await db.update_background_task(task_id, **updates)
+        
+        return {"success": True, "message": f"Статус задачи {task_id} обновлен"}
+        
+    except Exception as e:
+        print(f"Error updating background task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/background-tasks/{task_id}")
+async def get_background_task(task_id: int):
+    """Получить информацию о конкретной фоновой задаче"""
+    try:
+        db = get_db()
+        conn = await db.get_connection()
+        
+        # Устанавливаем схему
+        await conn.execute('SET search_path TO vulnanalizer')
+        
+        query = """
+            SELECT id, task_type, status, current_step, total_items, processed_items,
+                   total_records, processed_records, updated_records, start_time, end_time, error_message, 
+                   cancelled, parameters, description, created_at, updated_at
+            FROM background_tasks 
+            WHERE id = $1
+        """
+        task = await conn.fetchrow(query, task_id)
+        
+        if not task:
+            raise HTTPException(status_code=404, detail="Задача не найдена")
+        
+        # Форматируем результат
+        result = {
+            'id': task['id'],
+            'task_type': task['task_type'],
+            'status': task['status'],
+            'current_step': task['current_step'],
+            'total_items': task['total_items'],
+            'processed_items': task['processed_items'],
+            'total_records': task['total_records'],
+            'processed_records': task['processed_records'],
+            'updated_records': task['updated_records'],
+            'start_time': task['start_time'].isoformat() if task['start_time'] else None,
+            'end_time': task['end_time'].isoformat() if task['end_time'] else None,
+            'error_message': task['error_message'],
+            'cancelled': task['cancelled'],
+            'parameters': task['parameters'],
+            'description': task['description'],
+            'created_at': task['created_at'].isoformat() if task['created_at'] else None,
+            'updated_at': task['updated_at'].isoformat() if task['updated_at'] else None,
+            'progress_percent': calculate_task_progress(task)
+        }
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting background task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await db.release_connection(conn)
+
+
+@router.post("/api/background-tasks/{task_type}/cancel")
+async def cancel_background_task(task_type: str):
+    """Отменить фоновую задачу по типу"""
+    try:
+        db = get_db()
+        cancelled = await db.cancel_background_task(task_type)
+        
+        if cancelled:
+            return {"success": True, "message": f"Задача {task_type} отменена"}
+        else:
+            return {"success": False, "message": f"Нет активной задачи типа {task_type}"}
+    except Exception as e:
+        print(f"Error cancelling background task {task_type}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/api/settings")
 async def get_settings():
     """Получить настройки приложения"""
     try:
-        import os
-        import tempfile
-        
-        # Ищем файл настроек в возможных местах
-        possible_paths = [
-            os.path.join(os.getcwd(), "data", "settings.json"),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "settings.json"),
-            os.path.join(tempfile.gettempdir(), "settings.json"),
-            "/tmp/settings.json",
-        ]
-        
-        settings_file = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        import json
-                        settings = json.load(f)
-                    settings_file = path
-                    print(f"DEBUG: Loaded settings from: {settings_file}")
-                    break
-                except Exception as e:
-                    print(f"DEBUG: Cannot read {path}: {e}")
-                    continue
-        
-        if settings_file is None:
-            # Возвращаем настройки по умолчанию
-            return {
-                "impact_resource_criticality": "Medium",
-                "impact_confidential_data": "Отсутствуют",
-                "impact_internet_access": "Недоступен"
-            }
-            
-        # Проверяем, что все необходимые поля присутствуют
-        required_fields = ["impact_resource_criticality", "impact_confidential_data", "impact_internet_access"]
-        for field in required_fields:
-            if field not in settings:
-                # Если какое-то поле отсутствует, возвращаем настройки по умолчанию
-                return {
-                    "impact_resource_criticality": "Medium",
-                    "impact_confidential_data": "Отсутствуют",
-                    "impact_internet_access": "Недоступен"
-                }
-        
+        from database import Database
+        db = Database()
+        settings = await db.get_settings()
         return settings
-    except FileNotFoundError:
+    except Exception as e:
+        print(f"Error loading settings: {e}")
         # Возвращаем настройки по умолчанию
         return {
             "impact_resource_criticality": "Medium",
             "impact_confidential_data": "Отсутствуют",
-            "impact_internet_access": "Недоступен"
-        }
-    except json.JSONDecodeError as e:
-        # Если файл поврежден, возвращаем настройки по умолчанию
-        return {
-            "impact_resource_criticality": "Medium",
-            "impact_confidential_data": "Отсутствуют",
-            "impact_internet_access": "Недоступен"
+            "impact_internet_access": "Недоступен",
+            "database_host": "",
+            "database_port": "",
+            "database_name": "",
+            "database_user": "",
+            "database_password": ""
         }
 
 
@@ -91,72 +272,14 @@ async def update_settings(settings: dict):
     try:
         print(f"DEBUG: Received settings: {settings}")
         
-        # Проверяем, что settings содержит необходимые поля Impact
-        required_impact_fields = ["impact_resource_criticality", "impact_confidential_data", "impact_internet_access"]
-        for field in required_impact_fields:
-            if field not in settings:
-                print(f"DEBUG: Missing field: {field}")
-                raise ValueError(f"Отсутствует обязательное поле Impact: {field}")
-        
-        print(f"DEBUG: All required fields present")
-        
-        # Определяем путь для сохранения настроек
-        import os
-        import tempfile
-        
-        # Пробуем разные варианты путей
-        possible_paths = [
-            os.path.join(os.getcwd(), "data"),  # Текущая рабочая директория
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"),  # Рядом с файлом
-            tempfile.gettempdir(),  # Временная директория
-            "/tmp",  # Стандартная временная директория
-        ]
-        
-        data_dir = None
-        for path in possible_paths:
-            try:
-                os.makedirs(path, exist_ok=True)
-                test_file = os.path.join(path, "test_write.tmp")
-                with open(test_file, "w") as f:
-                    f.write("test")
-                os.remove(test_file)
-                data_dir = path
-                print(f"DEBUG: Using data directory: {data_dir}")
-                break
-            except Exception as e:
-                print(f"DEBUG: Cannot use {path}: {e}")
-                continue
-        
-        if data_dir is None:
-            raise Exception("Не удалось найти директорию для записи настроек")
-        
-        settings_file = os.path.join(data_dir, "settings.json")
-        print(f"DEBUG: Settings file: {settings_file}")
-        
-        # Фильтруем только настройки Impact для сохранения
-        impact_settings = {
-            "impact_resource_criticality": settings["impact_resource_criticality"],
-            "impact_confidential_data": settings["impact_confidential_data"],
-            "impact_internet_access": settings["impact_internet_access"]
-        }
-        
-        print(f"DEBUG: Impact settings to save: {impact_settings}")
-        
-        # Сохраняем настройки Impact
-        with open(settings_file, "w", encoding="utf-8") as f:
-            import json
-            json.dump(impact_settings, f, ensure_ascii=False, indent=2)
+        from database import Database
+        db = Database()
+        await db.update_settings(settings)
         
         print(f"DEBUG: Settings saved successfully")
-        return {"success": True, "message": "Настройки Impact обновлены"}
-    except ValueError as e:
-        print(f"DEBUG: ValueError: {e}")
-        raise HTTPException(status_code=400, detail=f"Некорректные данные настроек: {str(e)}")
-    except PermissionError as e:
-        print(f"DEBUG: PermissionError: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка прав доступа при сохранении настроек: {str(e)}")
+        return {"success": True, "message": "Настройки обновлены"}
     except Exception as e:
-        print(f"DEBUG: Unexpected error: {e}")
+        print(f"DEBUG: Error saving settings: {e}")
         import traceback
         print(f"DEBUG: Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка сохранения настроек: {str(e)}")

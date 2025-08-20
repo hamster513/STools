@@ -66,10 +66,10 @@
     --overlay-color-light: rgba(0, 0, 0, 0.3);
     --overlay-color-dark: rgba(0, 0, 0, 0.9);
     
-    /* Backdrop blur - как в окне авторизации */
-    --backdrop-blur: blur(20px);
-    --backdrop-blur-sm: blur(10px);
-    --backdrop-blur-lg: blur(30px);
+    /* Backdrop blur - уменьшены значения для лучшей читаемости */
+    --backdrop-blur: blur(4px);
+    --backdrop-blur-sm: blur(2px);
+    --backdrop-blur-lg: blur(8px);
 }
 
 /* Dark theme specific component overrides */
@@ -175,15 +175,15 @@
 }
 
 .dark-theme .dropdown-menu {
-    background: var(--surface-color);
-    backdrop-filter: var(--backdrop-blur);
+    background: rgba(40, 40, 40, 0.95);
+    backdrop-filter: blur(4px);
     border-color: var(--border-color);
     box-shadow: var(--shadow-lg);
 }
 
 .dark-theme .dropdown-item:hover {
     background: var(--surface-color-dark);
-    backdrop-filter: var(--backdrop-blur-sm);
+    backdrop-filter: blur(2px);
 }
 
 .dark-theme .alert {

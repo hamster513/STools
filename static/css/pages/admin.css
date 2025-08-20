@@ -1,0 +1,394 @@
+/* ===== АДМИНИСТРАТИВНЫЕ СТРАНИЦЫ ===== */
+
+/* Общие стили для административных страниц */
+.users-page,
+.background-tasks-page {
+    padding: var(--spacing-lg);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ===== СТРАНИЦА ПОЛЬЗОВАТЕЛЕЙ ===== */
+.users-container {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+}
+
+.users-description {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+}
+
+.users-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Список пользователей */
+.user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-sm);
+    background: var(--surface-color);
+    transition: all var(--transition-speed);
+}
+
+.user-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: var(--font-size-lg);
+}
+
+.user-details h4 {
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+}
+
+.user-details p {
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.user-badges {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.badge.admin {
+    background: var(--primary-color);
+    color: white;
+}
+
+.badge.active {
+    background: var(--success-color);
+    color: white;
+}
+
+.badge.inactive {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.user-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.no-users {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: var(--spacing-xl);
+}
+
+/* ===== СТРАНИЦА УПРАВЛЕНИЯ ОЧЕРЕДЯМИ ===== */
+.background-tasks-container {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+}
+
+.background-tasks-description {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+}
+
+.background-tasks-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Статистика задач */
+.tasks-stats {
+    margin-bottom: var(--spacing-xl);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.stat-item {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: all var(--transition-speed);
+}
+
+.stat-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-number {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-xs);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Секции задач */
+.tasks-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.tasks-section h4 {
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+/* Элементы задач */
+.task-item {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-speed);
+}
+
+.task-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.task-item.active-task {
+    border-left: 4px solid var(--primary-color);
+}
+
+.task-item.completed-task {
+    border-left: 4px solid var(--success-color);
+}
+
+.task-item.completed-task.error {
+    border-left: 4px solid var(--error-color);
+}
+
+.task-item.completed-task.cancelled {
+    border-left: 4px solid var(--warning-color);
+}
+
+/* Заголовок задачи */
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.task-header h4 {
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.task-status {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.task-status.processing,
+.task-status.running,
+.task-status.initializing {
+    background: var(--primary-color);
+    color: white;
+}
+
+.task-status.completed {
+    background: var(--success-color);
+    color: white;
+}
+
+.task-status.error {
+    background: var(--error-color);
+    color: white;
+}
+
+.task-status.cancelled {
+    background: var(--warning-color);
+    color: white;
+}
+
+.task-status.idle {
+    background: var(--text-secondary);
+    color: white;
+}
+
+/* Прогресс задачи */
+.task-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.task-progress .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+}
+
+.task-progress .progress-bar-fill {
+    height: 100%;
+    background: var(--primary-color);
+    transition: width var(--transition-speed);
+}
+
+.task-progress .progress-text {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Детали задачи */
+.task-details {
+    margin-bottom: var(--spacing-md);
+}
+
+.task-details p {
+    margin: var(--spacing-xs) 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.task-details strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.task-details .error-text {
+    color: var(--error-color);
+    font-weight: 500;
+}
+
+/* Действия с задачей */
+.task-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+/* Состояние "нет задач" */
+.no-tasks {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: var(--spacing-xl);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .users-page,
+    .background-tasks-page {
+        padding: var(--spacing-md);
+    }
+    
+    .user-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-md);
+    }
+    
+    .user-info {
+        justify-content: center;
+    }
+    
+    .user-actions {
+        justify-content: stretch;
+    }
+    
+    .user-actions .btn {
+        flex: 1;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .task-progress {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-xs);
+    }
+    
+    .task-actions {
+        justify-content: stretch;
+    }
+    
+    .task-actions .btn {
+        flex: 1;
+    }
+}
+

@@ -19,6 +19,17 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
 CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
+-- Создание пользователя-администратора по умолчанию
+-- Пароль: admin123 (хеш bcrypt)
+INSERT INTO users (username, password, email, is_admin, is_active) VALUES 
+    ('admin', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.G', 'admin@example.com', TRUE, TRUE)
+ON CONFLICT (username) DO UPDATE SET 
+    password = EXCLUDED.password,
+    email = EXCLUDED.email,
+    is_admin = EXCLUDED.is_admin,
+    is_active = EXCLUDED.is_active,
+    updated_at = CURRENT_TIMESTAMP;
+
 -- Создание таблицы настроек
 CREATE TABLE IF NOT EXISTS settings (
     key VARCHAR(100) PRIMARY KEY,
@@ -32,6 +43,17 @@ INSERT INTO settings (key, value) VALUES
     ('impact_resource_criticality', 'Medium'),
     ('impact_confidential_data', 'Отсутствуют'),
     ('impact_internet_access', 'Недоступен')
+ON CONFLICT (key) DO UPDATE SET 
+    value = EXCLUDED.value,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- Инициализация настроек базы данных
+INSERT INTO settings (key, value) VALUES 
+    ('database_host', 'localhost'),
+    ('database_port', '5432'),
+    ('database_name', 'vulnanalizer'),
+    ('database_user', 'postgres'),
+    ('database_password', '')
 ON CONFLICT (key) DO UPDATE SET 
     value = EXCLUDED.value,
     updated_at = CURRENT_TIMESTAMP;
@@ -147,6 +169,8 @@ CREATE TABLE IF NOT EXISTS background_tasks (
     end_time TIMESTAMP,
     error_message TEXT,
     cancelled BOOLEAN DEFAULT FALSE,
+    parameters JSONB,
+    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

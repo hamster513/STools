@@ -22,199 +22,85 @@ router = APIRouter()
 
 @router.post("/api/hosts/upload")
 async def upload_hosts(file: UploadFile = File(...)):
-    """Загрузить и импортировать хосты из файла с автоматическим разделением больших файлов"""
-    global import_progress
-    
+    """Загрузить файл хостов и создать фоновую задачу для импорта"""
     try:
-        # Сбрасываем прогресс
-        update_import_progress('uploading', 'Загрузка файла...', total_parts=0, current_part=0)
-        
-        print(f"🔄 Начинаем импорт файла: {file.filename} ({file.size} байт)")
+        print(f"🔄 Начинаем загрузку файла: {file.filename} ({file.size} байт)")
         
         # Проверяем размер файла (максимум 1GB для стабильности)
         if file.size and file.size > 1024 * 1024 * 1024:  # 1GB
-            error_msg = "Файл слишком большой. Максимальный размер: 1GB."
-            update_import_progress('error', error_msg, error_message=error_msg)
-            raise HTTPException(status_code=400, detail=error_msg)
+            raise HTTPException(status_code=400, detail="Файл слишком большой. Максимальный размер: 1GB.")
         
-        # Шаг 1: Загрузка файла
-        update_import_progress('uploading', 'Загрузка файла...')
-        try:
-            content = await file.read()
-            file_size_mb = len(content) / (1024 * 1024)
-            print(f"📦 Файл загружен: {file_size_mb:.2f} МБ")
-        except Exception as read_error:
-            error_msg = f"Ошибка при чтении файла: {str(read_error)}"
-            update_import_progress('error', error_msg, error_message=error_msg)
-            raise HTTPException(status_code=400, detail=error_msg)
+        # Загружаем файл
+        content = await file.read()
+        file_size_mb = len(content) / (1024 * 1024)
+        print(f"📦 Файл загружен: {file_size_mb:.2f} МБ")
         
-        # Определяем, является ли файл архивом
-        is_archive = file.filename.lower().endswith(('.zip', '.gz', '.gzip'))
+        # Сохраняем файл во временную директорию
+        import os
+        import tempfile
+        from pathlib import Path
         
-        if is_archive:
-            # Шаг 2: Распаковка архива
-            update_import_progress('extracting', 'Распаковка архива...')
-            try:
-                decoded_content = extract_compressed_file(content, file.filename)
-                decoded_size_mb = len(decoded_content.encode('utf-8')) / (1024 * 1024)
-                print(f"🔓 Архив распакован: {decoded_size_mb:.2f} МБ")
-            except Exception as extract_error:
-                error_msg = f"Ошибка при распаковке архива: {str(extract_error)}"
-                update_import_progress('error', error_msg, error_message=error_msg)
-                raise HTTPException(status_code=400, detail=error_msg)
-        else:
-            # Если не архив, используем содержимое как есть
-            decoded_content = content.decode('utf-8-sig')
-            decoded_size_mb = len(decoded_content.encode('utf-8')) / (1024 * 1024)
-            print(f"📄 Файл не является архивом: {decoded_size_mb:.2f} МБ")
+        # Создаем временную директорию для загрузок
+        upload_dir = Path("/app/uploads")
+        upload_dir.mkdir(exist_ok=True)
+        print(f"📁 Директория для загрузок: {upload_dir}")
         
-        # Шаг 3: Проверяем размер распакованного файла и разделяем если нужно
-        if decoded_size_mb > 100:
-            update_import_progress('splitting', f'Файл большой ({decoded_size_mb:.1f} МБ), разделяем на части по 100 МБ...')
-            try:
-                parts = split_file_by_size(decoded_content, 100)
-                total_parts = len(parts)
-                print(f"✂️ Файл разделен на {total_parts} частей по 100 МБ")
-                update_import_progress('splitting', f'Файл разделен на {total_parts} частей по 100 МБ', total_parts=total_parts)
-            except Exception as split_error:
-                error_msg = f"Ошибка при разделении файла: {str(split_error)}"
-                update_import_progress('error', error_msg, error_message=error_msg)
-                raise HTTPException(status_code=400, detail=error_msg)
-        else:
-            # Файл не нужно разделять
-            parts = [decoded_content]
-            total_parts = 1
-            update_import_progress('processing', 'Файл готов к обработке', total_parts=total_parts)
+        # Генерируем уникальное имя файла
+        import uuid
+        file_id = str(uuid.uuid4())
+        file_path = upload_dir / f"hosts_{file_id}_{file.filename}"
         
-        # Шаг 4: Обработка каждой части
-        total_records = 0
-        total_processed_lines = 0
+        # Сохраняем файл
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        print(f"💾 Файл сохранен: {file_path}")
+        
+        # Создаем фоновую задачу для импорта
+        print(f"🔧 Создаем фоновую задачу...")
         db = get_db()
+        task_parameters = {
+            "file_path": str(file_path),
+            "filename": file.filename,
+            "file_size_mb": file_size_mb
+        }
         
-        for part_index, part_content in enumerate(parts, 1):
-            try:
-                current_part = part_index
-                update_import_progress('processing', f'Обработка файла {current_part} из {total_parts}...', 
-                                     current_part=current_part)
-                
-                print(f"📋 Обрабатываем файл {current_part} из {total_parts}")
-                
-                # Парсим текущую часть
-                part_lines = part_content.splitlines()
-                part_total_lines = len(part_lines)
-                
-                # Парсим CSV с разделителем ;
-                reader = csv.DictReader(part_lines, delimiter=';')
-                
-                part_records = []
-                part_processed_lines = 0
-                batch_size = 1000
-                start_time = datetime.now()
-                
-                for row in reader:
-                    try:
-                        # Проверяем время выполнения (максимум 10 минут на файл)
-                        if (datetime.now() - start_time).total_seconds() > 600:  # 10 минут
-                            error_msg = f"Превышено время обработки файла {current_part} (10 минут). Попробуйте файл меньшего размера."
-                            update_import_progress('error', error_msg, error_message=error_msg)
-                            raise HTTPException(status_code=408, detail=error_msg)
-                        
-                        # Парсим hostname и IP из поля @Host
-                        host_info = row['@Host'].strip('"')
-                        hostname = host_info.split(' (')[0] if ' (' in host_info else host_info
-                        ip_address = host_info.split('(')[1].split(')')[0] if ' (' in host_info else ''
-                        
-                        # Проверяем валидность IP адреса
-                        if ip_address and not is_valid_ip(ip_address):
-                            print(f"⚠️ Пропускаем запись с невалидным IP: {ip_address}")
-                            part_processed_lines += 1
-                            continue
-                        
-                        # Получаем данные из полей
-                        cve = row['Host.@Vulners.CVEs'].strip('"')
-                        criticality = row['host.UF_Criticality'].strip('"')
-                        zone = row['Host.UF_Zone'].strip('"')
-                        os_name = row['Host.OsName'].strip('"')
-                        status = 'Active'
-                        
-                        part_records.append({
-                            'hostname': hostname,
-                            'ip_address': ip_address,
-                            'cve': cve,
-                            'cvss': None,
-                            'criticality': criticality,
-                            'status': status,
-                            'os_name': os_name,
-                            'zone': zone
-                        })
-                        
-                        part_processed_lines += 1
-                        
-                        # Обновляем прогресс каждые batch_size строк
-                        if part_processed_lines % batch_size == 0:
-                            update_import_progress('processing', 
-                                                 f'Файл {current_part}/{total_parts}: {part_processed_lines:,}/{part_total_lines:,} строк', 
-                                                 processed_records=part_processed_lines, total_records=part_total_lines,
-                                                 current_file_records=len(part_records))
-                            print(f"📊 Часть {current_part}: {part_processed_lines:,}/{part_total_lines:,} строк, {len(part_records):,} записей")
-                        
-                    except HTTPException:
-                        raise
-                    except Exception as row_error:
-                        print(f"⚠️ Ошибка обработки строки {part_processed_lines} в файле {current_part}: {row_error}")
-                        part_processed_lines += 1
-                        continue
-                
-                print(f"✅ Файл {current_part} обработан: {len(part_records):,} записей")
-                
-                # Шаг 5: Вставка файла в базу данных
-                update_import_progress('inserting', f'Сохранение файла {current_part} из {total_parts}...', 
-                                     current_file_records=len(part_records))
-                
-                try:
-                    await db.insert_hosts_records_with_progress(part_records, update_import_progress)
-                    print(f"💾 Файл {current_part} сохранен в базу данных")
-                    
-                except Exception as db_error:
-                    error_msg = f"Ошибка при сохранении файла {current_part}: {str(db_error)}"
-                    update_import_progress('error', error_msg, error_message=error_msg)
-                    raise HTTPException(status_code=500, detail=error_msg)
-                
-                # Обновляем общие счетчики
-                total_records += len(part_records)
-                total_processed_lines += part_processed_lines
-                
-                # Обновляем прогресс
-                update_import_progress('processing', f'Файл {current_part} из {total_parts} завершен', 
-                                     total_records=total_records, processed_records=total_processed_lines, total_files_processed=current_part)
-                
-            except HTTPException:
-                raise
-            except Exception as part_error:
-                error_msg = f"Ошибка при обработке файла {current_part}: {str(part_error)}"
-                update_import_progress('error', error_msg, error_message=error_msg)
-                raise HTTPException(status_code=500, detail=error_msg)
+        print(f"📋 Параметры задачи: {task_parameters}")
         
-        # Завершение
-        update_import_progress('completed', 'Импорт завершен', total_records=total_records, processed_records=total_processed_lines, 
-                              total_files_processed=total_parts)
-        print(f"🎉 Импорт успешно завершен: {total_records:,} записей из {total_processed_lines:,} строк в {total_parts} файлах")
+        task_id = await db.create_background_task(
+            task_type="hosts_import",
+            description=f"Импорт хостов из файла {file.filename}",
+            parameters=task_parameters
+        )
+        
+        print(f"✅ Создана фоновая задача {task_id} для импорта хостов")
+        
+        # Проверяем, что задача действительно создана
+        conn = await db.get_connection()
+        try:
+            check_query = "SELECT id, task_type, status FROM background_tasks WHERE id = $1"
+            task_check = await conn.fetchrow(check_query, task_id)
+            if task_check:
+                print(f"✅ Задача {task_id} подтверждена в БД: {dict(task_check)}")
+            else:
+                print(f"❌ Задача {task_id} не найдена в БД!")
+        finally:
+            await db.release_connection(conn)
         
         return {
-            "success": True, 
-            "count": total_records, 
-            "total_processed": total_processed_lines,
-            "total_parts": total_parts,
-            "message": f"Файл автоматически разделен на {total_parts} файлов по 100 МБ и успешно импортирован"
+            "success": True,
+            "message": "Файл загружен. Импорт запущен в фоновом режиме.",
+            "task_id": task_id,
+            "file_size_mb": file_size_mb
         }
         
     except HTTPException:
         # Перебрасываем HTTP исключения как есть
         raise
     except Exception as e:
-        error_msg = f"Неожиданная ошибка при импорте: {str(e)}"
-        update_import_progress('error', error_msg, error_message=error_msg)
-        print(f'❌ Hosts upload error: {traceback.format_exc()}')
+        error_msg = f"Ошибка при загрузке файла: {str(e)}"
+        print(f"❌ {error_msg}")
+        print(f"❌ Error details: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=error_msg)
 
 
@@ -233,51 +119,158 @@ async def hosts_status():
 @router.get("/api/hosts/import-progress")
 async def get_import_progress():
     """Получить текущий прогресс импорта хостов"""
-    global import_progress
-    
-    # Рассчитываем оставшееся время
-    estimated_time = None
-    if (import_progress['start_time'] and 
-        import_progress['processed_records'] > 0 and 
-        import_progress['total_records'] > 0):
-        estimated_time = estimate_remaining_time(
-            import_progress['start_time'],
-            import_progress['processed_records'],
-            import_progress['total_records']
-        )
-    
-    # Рассчитываем правильный процент прогресса
-    overall_progress = 0
-    if import_progress['total_records'] > 0:
-        overall_progress = min(100, (import_progress['processed_records'] / import_progress['total_records']) * 100)
-    
-    # Формируем информацию о текущем файле
-    current_file_info = ""
-    if import_progress['current_part'] and import_progress['total_parts']:
-        current_file_info = f"Файл {import_progress['current_part']} из {import_progress['total_parts']}"
-    
-    # Формируем детальное описание текущего шага
-    detailed_step = import_progress['current_step']
-    if current_file_info:
-        detailed_step = f"{current_file_info}: {import_progress['current_step']}"
-    
-    return {
-        "status": import_progress['status'],
-        "current_step": detailed_step,
-        "progress": overall_progress,
-        "total_steps": import_progress['total_steps'],
-        "current_step_progress": import_progress['current_step_progress'],
-        "total_records": import_progress['total_records'],
-        "processed_records": import_progress['processed_records'],
-        "error_message": import_progress['error_message'],
-        "estimated_time": estimated_time,
-        "total_parts": import_progress['total_parts'],
-        "current_part": import_progress['current_part'],
-        "total_files_processed": import_progress['total_files_processed'],
-        "current_file_records": import_progress['current_file_records'],
-        "current_file_info": current_file_info,
-        "overall_progress": overall_progress
-    }
+    try:
+        db = get_db()
+        
+        # Получаем последнюю активную задачу импорта хостов
+        conn = await db.get_connection()
+        
+        query = """
+            SELECT id, task_type, status, current_step, total_items, processed_items,
+                   total_records, processed_records, updated_records, start_time, end_time, error_message, 
+                   cancelled, parameters, description, created_at, updated_at
+            FROM background_tasks 
+            WHERE task_type = 'hosts_import' 
+            AND status IN ('running', 'processing', 'initializing')
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        
+        task = await conn.fetchrow(query)
+        
+        if not task:
+            # Если нет активных задач, возвращаем статус idle
+            return {
+                "status": "idle",
+                "current_step": "Нет активных задач импорта",
+                "progress": 0,
+                "total_steps": 0,
+                "current_step_progress": 0,
+                "total_records": 0,
+                "processed_records": 0,
+                "error_message": None,
+                "estimated_time": None,
+                "total_parts": 0,
+                "current_part": 0,
+                "total_files_processed": 0,
+                "current_file_records": 0,
+                "overall_progress": 0
+            }
+        
+        # Рассчитываем прогресс с учетом этапов
+        progress_percent = 0
+        current_step = task['current_step'] or 'Инициализация...'
+        
+        if task['status'] == 'completed':
+            progress_percent = 100
+        elif task['total_records'] and task['total_records'] > 0:
+            # Используем processed_records для более точного расчета
+            processed = task['processed_records'] or 0
+            total = task['total_records']
+            
+            # Определяем этап на основе current_step
+            if 'Этап 1/3' in current_step or 'Очистка' in current_step:
+                progress_percent = min(5, (processed / total) * 5)
+            elif 'Этап 2/3' in current_step or 'Сохранение' in current_step:
+                base_progress = 5 + (processed / total) * 70  # 5-75%
+                progress_percent = min(75, base_progress)
+            elif 'Этап 3/3' in current_step or 'Расчет рисков' in current_step:
+                # На этапе расчета рисков processed показывает количество CVE, а не записей
+                # Используем фиксированный прогресс от 75% до 95%
+                if 'Запуск параллельной обработки' in current_step:
+                    progress_percent = 75
+                elif 'Расчет рисков...' in current_step:
+                    # Извлекаем прогресс из строки "Расчет рисков... (X/Y CVE)"
+                    import re
+                    match = re.search(r'\((\d+)/(\d+)\)', current_step)
+                    if match:
+                        current_cve = int(match.group(1))
+                        total_cve = int(match.group(2))
+                        if total_cve > 0:
+                            cve_progress = (current_cve / total_cve) * 20  # 20% за расчет рисков
+                            progress_percent = 75 + cve_progress
+                        else:
+                            progress_percent = 75
+                    else:
+                        progress_percent = 75
+                elif 'Параллельная обработка завершена' in current_step:
+                    progress_percent = 95
+                else:
+                    progress_percent = 75
+            else:
+                # Fallback на стандартный расчет
+                progress_percent = min(100, (processed / total) * 100)
+        elif task['total_items'] and task['total_items'] > 0:
+            progress_percent = min(100, (task['processed_items'] / task['total_items']) * 100)
+        
+        # Рассчитываем оставшееся время
+        estimated_time = None
+        if (task['start_time'] and 
+            task['processed_records'] and task['processed_records'] > 0 and 
+            task['total_records'] and task['total_records'] > 0):
+            estimated_time = estimate_remaining_time(
+                task['start_time'],
+                task['processed_records'],
+                task['total_records']
+            )
+        
+        # Парсим параметры для получения информации о файле
+        import json
+        parameters = {}
+        if task['parameters']:
+            try:
+                parameters = json.loads(task['parameters'])
+            except:
+                parameters = {}
+        
+        filename = parameters.get('filename', 'Неизвестный файл')
+        file_size_mb = parameters.get('file_size_mb', 0)
+        
+        # Формируем детальное описание текущего шага
+        current_step = task['current_step'] or 'Инициализация...'
+        if filename and filename != 'Неизвестный файл':
+            current_step = f"Обработка файла {filename}: {current_step}"
+        
+        return {
+            "status": task['status'],
+            "current_step": current_step,
+            "progress": progress_percent,
+            "total_steps": task['total_items'] or 0,
+            "current_step_progress": task['processed_items'] or 0,
+            "total_records": task['total_records'] or 0,
+            "processed_records": 0,  # Убираем отображение "Обработано записей"
+            "error_message": task['error_message'],
+            "estimated_time": estimated_time,
+            "total_parts": task['total_items'] or 0,
+            "current_part": task['processed_items'] or 0,
+            "total_files_processed": task['processed_items'] or 0,
+            "current_file_records": task['processed_records'] or 0,
+            "overall_progress": progress_percent,
+            "filename": filename,
+            "file_size_mb": file_size_mb,
+            "task_id": task['id']
+        }
+        
+    except Exception as e:
+        print(f"Error getting import progress: {e}")
+        return {
+            "status": "error",
+            "current_step": "Ошибка получения прогресса",
+            "progress": 0,
+            "total_steps": 0,
+            "current_step_progress": 0,
+            "total_records": 0,
+            "processed_records": 0,
+            "error_message": str(e),
+            "estimated_time": None,
+            "total_parts": 0,
+            "current_part": 0,
+            "total_files_processed": 0,
+            "current_file_records": 0,
+            "overall_progress": 0
+        }
+    finally:
+        await db.release_connection(conn)
 
 
 @router.get("/api/hosts/import-limits")
@@ -307,7 +300,17 @@ async def search_hosts(
     """Поиск хостов"""
     try:
         db = get_db()
-        results, total_count = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, epss_only, sort_by, limit, page)
+        results, total_count = await db.search_hosts(
+            hostname_pattern=hostname,
+            cve=cve,
+            ip_address=ip_address,
+            criticality=criticality,
+            exploits_only=exploits_only,
+            epss_only=epss_only,
+            sort_by=sort_by,
+            limit=limit,
+            page=page
+        )
         return {
             "success": True, 
             "results": results,
@@ -331,12 +334,19 @@ async def start_background_update():
         db = get_db()
         
         # Проверяем, не запущена ли уже задача
-        existing_task = await db.get_background_task('hosts_update')
-        if existing_task and existing_task['status'] in ['processing', 'initializing']:
+        existing_task = await db.get_background_task_by_type('hosts_update')
+        if existing_task and existing_task['status'] in ['processing', 'inserting']:
             return {"success": False, "message": "Обновление уже запущено"}
         
-        # Создаем новую задачу
-        task_id = await db.create_background_task('hosts_update')
+        # Создаем фоновую задачу для воркера
+        task_id = await db.create_background_task(
+            task_type="hosts_update",
+            parameters={
+                "max_concurrent": 5,
+                "update_type": "sequential"
+            },
+            description="Последовательное обновление данных хостов"
+        )
         
         def progress_callback(status, step, **kwargs):
             # Обновляем задачу в базе данных
@@ -392,7 +402,7 @@ async def get_background_update_progress():
     """Получить прогресс фонового обновления данных"""
     try:
         db = get_db()
-        task = await db.get_background_task('hosts_update')
+        task = await db.get_background_task_by_type('hosts_update')
         
         if not task:
             return {
@@ -408,34 +418,35 @@ async def get_background_update_progress():
                 "error_message": None
             }
         
-        # Рассчитываем оставшееся время
-        estimated_time = None
-        if (task['start_time'] and 
-            task['processed_items'] > 0 and 
-            task['total_items'] > 0):
-            
-            elapsed = (datetime.now() - task['start_time']).total_seconds()
-            if elapsed > 0:
-                rate = task['processed_items'] / elapsed
-                remaining_items = task['total_items'] - task['processed_items']
-                estimated_time = remaining_items / rate if rate > 0 else None
+        # Парсим информацию из сообщения для обратной совместимости
+        total_cves = 0
+        processed_cves = 0
+        updated_hosts = 0
         
-        # Рассчитываем процент прогресса
-        progress_percent = 0
-        if task['total_items'] > 0:
-            progress_percent = (task['processed_items'] / task['total_items']) * 100
+        if task.get('message'):
+            import re
+            # Формат: "Обработано 350 из 1,000 CVE (35.0%)"
+            processed_match = re.search(r'Обработано ([\d,]+) из ([\d,]+) CVE', task['message'])
+            if processed_match:
+                processed_cves = int(processed_match.group(1).replace(',', ''))
+                total_cves = int(processed_match.group(2).replace(',', ''))
+            
+            # Формат: "обновлено 33,320 записей хостов"
+            hosts_match = re.search(r'обновлено ([\d,]+) записей хостов', task['message'])
+            if hosts_match:
+                updated_hosts = int(hosts_match.group(1).replace(',', ''))
         
         return {
             "status": task['status'],
-            "current_step": task['current_step'] or "Инициализация...",
-            "total_cves": task['total_items'],
-            "processed_cves": task['processed_items'],
-            "total_hosts": task['total_records'],
-            "updated_hosts": task['updated_records'],
-            "progress_percent": round(progress_percent, 1),
-            "estimated_time_seconds": estimated_time,
-            "start_time": task['start_time'].isoformat() if task['start_time'] else None,
-            "error_message": task['error_message']
+            "current_step": task.get('message', 'Инициализация...'),
+            "total_cves": total_cves,
+            "processed_cves": processed_cves,
+            "total_hosts": 0,  # Не используется в новой схеме
+            "updated_hosts": updated_hosts,
+            "progress_percent": task.get('progress', 0),
+            "estimated_time_seconds": None,  # Убрали расчет времени
+            "start_time": task.get('start_time').isoformat() if task.get('start_time') else None,
+            "error_message": task.get('error_message')
         }
     except Exception as e:
         print('Error getting background update progress:', e)
@@ -478,62 +489,31 @@ async def start_background_update_parallel():
         db = get_db()
         
         # Проверяем, не запущена ли уже задача
-        existing_task = await db.get_background_task('hosts_update')
-        if existing_task and existing_task['status'] in ['processing', 'initializing']:
+        existing_task = await db.get_background_task_by_type('hosts_update')
+        if existing_task and existing_task['status'] in ['processing', 'inserting']:
             return {"success": False, "message": "Обновление уже запущено"}
         
-        # Создаем новую задачу
-        task_id = await db.create_background_task('hosts_update')
+        # Создаем фоновую задачу для воркера
+        task_id = await db.create_background_task(
+            task_type="hosts_update",
+            parameters={
+                "max_concurrent": 10,
+                "update_type": "parallel"
+            },
+            description="Параллельное обновление данных хостов"
+        )
         
-        def progress_callback(status, step, **kwargs):
-            # Обновляем задачу в базе данных
-            asyncio.create_task(db.update_background_task(task_id, 
-                status=status, 
-                current_step=step,
-                total_items=kwargs.get('total_cves', 0),
-                processed_items=kwargs.get('processed_cves', 0),
-                total_records=kwargs.get('total_hosts', 0),
-                updated_records=kwargs.get('updated_hosts', 0)
-            ))
+        print(f"✅ Фоновая задача обновления создана: {task_id}")
         
-        # Запускаем параллельное фоновое обновление
-        result = await db.update_hosts_epss_and_exploits_background_parallel(progress_callback)
-        
-        # Обновляем финальный статус в базе данных
-        if result['success']:
-            # Проверяем, не была ли задача отменена
-            if 'отменено' in result.get('message', '').lower():
-                await db.update_background_task(task_id, 
-                    status='cancelled', 
-                    current_step='Отменено пользователем',
-                    total_items=result.get('processed_cves', 0),
-                    processed_items=result.get('processed_cves', 0),
-                    total_records=result.get('updated_count', 0),
-                    updated_records=result.get('updated_count', 0)
-                )
-            else:
-                await db.update_background_task(task_id, 
-                    status='completed', 
-                    current_step='Завершено',
-                    total_items=result.get('processed_cves', 0),
-                    processed_items=result.get('processed_cves', 0),
-                    total_records=result.get('updated_count', 0),
-                    updated_records=result.get('updated_count', 0)
-                )
-        else:
-            await db.update_background_task(task_id, 
-                status='error', 
-                current_step='Ошибка',
-                error_message=result.get('message', 'Неизвестная ошибка')
-            )
-        
-        return result
+        return {
+            "success": True,
+            "task_id": task_id,
+            "message": "Обновление данных хостов запущено в фоновом режиме"
+        }
         
     except Exception as e:
         print('Background update error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/api/hosts/{host_id}/risk")
 async def calculate_host_risk(host_id: int):
     """Рассчитать риск для конкретного хоста"""
@@ -734,7 +714,6 @@ async def export_hosts_report(
         print(f"Error exporting report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/api/hosts/clear")
 async def clear_hosts():
     """Очистить все записи хостов"""
@@ -745,3 +724,6 @@ async def clear_hosts():
     except Exception as e:
         print('Hosts clear error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+

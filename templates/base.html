@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}STools{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/main.css?v=5.0">
+    <link rel="stylesheet" href="/static/css/main.css?v=5.5">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
@@ -43,6 +43,14 @@
                     <a href="#" id="users-link" class="dropdown-item">
                         <i class="fas fa-users"></i>
                         <span>Пользователи</span>
+                    </a>
+                    <a href="#" id="background-tasks-link" class="dropdown-item">
+                        <i class="fas fa-tasks"></i>
+                        <span>Управление очередями</span>
+                    </a>
+                    <a href="#" id="settings-link" class="dropdown-item">
+                        <i class="fas fa-cogs"></i>
+                        <span>Настройки системы</span>
                     </a>
                     <div class="dropdown-divider"></div>
                     <div class="version-info">
@@ -105,9 +113,12 @@
     <div id="notifications" class="notifications"></div>
 
     <!-- Скрипты -->
-    <script src="/static/js/ui-manager.js?v=5.0"></script>
+    {% block ui_manager_js %}
+    <script src="/static/js/ui-manager.js?v=6.1"></script>
+    {% endblock %}
     {% block extra_js %}{% endblock %}
     
+    {% block ui_init_js %}
     <script>
         // Инициализация UI менеджера
         document.addEventListener('DOMContentLoaded', () => {
@@ -120,7 +131,15 @@
             } else if (currentPath.includes('/loganalizer/')) {
                 document.getElementById('loganalizer-tab').classList.add('active');
             }
+
+            // Все обработчики событий управляются через UIManager
         });
+
+        // Все обработчики событий теперь управляются через UIManager
+        // Дополнительная инициализация не требуется
+
+        // Обработчики вкладок системы управляются через UIManager
     </script>
+    {% endblock %}
 </body>
 </html>

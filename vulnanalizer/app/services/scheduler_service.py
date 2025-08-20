@@ -4,9 +4,15 @@
 import asyncio
 import schedule
 import time
+import csv
+import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
+from pathlib import Path
 from database import get_db
+from utils.file_utils import split_file_by_size, extract_compressed_file
+from utils.validation_utils import is_valid_ip
+import traceback
 
 class SchedulerService:
     def __init__(self):
@@ -23,9 +29,10 @@ class SchedulerService:
         print("🕐 Scheduler started")
         
         # Настраиваем расписание
-        schedule.every().day.at("02:00").do(self.daily_update)
-        schedule.every().hour.do(self.hourly_check)
-        schedule.every(30).minutes.do(self.cleanup_old_data)
+        schedule.every().day.at("02:00").do(self._run_async_task, self.daily_update)
+        schedule.every().hour.do(self._run_async_task, self.hourly_check)
+        schedule.every(30).minutes.do(self._run_async_task, self.cleanup_old_data)
+        schedule.every(10).seconds.do(self._run_async_task, self.process_background_tasks)
         
         # Запускаем в отдельном потоке
         asyncio.create_task(self._run_scheduler())
@@ -36,11 +43,22 @@ class SchedulerService:
         schedule.clear()
         print("🕐 Scheduler stopped")
     
+    def _run_async_task(self, async_func):
+        """Обертка для запуска async функций в schedule"""
+        asyncio.create_task(async_func())
+    
     async def _run_scheduler(self):
         """Основной цикл планировщика"""
+        print("🕐 Планировщик запущен, начинаем основной цикл")
         while self.running:
-            schedule.run_pending()
-            await asyncio.sleep(60)  # Проверяем каждую минуту
+            try:
+                schedule.run_pending()
+                # Делаем цикл более отзывчивым: проверяем pending каждые 1 секунду
+                await asyncio.sleep(1)
+            except Exception as e:
+                print(f"❌ Ошибка в основном цикле планировщика: {e}")
+                print(f"❌ Error details: {traceback.format_exc()}")
+                await asyncio.sleep(1)  # Продолжаем работу
     
     async def daily_update(self):
         """Ежедневное обновление данных"""
@@ -48,7 +66,7 @@ class SchedulerService:
             print("🔄 Starting daily update")
             
             # Проверяем, не запущено ли уже обновление
-            existing_task = await self.db.get_background_task('hosts_update')
+            existing_task = await self.db.get_background_task_by_type('hosts_update')
             if existing_task and existing_task['status'] in ['processing', 'initializing']:
                 print("⚠️ Update already running, skipping daily update")
                 return
@@ -94,6 +112,342 @@ class SchedulerService:
             
         except Exception as e:
             print(f"❌ Error in hourly check: {e}")
+    
+    async def process_hosts_import_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработка фоновой задачи импорта хостов"""
+        try:
+            print(f"🔄 Начинаем обработку задачи импорта хостов {task_id}")
+            print(f"📋 Параметры: {parameters}")
+            print(f"📋 Тип параметров: {type(parameters)}")
+            
+            # Обновляем статус задачи
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Начало импорта хостов',
+                'start_time': datetime.now()
+            })
+            
+            file_path = parameters.get('file_path')
+            filename = parameters.get('filename')
+            
+            if not file_path or not Path(file_path).exists():
+                await self.db.update_background_task(task_id, **{
+                    'status': 'error',
+                    'error_message': f'Файл не найден: {file_path}',
+                    'end_time': datetime.now()
+                })
+                return
+            
+            # Читаем файл
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Чтение файла'
+            })
+            
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            # Определяем, является ли файл архивом
+            is_archive = filename.lower().endswith(('.zip', '.gz', '.gzip'))
+            
+            if is_archive:
+                await self.db.update_background_task(task_id, **{
+                    'current_step': 'Распаковка архива'
+                })
+                decoded_content = extract_compressed_file(content, filename)
+            else:
+                decoded_content = content.decode('utf-8-sig')
+            
+            # Разделяем файл если нужно
+            decoded_size_mb = len(decoded_content.encode('utf-8')) / (1024 * 1024)
+            if decoded_size_mb > 100:
+                await self.db.update_background_task(task_id, **{
+                    'current_step': f'Разделение файла ({decoded_size_mb:.1f} МБ)'
+                })
+                parts = split_file_by_size(decoded_content, 100)
+                total_parts = len(parts)
+            else:
+                parts = [decoded_content]
+                total_parts = 1
+            
+            # Обработка частей
+            total_records = 0
+            total_processed_lines = 0
+            
+            # Сначала подсчитаем общее количество записей для установки total_records
+            total_expected_records = 0
+            for part_content in parts:
+                part_lines = part_content.splitlines()
+                reader = csv.DictReader(part_lines, delimiter=';')
+                total_expected_records += len(list(reader))
+            
+            print(f"📊 Ожидается обработка {total_expected_records} записей")
+            
+            # Обновляем задачу с общим количеством записей
+            await self.db.update_background_task(task_id, **{
+                'total_records': total_expected_records,
+                'processed_records': 0
+            })
+            
+            for part_index, part_content in enumerate(parts, 1):
+                await self.db.update_background_task(task_id, **{
+                    'current_step': f'Обработка части {part_index} из {total_parts}',
+                    'processed_items': part_index,
+                    'total_items': total_parts
+                })
+                
+                # Парсим CSV
+                part_lines = part_content.splitlines()
+                reader = csv.DictReader(part_lines, delimiter=';')
+                
+                part_records = []
+                for row in reader:
+                    try:
+                        # Парсим hostname и IP
+                        host_info = row['@Host'].strip('"')
+                        hostname = host_info.split(' (')[0] if ' (' in host_info else host_info
+                        ip_address = host_info.split('(')[1].split(')')[0] if ' (' in host_info else ''
+                        
+                        # Проверяем валидность IP
+                        if ip_address and not is_valid_ip(ip_address):
+                            continue
+                        
+                        # Получаем данные
+                        cve = row['Host.@Vulners.CVEs'].strip('"')
+                        criticality = row['host.UF_Criticality'].strip('"')
+                        zone = row['Host.UF_Zone'].strip('"')
+                        os_name = row['Host.OsName'].strip('"')
+                        
+                        part_records.append({
+                            'hostname': hostname,
+                            'ip_address': ip_address,
+                            'cve': cve,
+                            'cvss': None,
+                            'criticality': criticality,
+                            'status': 'Active',
+                            'os_name': os_name,
+                            'zone': zone
+                        })
+                        
+                    except Exception as e:
+                        print(f"⚠️ Ошибка обработки строки: {e}")
+                        continue
+                
+                # Сохраняем в базу данных
+                await self.db.update_background_task(task_id, **{
+                    'current_step': f'Сохранение части {part_index} в базу данных'
+                })
+                
+                print(f"💾 Начинаем сохранение {len(part_records)} записей в базу данных...")
+                
+                # Создаем функцию обратного вызова для обновления прогресса
+                async def update_progress(step, message, progress_percent, current_step_progress=None, processed_records=None):
+                    try:
+                        print(f"🔧 Вызов update_progress: step={step}, message='{message}', progress_percent={progress_percent}, current_step_progress={current_step_progress}, processed_records={processed_records}")
+                        
+                        # Используем переданные значения для processed_records
+                        current_processed = processed_records if processed_records is not None else 0
+                        
+                        print(f"🔧 Вычисленный current_processed: {current_processed}")
+                        
+                        # Обновляем задачу с правильными значениями
+                        update_data = {
+                            'current_step': message,
+                            'processed_records': current_processed,
+                            'total_records': total_expected_records
+                        }
+                        
+                        # Добавляем дополнительную информацию в зависимости от этапа
+                        if step == 'cleaning':
+                            update_data['current_step'] = f"Этап 1/3: {message}"
+                        elif step == 'inserting':
+                            update_data['current_step'] = f"Этап 2/3: {message}"
+                        elif step == 'calculating_risk':
+                            # Убираем проценты из сообщения о расчете рисков
+                            if 'Расчет рисков...' in message:
+                                # Извлекаем только часть с количеством CVE без процентов
+                                import re
+                                match = re.search(r'Расчет рисков\.\.\. \((\d+)/(\d+) CVE\)', message)
+                                if match:
+                                    current_cve = match.group(1)
+                                    total_cve = match.group(2)
+                                    update_data['current_step'] = f"Этап 3/3: Расчет рисков... ({current_cve}/{total_cve} CVE)"
+                                else:
+                                    update_data['current_step'] = f"Этап 3/3: {message}"
+                            else:
+                                update_data['current_step'] = f"Этап 3/3: {message}"
+                        elif step == 'completed':
+                            update_data['current_step'] = f"✅ {message}"
+                        
+                        await self.db.update_background_task(task_id, **update_data)
+                        print(f"📊 Прогресс задачи {task_id}: {message} ({progress_percent:.1f}%) - {current_processed}/{total_expected_records}")
+                    except Exception as e:
+                        print(f"⚠️ Ошибка обновления прогресса: {e}")
+                        import traceback
+                        print(f"⚠️ Traceback: {traceback.format_exc()}")
+                
+                await self.db.insert_hosts_records_with_progress(part_records, update_progress)
+                print(f"✅ Сохранение завершено")
+                
+                total_records += len(part_records)
+                total_processed_lines += len(part_lines)
+                
+                await self.db.update_background_task(task_id, **{
+                    'processed_items': part_index,
+                    'total_items': total_parts,
+                    'processed_records': total_records,
+                    'total_records': total_records
+                })
+            
+            # Завершение
+            await self.db.update_background_task(task_id, **{
+                'status': 'completed',
+                'current_step': 'Импорт завершен',
+                'processed_records': total_records,
+                'total_records': total_records,
+                'end_time': datetime.now()
+            })
+            
+            # Удаляем временный файл
+            try:
+                Path(file_path).unlink()
+            except:
+                pass
+            
+            print(f"✅ Импорт хостов завершен: {total_records} записей")
+            print(f"🎉 Задача {task_id} успешно завершена")
+            
+        except Exception as e:
+            error_msg = f"Ошибка импорта хостов: {str(e)}"
+            print(f"❌ {error_msg}")
+            print(f"❌ Задача {task_id} завершена с ошибкой")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'error_message': error_msg,
+                'end_time': datetime.now()
+            })
+    
+    async def process_background_tasks(self):
+        """Обработка фоновых задач с проверкой зависших задач"""
+        try:
+            print("🔍 Проверяем фоновые задачи...")
+            
+            # Получаем задачи в статусе 'idle'
+            idle_tasks = await self.db.get_background_tasks_by_status('idle')
+            print(f"📋 Найдено задач в статусе 'idle': {len(idle_tasks)}")
+            
+            # Проверяем зависшие задачи (processing более 10 минут)
+            stuck_tasks = await self._check_stuck_tasks()
+            if stuck_tasks:
+                print(f"⚠️ Найдено зависших задач: {len(stuck_tasks)}")
+                for task in stuck_tasks:
+                    print(f"⚠️ Зависшая задача {task['id']} ({task['task_type']}): {task['current_step']}")
+                    # Перезапускаем зависшие задачи
+                    await self._restart_stuck_task(task)
+            
+            if idle_tasks:
+                print(f"📋 Детали задач: {[(t['id'], t['task_type'], t['status']) for t in idle_tasks]}")
+                
+                for task in idle_tasks:
+                    task_id = task['id']
+                    task_type = task['task_type']
+                    parameters_str = task.get('parameters', '{}')
+                    
+                    print(f"🔄 Обрабатываем фоновую задачу {task_id} типа {task_type}")
+                    print(f"📋 Параметры задачи: {parameters_str}")
+                    
+                    # Десериализуем параметры из JSON
+                    import json
+                    try:
+                        parameters = json.loads(parameters_str) if parameters_str else {}
+                        print(f"📋 Десериализованные параметры: {parameters}")
+                    except json.JSONDecodeError:
+                        print(f"⚠️ Ошибка десериализации параметров для задачи {task_id}")
+                        parameters = {}
+                    
+                    # Обновляем статус на 'initializing'
+                    await self.db.update_background_task(task_id, **{
+                        'status': 'initializing',
+                        'current_step': 'Инициализация задачи'
+                    })
+                    print(f"✅ Статус задачи {task_id} обновлен на 'initializing'")
+                    
+                    # Обрабатываем задачу в зависимости от типа
+                    if task_type == 'hosts_import':
+                        print(f"🚀 Запускаем обработку задачи импорта хостов {task_id}")
+                        await self.process_hosts_import_task(task_id, parameters)
+                        print(f"✅ Обработка задачи {task_id} завершена")
+                    else:
+                        print(f"❌ Неизвестный тип задачи: {task_type}")
+                        await self.db.update_background_task(task_id, **{
+                            'status': 'error',
+                            'error_message': f'Неизвестный тип задачи: {task_type}',
+                            'end_time': datetime.now()
+                        })
+            else:
+                print("📋 Нет задач в статусе 'idle' для обработки")
+                    
+        except Exception as e:
+            print(f"❌ Ошибка обработки фоновых задач: {e}")
+            print(f"❌ Error details: {traceback.format_exc()}")
+    
+    async def _check_stuck_tasks(self):
+        """Проверить зависшие задачи (processing более 10 минут)"""
+        try:
+            conn = await self.db.get_connection()
+            await conn.execute('SET search_path TO vulnanalizer')
+            
+            # Ищем задачи в статусе processing, которые не обновлялись более 10 минут
+            query = """
+                SELECT id, task_type, status, current_step, created_at, updated_at, start_time
+                FROM background_tasks 
+                WHERE status IN ('processing', 'initializing')
+                AND updated_at < NOW() - INTERVAL '10 minutes'
+                ORDER BY updated_at ASC
+            """
+            stuck_tasks = await conn.fetch(query)
+            return [dict(task) for task in stuck_tasks]
+        except Exception as e:
+            print(f"❌ Ошибка проверки зависших задач: {e}")
+            return []
+        finally:
+            await self.db.release_connection(conn)
+    
+    async def _restart_stuck_task(self, task):
+        """Перезапустить зависшую задачу"""
+        try:
+            task_id = task['id']
+            task_type = task['task_type']
+            
+            print(f"🔄 Перезапускаем зависшую задачу {task_id} ({task_type})")
+            
+            # Создаем новую задачу с теми же параметрами
+            parameters_str = task.get('parameters', '{}')
+            import json
+            try:
+                parameters = json.loads(parameters_str) if parameters_str else {}
+            except json.JSONDecodeError:
+                parameters = {}
+            
+            # Отменяем старую задачу
+            await self.db.update_background_task(task_id, **{
+                'status': 'cancelled',
+                'current_step': 'Отменено: зависла',
+                'error_message': 'Задача зависла и была перезапущена автоматически',
+                'end_time': datetime.now()
+            })
+            
+            # Создаем новую задачу
+            new_task_id = await self.db.create_background_task(
+                task_type=task_type,
+                parameters=parameters,
+                description=f"Перезапуск зависшей задачи {task_id}"
+            )
+            
+            print(f"✅ Зависшая задача {task_id} отменена, создана новая задача {new_task_id}")
+            
+        except Exception as e:
+            print(f"❌ Ошибка перезапуска зависшей задачи {task['id']}: {e}")
     
     async def cleanup_old_data(self):
         """Очистка старых данных"""

@@ -26,7 +26,14 @@ import threading
 # Импортируем новую систему распознавания форматов
 from log_formats import detect_log_level, log_detector
 
-app = FastAPI(title="LogAnalizer", version="1.0.0")
+def get_version():
+    try:
+        with open('VERSION', 'r') as f:
+            return f.read().strip()
+    except:
+        return "0.5.00"
+
+app = FastAPI(title="LogAnalizer", version=get_version())
 
 # Увеличиваем лимиты для загрузки файлов
 app.add_middleware(

@@ -1,7 +1,12 @@
 class VulnAnalizer {
     constructor() {
         // Инициализируем UIManager для управления боковой панелью и темами
-        this.uiManager = new UIManager();
+        if (typeof UIManager !== 'undefined') {
+            this.uiManager = new UIManager();
+        } else {
+            console.warn('UIManager not found, UI management will be limited');
+            this.uiManager = null;
+        }
         
         this.init();
         this.operationStatus = {}; // Хранит статус текущих операций
@@ -36,18 +41,22 @@ class VulnAnalizer {
         this.setupCVE();
         this.setupHosts();
         this.setupVM();
-        this.setupUsers();
         
         // Инициализируем активную страницу
         this.initializeActivePage();
         
         // Загружаем статус хостов при инициализации
-        setTimeout(() => {
+        setTimeout(async () => {
             this.updateHostsStatus();
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
             this.updateCVEStatus();
             this.checkBackgroundUpdateStatus();
+            this.loadBackgroundTasksData();
+            this.checkActiveImportTasks(); // Проверяем активные задачи импорта
+            
+            // Загружаем настройки базы данных
+            await this.loadDatabaseSettings();
         }, 100);
     }
 
@@ -62,14 +71,14 @@ class VulnAnalizer {
             return;
         }
 
-        // Проверяем токен
-        console.log('checkAuth: checking token with /api/users/me');
-        fetch('/vulnanalizer/api/users/me', {
+        // Проверяем токен через auth сервис
+        console.log('checkAuth: checking token with auth service');
+        fetch('/auth/api/me', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         }).then(response => {
-            console.log('checkAuth: /api/users/me response status:', response.status);
+            console.log('checkAuth: auth service response status:', response.status);
             if (response.ok) {
                 return response.json();
             } else {
@@ -81,7 +90,7 @@ class VulnAnalizer {
             }
         }).then(userData => {
             // Сохраняем информацию о пользователе
-            console.log('checkAuth: userData from /api/users/me:', userData);
+            console.log('checkAuth: userData from auth service:', userData);
             console.log('checkAuth: userData.user:', userData.user);
             console.log('checkAuth: userData.user.is_admin:', userData.user?.is_admin);
             
@@ -160,7 +169,7 @@ class VulnAnalizer {
         const sidebarTabs = document.querySelectorAll('.sidebar-tab');
         
         sidebarTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
+            tab.addEventListener('click', async (e) => {
                 e.preventDefault();
                 
                 // Убираем активный класс со всех вкладок
@@ -185,6 +194,11 @@ class VulnAnalizer {
                 
                 // Обновляем заголовок страницы
                 this.switchPage(targetPage);
+                
+                // Если переключаемся на страницу настроек, загружаем настройки
+                if (targetPage === 'settings') {
+                    await this.loadDatabaseSettings();
+                }
             });
         });
     }
@@ -192,7 +206,6 @@ class VulnAnalizer {
     setupSettings() {
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
-        const usersLink = document.getElementById('users-link');
 
         // Загружаем версию приложения
         this.loadAppVersion();
@@ -216,15 +229,6 @@ class VulnAnalizer {
                 settingsDropdown.classList.remove('show');
             }
         });
-
-        // Обработка клика по пункту "Пользователи"
-        if (usersLink) {
-            usersLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                settingsDropdown.classList.remove('show');
-                this.openUsersPage();
-            });
-        }
     }
 
     setupUserMenu() {
@@ -295,62 +299,6 @@ class VulnAnalizer {
         window.location.href = '/auth/';
     }
 
-    openUsersPage() {
-        // Проверяем права администратора перед открытием страницы
-        const userInfo = localStorage.getItem('user_info');
-        if (!userInfo) {
-            this.showNotification('Ошибка: информация о пользователе не найдена', 'error');
-            return;
-        }
-
-        try {
-            const currentUser = JSON.parse(userInfo);
-            let isAdmin = false;
-            if (currentUser.is_admin !== undefined) {
-                isAdmin = currentUser.is_admin;
-            } else if (currentUser.user && currentUser.user.is_admin !== undefined) {
-                isAdmin = currentUser.user.is_admin;
-            }
-            
-            if (!isAdmin) {
-                this.showNotification('Доступ запрещен: требуются права администратора', 'error');
-                return;
-            }
-        } catch (e) {
-            console.error('Error parsing user info:', e);
-            this.showNotification('Ошибка: неверный формат данных пользователя', 'error');
-            return;
-        }
-
-        // Открываем страницу управления пользователями в том же окне
-        // Скрываем все страницы
-        document.querySelectorAll('.page-content').forEach(page => {
-            page.classList.remove('active');
-        });
-        
-        // Показываем страницу пользователей
-        const usersPage = document.getElementById('users-page');
-        if (usersPage) {
-            usersPage.classList.add('active');
-            usersPage.style.display = 'block'; // Убеждаемся, что страница видна
-        }
-        
-        // Обновляем активную ссылку в навигации
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-        
-        // Обновляем заголовок страницы
-        const pageTitle = document.getElementById('page-title');
-        if (pageTitle) {
-            pageTitle.textContent = 'Пользователи';
-        }
-        
-        // Загружаем пользователей
-        this.loadUsers();
-    }
-
-
     switchPage(page) {
         // Заголовки страниц больше не обновляются
         // Только обновляем статусы
@@ -361,6 +309,7 @@ class VulnAnalizer {
                 break;
             case 'hosts':
                 this.updateHostsStatus();
+                this.checkActiveImportTasks(); // Проверяем активные задачи импорта
                 break;
             case 'settings':
                 this.updateEPSSStatus();
@@ -958,9 +907,6 @@ class VulnAnalizer {
                 formData.append('file', file);
                 
                 try {
-                    // Запускаем мониторинг прогресса
-                    const progressInterval = this.startProgressMonitoring();
-                    
                     const resp = await fetch(this.getApiBasePath() + '/hosts/upload', {
                         method: 'POST',
                         body: formData
@@ -982,8 +928,6 @@ class VulnAnalizer {
                             console.error('Error reading response text:', textError);
                         }
                         
-                        clearInterval(progressInterval);
-                        this.updateImportProgress('error', 'Ошибка загрузки', 0, 0, 0, 0, errorMessage);
                         this.showNotification('Ошибка загрузки: ' + errorMessage, 'error');
                         return;
                     }
@@ -991,30 +935,26 @@ class VulnAnalizer {
                     // Проверяем Content-Type
                     const contentType = resp.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
-                        clearInterval(progressInterval);
                         const errorMessage = 'Сервер вернул неверный формат ответа. Возможно, произошла ошибка на сервере.';
-                        this.updateImportProgress('error', 'Ошибка формата ответа', 0, 0, 0, 0, errorMessage);
                         this.showNotification('Ошибка: ' + errorMessage, 'error');
                         return;
                     }
                     
                     const data = await resp.json();
                     
-                    // Останавливаем мониторинг прогресса
-                    clearInterval(progressInterval);
-                    
                     if (data.success) {
-                        this.updateImportProgress('completed', 'Импорт завершен', 100, 100, data.count, data.count);
-                        this.showNotification(`Импорт завершен: ${data.count.toLocaleString()} записей`, 'success');
+                        this.showNotification(data.message, 'success');
                         this.updateHostsStatus();
                         fileInput.value = ''; // Очищаем поле файла
                         
-                        // Скрываем прогресс-бар через 3 секунды
-                        setTimeout(() => {
-                            this.hideImportProgress();
-                        }, 3000);
+                        // Показываем информацию о задаче
+                        if (data.task_id) {
+                            this.showNotification(`Задача импорта создана: ${data.task_id}`, 'info');
+                            
+                            // Запускаем мониторинг прогресса фоновой задачи
+                            this.startBackgroundTaskMonitoring(data.task_id);
+                        }
                     } else {
-                        this.updateImportProgress('error', 'Ошибка импорта', 0, 0, 0, 0, data.detail || 'Неизвестная ошибка');
                         this.showNotification('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), 'error');
                     }
                 } catch (err) {
@@ -1028,7 +968,6 @@ class VulnAnalizer {
                         errorMessage = 'Ошибка соединения с сервером. Проверьте подключение к интернету.';
                     }
                     
-                    this.updateImportProgress('error', 'Ошибка импорта', 0, 0, 0, 0, errorMessage);
                     this.showNotification('Ошибка импорта: ' + errorMessage, 'error');
                 } finally {
                     // Восстанавливаем кнопку
@@ -1934,6 +1873,20 @@ class VulnAnalizer {
         }
     }
 
+    // Загрузка настроек базы данных
+    async loadDatabaseSettings() {
+        try {
+            const response = await fetch(this.getApiBasePath() + '/settings');
+            const settings = await response.json();
+            
+            // Заполняем форму настроек базы данных
+            this.populateSettings(settings);
+            
+        } catch (error) {
+            console.error('Error loading database settings:', error);
+        }
+    }
+
     // Загрузка настроек Impact
     async loadImpactSettings() {
         try {
@@ -2540,109 +2493,6 @@ class VulnAnalizer {
         }
     }
 
-    setupUsers() {
-        // Проверяем права доступа
-        const userInfo = localStorage.getItem('user_info');
-        if (userInfo) {
-            try {
-                const currentUser = JSON.parse(userInfo);
-                if (!currentUser.is_admin) {
-                    // Скрываем ссылку на управление пользователями для не-админов
-                    const usersLink = document.getElementById('users-link');
-                    if (usersLink) {
-                        usersLink.style.display = 'none';
-                    }
-                    return; // Не настраиваем функциональность для не-админов
-                }
-            } catch (e) {
-                console.error('Error parsing user info:', e);
-                return;
-            }
-        }
-
-        // Кнопка добавления пользователя
-        const addUserBtn = document.getElementById('add-user-btn');
-        if (addUserBtn) {
-            addUserBtn.addEventListener('click', () => {
-                this.openUserModal();
-            });
-        }
-
-        // Модальное окно пользователя
-        const closeModal = document.getElementById('close-modal');
-        if (closeModal) {
-            closeModal.addEventListener('click', () => {
-                this.closeUserModal();
-            });
-        }
-
-        const cancelBtn = document.getElementById('cancel-btn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => {
-                this.closeUserModal();
-            });
-        }
-
-        const saveBtn = document.getElementById('save-btn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                this.saveUser();
-            });
-        }
-
-        // Модальное окно пароля
-        const closePasswordModal = document.getElementById('close-password-modal');
-        if (closePasswordModal) {
-            closePasswordModal.addEventListener('click', () => {
-                this.closePasswordModal();
-            });
-        }
-
-        const cancelPasswordBtn = document.getElementById('cancel-password-btn');
-        if (cancelPasswordBtn) {
-            cancelPasswordBtn.addEventListener('click', () => {
-                this.closePasswordModal();
-            });
-        }
-
-        const savePasswordBtn = document.getElementById('save-password-btn');
-        if (savePasswordBtn) {
-            savePasswordBtn.addEventListener('click', () => {
-                this.savePassword();
-            });
-        }
-
-        // Закрытие модальных окон при клике вне их
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('show');
-            }
-        });
-
-        // Поиск пользователей
-        const usersSearch = document.getElementById('users-search');
-        if (usersSearch) {
-            usersSearch.addEventListener('input', (e) => {
-                this.filterUsers();
-            });
-        }
-
-        // Фильтры пользователей
-        const filterButtons = document.querySelectorAll('.filter-btn');
-        filterButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // Убираем активный класс со всех кнопок
-                filterButtons.forEach(b => b.classList.remove('active'));
-                // Добавляем активный класс к текущей кнопке
-                e.target.classList.add('active');
-                this.filterUsers();
-            });
-        });
-
-        // Загружаем пользователей при открытии страницы
-        this.loadUsers();
-    }
-
     setupSidebar() {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -2684,360 +2534,7 @@ class VulnAnalizer {
         });
     }
 
-    filterUsers() {
-        if (!this.allUsers) return;
 
-        const searchTerm = document.getElementById('users-search')?.value.toLowerCase() || '';
-        const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-
-        let filteredUsers = this.allUsers.filter(user => {
-            // Поиск по имени пользователя и email
-            const matchesSearch = user.username.toLowerCase().includes(searchTerm) || 
-                                (user.email && user.email.toLowerCase().includes(searchTerm));
-
-            // Фильтрация по статусу
-            let matchesFilter = true;
-            if (activeFilter === 'active') {
-                matchesFilter = user.is_active;
-            } else if (activeFilter === 'admin') {
-                matchesFilter = user.is_admin;
-            }
-
-            return matchesSearch && matchesFilter;
-        });
-
-        // Обновляем отображение
-        const usersList = document.getElementById('users-list');
-        if (usersList) {
-            usersList.innerHTML = filteredUsers.map(user => this.createUserCard(user)).join('');
-        }
-
-        // Обновляем статистику для отфильтрованных пользователей
-        this.updateUsersStats(filteredUsers);
-    }
-
-    async loadUsers() {
-        try {
-            // Проверяем, является ли текущий пользователь администратором
-            const userInfo = localStorage.getItem('user_info');
-            console.log('user_info from localStorage:', userInfo);
-            
-            if (!userInfo) {
-                this.showNotification('Ошибка: информация о пользователе не найдена', 'error');
-                return;
-            }
-
-            const currentUser = JSON.parse(userInfo);
-            console.log('currentUser parsed:', currentUser);
-            
-            // Обрабатываем оба возможных формата user_info
-            let isAdmin = false;
-            if (currentUser.is_admin !== undefined) {
-                // Прямой формат: {id: 3, username: "admin", is_admin: true}
-                isAdmin = currentUser.is_admin;
-            } else if (currentUser.user && currentUser.user.is_admin !== undefined) {
-                // Формат API ответа: {success: true, user: {id: 3, is_admin: true}}
-                isAdmin = currentUser.user.is_admin;
-            }
-            
-            console.log('isAdmin determined:', isAdmin);
-            
-            if (!isAdmin) {
-                this.showNotification('Доступ запрещен: требуются права администратора', 'error');
-                return;
-            }
-
-            const response = await fetch('/vulnanalizer/api/users/all', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                this.renderUsers(data.users);
-            } else if (response.status === 403) {
-                this.showNotification('Доступ запрещен: требуются права администратора', 'error');
-                this.hideUsersPage();
-            } else {
-                this.showNotification('Ошибка загрузки пользователей', 'error');
-            }
-        } catch (error) {
-            console.error('Error loading users:', error);
-            this.showNotification('Ошибка соединения с сервером', 'error');
-        }
-    }
-
-    hideUsersPage() {
-        // Скрываем страницу пользователей
-        const usersPage = document.getElementById('users-page');
-        if (usersPage) {
-            usersPage.style.display = 'none';
-        }
-        
-        // Показываем сообщение о недоступности
-        const usersList = document.getElementById('users-list');
-        if (usersList) {
-            usersList.innerHTML = `
-                <div class="access-denied-message">
-                    <i class="fas fa-lock"></i>
-                    <h3>Доступ запрещен</h3>
-                    <p>Для просмотра и управления пользователями требуются права администратора.</p>
-                </div>
-            `;
-        }
-    }
-
-    renderUsers(users) {
-        const usersList = document.getElementById('users-list');
-        if (!usersList) return;
-
-        // Проверяем, что users является массивом
-        if (!Array.isArray(users)) {
-            console.error('Users is not an array:', users);
-            this.showNotification('Ошибка: неверный формат данных пользователей', 'error');
-            return;
-        }
-
-        // Обновляем статистику
-        this.updateUsersStats(users);
-
-        // Рендерим пользователей
-        usersList.innerHTML = users.map(user => this.createUserCard(user)).join('');
-
-        // Сохраняем список пользователей для фильтрации
-        this.allUsers = users;
-    }
-
-    updateUsersStats(users) {
-        const totalUsers = document.getElementById('total-users');
-        const activeUsers = document.getElementById('active-users');
-        const adminUsers = document.getElementById('admin-users');
-
-        // Проверяем, что users является массивом
-        if (!Array.isArray(users)) {
-            console.error('updateUsersStats: users is not an array:', users);
-            if (totalUsers) totalUsers.textContent = '0';
-            if (activeUsers) activeUsers.textContent = '0';
-            if (adminUsers) adminUsers.textContent = '0';
-            return;
-        }
-
-        if (totalUsers) totalUsers.textContent = users.length;
-        if (activeUsers) activeUsers.textContent = users.filter(u => u.is_active).length;
-        if (adminUsers) adminUsers.textContent = users.filter(u => u.is_admin).length;
-    }
-
-    createUserCard(user) {
-        const badges = [];
-        if (user.is_admin) badges.push('<span class="user-badge admin">Админ</span>');
-        if (user.is_active) badges.push('<span class="user-badge active">Активен</span>');
-        if (!user.is_active) badges.push('<span class="user-badge inactive">Неактивен</span>');
-
-        const userInitial = user.username.charAt(0).toUpperCase();
-        const email = user.email || 'Email не указан';
-
-        return `
-            <div class="user-card" data-user-id="${user.id}" data-username="${user.username}" data-email="${email}" data-admin="${user.is_admin}" data-active="${user.is_active}">
-                <div class="user-header">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            ${userInitial}
-                        </div>
-                        <div class="user-details">
-                            <h4>${user.username}</h4>
-                            <div class="user-email">${email}</div>
-                        </div>
-                    </div>
-                    <div class="user-badges">
-                        ${badges.join('')}
-                    </div>
-                </div>
-                <div class="user-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="vulnAnalizer.editUser(${user.id})">
-                        <i class="fas fa-edit"></i> Редактировать
-                    </button>
-                    <button class="btn btn-warning btn-sm" onclick="vulnAnalizer.changePassword(${user.id})">
-                        <i class="fas fa-key"></i> Пароль
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="vulnAnalizer.deleteUser(${user.id})">
-                        <i class="fas fa-trash"></i> Удалить
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    openUserModal(user = null) {
-        const modal = document.getElementById('user-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const form = document.getElementById('user-form');
-        const usernameInput = document.getElementById('username');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const confirmPasswordInput = document.getElementById('confirm-password');
-        const isAdminCheckbox = document.getElementById('is-admin');
-        const isActiveCheckbox = document.getElementById('is-active');
-
-        if (user) {
-            modalTitle.textContent = 'Редактировать пользователя';
-            usernameInput.value = user.username;
-            emailInput.value = user.email || '';
-            passwordInput.value = '';
-            confirmPasswordInput.value = '';
-            isAdminCheckbox.checked = user.is_admin;
-            isActiveCheckbox.checked = user.is_active;
-            form.dataset.userId = user.id;
-        } else {
-            modalTitle.textContent = 'Добавить пользователя';
-            form.reset();
-            delete form.dataset.userId;
-        }
-
-        modal.classList.add('show');
-    }
-
-    closeUserModal() {
-        const modal = document.getElementById('user-modal');
-        modal.classList.remove('show');
-    }
-
-    async saveUser() {
-        const form = document.getElementById('user-form');
-        const formData = new FormData(form);
-        
-        const userData = {
-            username: formData.get('username'),
-            email: formData.get('email'),
-            password: formData.get('password'),
-            is_admin: formData.get('is-admin') === 'on',
-            is_active: formData.get('is-active') === 'on'
-        };
-
-        if (userData.password !== formData.get('confirm-password')) {
-            this.showNotification('Пароли не совпадают', 'error');
-            return;
-        }
-
-        try {
-            const userId = form.dataset.userId;
-            const url = userId ? `/vulnanalizer/api/users/${userId}/update` : '/vulnanalizer/api/users/register';
-            const method = userId ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                },
-                body: JSON.stringify(userData)
-            });
-
-            if (response.ok) {
-                this.showNotification(userId ? 'Пользователь обновлен' : 'Пользователь создан', 'success');
-                this.closeUserModal();
-                this.loadUsers();
-            } else {
-                const error = await response.json();
-                this.showNotification(error.detail || 'Ошибка сохранения', 'error');
-            }
-        } catch (error) {
-            console.error('Error saving user:', error);
-            this.showNotification('Ошибка соединения с сервером', 'error');
-        }
-    }
-
-    editUser(userId) {
-        // Найти пользователя в списке и открыть модальное окно
-        const userCard = document.querySelector(`[data-user-id="${userId}"]`);
-        if (userCard) {
-            const user = {
-                id: userId,
-                username: userCard.querySelector('.user-details h4').textContent,
-                email: userCard.querySelector('.user-email').textContent,
-                is_admin: userCard.querySelector('.user-badge.admin') !== null,
-                is_active: userCard.querySelector('.user-badge.active') !== null
-            };
-            this.openUserModal(user);
-        }
-    }
-
-    changePassword(userId) {
-        this.editingUserId = userId;
-        const modal = document.getElementById('password-modal');
-        modal.classList.add('show');
-    }
-
-    closePasswordModal() {
-        const modal = document.getElementById('password-modal');
-        modal.classList.remove('show');
-        this.editingUserId = null;
-    }
-
-    async savePassword() {
-        const form = document.getElementById('password-form');
-        const formData = new FormData(form);
-
-        const passwordData = {
-            password: formData.get('new-password'),
-            confirm_password: formData.get('confirm-new-password')
-        };
-
-        if (!passwordData.password || passwordData.password !== passwordData.confirm_password) {
-            this.showNotification('Пароли не совпадают', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch(`/vulnanalizer/api/users/${this.editingUserId}/password`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    password: passwordData.password
-                })
-            });
-
-            if (response.ok) {
-                this.showNotification('Пароль изменен', 'success');
-                this.closePasswordModal();
-            } else {
-                const error = await response.json();
-                this.showNotification(error.detail || 'Ошибка изменения пароля', 'error');
-            }
-        } catch (error) {
-            console.error('Error changing password:', error);
-            this.showNotification('Ошибка соединения с сервером', 'error');
-        }
-    }
-
-    async deleteUser(userId) {
-        if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/vulnanalizer/api/users/${userId}/delete`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                }
-            });
-
-            if (response.ok) {
-                this.showNotification('Пользователь удален', 'success');
-                this.loadUsers();
-            } else {
-                const error = await response.json();
-                this.showNotification(error.detail || 'Ошибка удаления', 'error');
-            }
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            this.showNotification('Ошибка соединения с сервером', 'error');
-        }
-    }
 
     // Функции для работы с прогресс-баром импорта
     showImportProgress() {
@@ -3068,11 +2565,7 @@ class VulnAnalizer {
             currentStepText.textContent = currentStep;
         }
 
-        // Обновляем прогресс шага
-        const stepProgressText = document.getElementById('step-progress-text');
-        if (stepProgressText) {
-            stepProgressText.textContent = Math.round(stepProgress) + '%';
-        }
+
 
         // Обновляем общий прогресс
         const overallProgressText = document.getElementById('overall-progress-text');
@@ -3086,24 +2579,14 @@ class VulnAnalizer {
             progressBarFill.style.width = overallProgress + '%';
         }
 
-        // Обновляем количество записей
-        const processedRecordsText = document.getElementById('processed-records-text');
-        if (processedRecordsText) {
-            processedRecordsText.textContent = processedRecords.toLocaleString();
-        }
+
 
         const totalRecordsText = document.getElementById('total-records-text');
         if (totalRecordsText) {
             totalRecordsText.textContent = totalRecords.toLocaleString();
         }
 
-        // Обновляем оставшееся время
-        const estimatedTimeText = document.getElementById('estimated-time-text');
-        if (estimatedTimeText && this.estimatedTime) {
-            estimatedTimeText.textContent = this.formatTime(this.estimatedTime);
-        } else {
-            estimatedTimeText.textContent = '-';
-        }
+
 
         // Показываем ошибку если есть
         if (errorMessage) {
@@ -3111,37 +2594,89 @@ class VulnAnalizer {
         }
     }
 
-    startProgressMonitoring() {
-        return setInterval(async () => {
+    startBackgroundTaskMonitoring(taskId) {
+        console.log(`🔄 Начинаем мониторинг фоновой задачи ${taskId}`);
+        
+        // Показываем прогресс-бар
+        this.showImportProgress();
+        
+        const interval = setInterval(async () => {
             try {
-                const resp = await fetch(this.getApiBasePath() + '/hosts/import-progress');
+                const resp = await fetch(this.getApiBasePath() + `/background-tasks/${taskId}`);
                 if (resp.ok) {
-                    const data = await resp.json();
+                    const task = await resp.json();
                     
-                    this.updateImportProgress(
-                        data.status,
-                        data.current_step,
-                        data.progress,
-                        data.current_step_progress,
-                        data.total_records,
-                        data.processed_records,
-                        data.error_message
-                    );
-
-                    // Обновляем оставшееся время
-                    if (data.estimated_time) {
-                        this.estimatedTime = data.estimated_time;
-                    }
-
-                    // Если импорт завершен или произошла ошибка, останавливаем мониторинг
-                    if (data.status === 'completed' || data.status === 'error') {
-                        return false; // Остановить интервал
+                    // Обновляем прогресс
+                    this.updateBackgroundTaskProgress(task);
+                    
+                    // Если задача завершена или произошла ошибка, останавливаем мониторинг
+                    if (task.status === 'completed' || task.status === 'error') {
+                        clearInterval(interval);
+                        
+                        if (task.status === 'completed') {
+                            this.showNotification(`Импорт завершен: ${task.processed_records || 0} записей`, 'success');
+                            this.updateHostsStatus();
+                        } else {
+                            this.showNotification(`Ошибка импорта: ${task.error_message || 'Неизвестная ошибка'}`, 'error');
+                        }
+                        
+                        // Скрываем прогресс-бар через 3 секунды
+                        setTimeout(() => {
+                            this.hideImportProgress();
+                        }, 3000);
                     }
                 }
             } catch (err) {
-                console.error('Progress monitoring error:', err);
+                console.error('Background task monitoring error:', err);
             }
-        }, 1000); // Обновляем каждую секунду
+        }, 2000); // Обновляем каждые 2 секунды
+        
+        return interval;
+    }
+    
+    updateBackgroundTaskProgress(task) {
+        const container = document.getElementById('import-progress-container');
+        if (!container) return;
+
+        // Обновляем классы для анимации
+        container.className = 'progress-info ' + task.status;
+
+        // Обновляем текст текущего шага
+        const currentStepText = document.getElementById('current-step-text');
+        if (currentStepText) {
+            currentStepText.textContent = task.current_step || 'Обработка...';
+        }
+
+        // Обновляем общий прогресс
+        const overallProgressText = document.getElementById('overall-progress-text');
+        if (overallProgressText) {
+            // Используем progress_percent из API для правильного расчета
+            const progress = task.progress_percent !== undefined ? 
+                Math.round(task.progress_percent) : 
+                (task.total_items > 0 ? Math.round((task.processed_items / task.total_items) * 100) : 0);
+            overallProgressText.textContent = progress + '%';
+        }
+
+        // Обновляем прогресс-бар
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        if (progressBarFill) {
+            // Используем progress_percent из API для правильного расчета
+            const progress = task.progress_percent !== undefined ? 
+                task.progress_percent : 
+                (task.total_items > 0 ? (task.processed_items / task.total_items) * 100 : 0);
+            progressBarFill.style.width = progress + '%';
+        }
+
+        // Обновляем количество записей
+        const processedRecordsText = document.getElementById('processed-records-text');
+        if (processedRecordsText && task.processed_records !== undefined) {
+            processedRecordsText.textContent = task.processed_records.toLocaleString();
+        }
+
+        const totalRecordsText = document.getElementById('total-records-text');
+        if (totalRecordsText && task.total_records !== undefined) {
+            totalRecordsText.textContent = task.total_records.toLocaleString();
+        }
     }
 
     formatTime(seconds) {
@@ -3219,13 +2754,7 @@ class VulnAnalizer {
             updatedHostsText.textContent = (data.updated_hosts || 0).toLocaleString();
         }
 
-        // Обновляем оставшееся время
-        const estimatedTimeText = document.getElementById('background-estimated-time-text');
-        if (estimatedTimeText && data.estimated_time_seconds) {
-            estimatedTimeText.textContent = this.formatTime(data.estimated_time_seconds);
-        } else {
-            estimatedTimeText.textContent = '-';
-        }
+
 
         // Показываем ошибку если есть (но не для отмены)
         if (data.error_message && data.status !== 'cancelled' && !data.error_message.toLowerCase().includes('отменено')) {
@@ -3291,8 +2820,204 @@ class VulnAnalizer {
                     console.log('No active background update found');
                 }
             }
+            
+            // Также проверяем активные задачи импорта
+            const tasksResp = await fetch(this.getApiBasePath() + '/background-tasks/status');
+            if (tasksResp.ok) {
+                const tasksData = await tasksResp.json();
+                console.log('Background tasks status:', tasksData);
+                
+                // Если есть активные задачи импорта, показываем прогресс
+                if (tasksData.active_tasks && tasksData.active_tasks.length > 0) {
+                    const importTask = tasksData.active_tasks.find(task => task.task_type === 'hosts_import');
+                    if (importTask) {
+                        console.log('Active import task found:', importTask);
+                        this.showImportProgress();
+                        this.updateBackgroundTaskProgress(importTask);
+                        
+                        // Запускаем мониторинг задачи
+                        this.startBackgroundTaskMonitoring(importTask.id);
+                    }
+                }
+            }
         } catch (err) {
             console.error('Error checking background update status:', err);
+        }
+    }
+
+    async loadBackgroundTasksData() {
+        try {
+            console.log('Loading background tasks data...');
+            const resp = await fetch(this.getApiBasePath() + '/background-tasks/status');
+            if (resp.ok) {
+                const data = await resp.json();
+                console.log('Background tasks data:', data);
+                
+                this.updateBackgroundTasksUI(data);
+            } else {
+                console.error('Failed to load background tasks data');
+                this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
+            }
+        } catch (err) {
+            console.error('Error loading background tasks data:', err);
+            this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
+        }
+    }
+
+    updateBackgroundTasksUI(data) {
+        // Обновляем список активных задач
+        const activeTasksContainer = document.getElementById('active-tasks-list');
+        if (activeTasksContainer) {
+            if (data.active_tasks && data.active_tasks.length > 0) {
+                activeTasksContainer.innerHTML = data.active_tasks.map(task => `
+                    <div class="task-item active-task">
+                        <div class="task-header">
+                            <h4>${task.task_type}</h4>
+                            <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
+                        </div>
+                        <div class="task-progress">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: ${task.progress_percent}%"></div>
+                            </div>
+                            <span class="progress-text">${task.progress_percent}%</span>
+                        </div>
+                        <div class="task-details">
+                            <p><strong>Текущий шаг:</strong> ${task.current_step || 'Инициализация...'}</p>
+                            <p><strong>Обработано:</strong> ${task.processed_items}/${task.total_items}</p>
+                            <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
+                            <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn btn-danger btn-sm" onclick="window.vulnAnalizer.cancelTask('${task.task_type}')">
+                                <i class="fas fa-stop"></i> Отменить
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                activeTasksContainer.innerHTML = '<p class="no-tasks">Нет активных задач</p>';
+            }
+        }
+
+        // Обновляем список завершенных задач
+        const completedTasksContainer = document.getElementById('completed-tasks-list');
+        if (completedTasksContainer) {
+            if (data.recent_completed_tasks && data.recent_completed_tasks.length > 0) {
+                completedTasksContainer.innerHTML = data.recent_completed_tasks.map(task => `
+                    <div class="task-item completed-task">
+                        <div class="task-header">
+                            <h4>${task.task_type}</h4>
+                            <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
+                        </div>
+                        <div class="task-details">
+                            <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
+                            <p><strong>Обработано:</strong> ${task.processed_items}/${task.total_items}</p>
+                            <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
+                            <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
+                            <p><strong>Завершено:</strong> ${task.end_time ? new Date(task.end_time).toLocaleString() : 'Неизвестно'}</p>
+                            ${task.error_message ? `<p><strong>Ошибка:</strong> <span class="error-text">${task.error_message}</span></p>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                completedTasksContainer.innerHTML = '<p class="no-tasks">Нет завершенных задач</p>';
+            }
+        }
+
+        // Обновляем статистику
+        const statsContainer = document.getElementById('tasks-stats');
+        if (statsContainer) {
+            statsContainer.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${data.total_active}</div>
+                        <div class="stat-label">Активных задач</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.total_completed}</div>
+                        <div class="stat-label">Завершенных задач</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    getStatusText(status) {
+        const statusMap = {
+            'idle': 'Ожидает',
+            'processing': 'Выполняется',
+            'running': 'Запущена',
+            'initializing': 'Инициализация',
+            'completed': 'Завершена',
+            'error': 'Ошибка',
+            'cancelled': 'Отменена'
+        };
+        return statusMap[status] || status;
+    }
+
+    async cancelTask(taskType) {
+        try {
+            const resp = await fetch(this.getApiBasePath() + `/background-tasks/${taskType}/cancel`, {
+                method: 'POST'
+            });
+            
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.success) {
+                    this.showNotification(`Задача ${taskType} отменена`, 'success');
+                    // Перезагружаем данные
+                    this.loadBackgroundTasksData();
+                } else {
+                    this.showNotification(data.message || 'Ошибка отмены задачи', 'error');
+                }
+            } else {
+                this.showNotification('Ошибка отмены задачи', 'error');
+            }
+        } catch (err) {
+            console.error('Error cancelling task:', err);
+            this.showNotification('Ошибка отмены задачи', 'error');
+        }
+    }
+
+    async checkActiveImportTasks() {
+        try {
+            console.log('Checking for active import tasks in main app...');
+            const response = await fetch(this.getApiBasePath() + '/hosts/import-progress', {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data && data.status && data.status !== 'idle' && data.status !== 'completed' && data.status !== 'error' && data.status !== 'cancelled') {
+                    console.log('Found active import task in main app:', data);
+                    
+                    // Показываем уведомление о том, что есть активная задача
+                    this.showNotification(`Обнаружена активная задача импорта: ${data.current_step}`, 'info');
+                    
+                    // Показываем прогресс-бар если мы на странице хостов
+                    const hostsPage = document.getElementById('hosts-page');
+                    if (hostsPage && hostsPage.classList.contains('active')) {
+                        this.showImportProgress();
+                        this.updateImportProgress(
+                            data.status || 'unknown',
+                            data.current_step || '',
+                            data.progress || 0,
+                            data.current_step_progress || 0,
+                            data.total_records || 0,
+                            data.processed_records || 0,
+                            data.error_message || null
+                        );
+                        this.startBackgroundTaskMonitoring(data.task_id);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error checking active import tasks in main app:', err);
         }
     }
 }
@@ -3300,4 +3025,20 @@ class VulnAnalizer {
 // Инициализация приложения при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     window.vulnAnalizer = new VulnAnalizer();
+    
+    // Проверяем активную страницу из URL и проверяем активные задачи
+    setTimeout(() => {
+        const currentPage = window.location.hash.replace('#', '') || 'analysis';
+        if (currentPage === 'hosts') {
+            window.vulnAnalizer.checkActiveImportTasks();
+        }
+    }, 500);
+    
+    // Обработчик изменения хэша URL
+    window.addEventListener('hashchange', () => {
+        const currentPage = window.location.hash.replace('#', '') || 'analysis';
+        if (currentPage === 'hosts') {
+            window.vulnAnalizer.checkActiveImportTasks();
+        }
+    });
 });

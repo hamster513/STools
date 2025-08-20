@@ -458,6 +458,7 @@ body.sidebar-collapsed .top-bar {
     top: 100%;
     right: 0;
     background-color: var(--surface-color);
+    backdrop-filter: blur(2px);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-lg);

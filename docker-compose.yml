@@ -14,20 +14,21 @@ services:
       timeout: 10s
       retries: 3
 
-  # База данных для аутентификации
-  auth_postgres:
+  # Единая база данных для всех сервисов
+  postgres:
     image: postgres:15
-    container_name: auth_postgres
+    container_name: stools_postgres
     environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: auth_user
-      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: stools_db
+      POSTGRES_USER: stools_user
+      POSTGRES_PASSWORD: stools_pass
     volumes:
-      - auth_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
     networks:
       - stools_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      test: ["CMD-SHELL", "pg_isready -U stools_user -d stools_db"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -37,17 +38,18 @@ services:
     build:
       context: ./auth
       dockerfile: Dockerfile
-    image: stools-auth_web:v0.2.0003
+    image: stools-auth_web:v0.5.01
     container_name: auth_web
     volumes:
       - auth_data:/app/data
       - ./auth:/app
     environment:
-      - AUTH_DATABASE_URL=postgresql://auth_user:auth_pass@auth_postgres:5432/auth_db
+      - AUTH_DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - JWT_SECRET_KEY=your-secret-key-change-in-production
       - REDIS_URL=redis://redis:6379
+      - SHARED_TEMPLATES_PATH=/shared_templates
     depends_on:
-      auth_postgres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -59,59 +61,22 @@ services:
       timeout: 10s
       retries: 3
 
-  # База данных для LogAnalizer
-  loganalizer_postgres:
-    image: postgres:15
-    container_name: loganalizer_postgres
-    environment:
-      POSTGRES_DB: loganalizer_db
-      POSTGRES_USER: loganalizer_user
-      POSTGRES_PASSWORD: loganalizer_pass
-    volumes:
-      - loganalizer_postgres_data:/var/lib/postgresql/data
-      - ./loganalizer/init-db:/docker-entrypoint-initdb.d
-    networks:
-      - stools_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U loganalizer_user -d loganalizer_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # База данных для VulnAnalizer
-  vulnanalizer_postgres:
-    image: postgres:15
-    container_name: vulnanalizer_postgres
-    environment:
-      POSTGRES_DB: vulnanalizer
-      POSTGRES_USER: vulnanalizer
-      POSTGRES_PASSWORD: vulnanalizer
-    volumes:
-      - vulnanalizer_postgres_data:/var/lib/postgresql/data
-      - ./vulnanalizer/init-db:/docker-entrypoint-initdb.d
-    networks:
-      - stools_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vulnanalizer -d vulnanalizer"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Веб-приложение LogAnalizer
   loganalizer_web:
     build:
       context: ./loganalizer/app
       dockerfile: Dockerfile
-    image: stools-loganalizer_web:v0.2.0003
+    image: stools-loganalizer_web:v0.5.01
     container_name: loganalizer_web
     volumes:
       - loganalizer_data:/app/data
       - ./loganalizer/app:/app
     environment:
-      - DATABASE_URL=postgresql://loganalizer_user:loganalizer_pass@loganalizer_postgres:5432/loganalizer_db
+      - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
+      - SHARED_TEMPLATES_PATH=/shared_templates
     depends_on:
-      loganalizer_postgres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -128,16 +93,18 @@ services:
     build:
       context: ./vulnanalizer/app
       dockerfile: Dockerfile
-    image: stools-vulnanalizer_web:v0.2.0003
+    image: stools-vulnanalizer_web:v0.5.01
     container_name: vulnanalizer_web
     volumes:
       - vulnanalizer_data:/app/data
       - ./vulnanalizer/app:/app
+      - ./templates:/shared_templates
     environment:
-      - DATABASE_URL=postgresql://vulnanalizer:vulnanalizer@vulnanalizer_postgres:5432/vulnanalizer
+      - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
+      - SHARED_TEMPLATES_PATH=/shared_templates
     depends_on:
-      vulnanalizer_postgres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -145,6 +112,24 @@ services:
       - stools_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Основной сервер для административных страниц
+  main_web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: stools-main_web:v0.5.01
+    container_name: main_web
+    volumes:
+      - ./templates:/app/templates
+      - ./static:/app/static
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -167,6 +152,8 @@ services:
         condition: service_healthy
       vulnanalizer_web:
         condition: service_healthy
+      main_web:
+        condition: service_healthy
     networks:
       - stools_network
     healthcheck:
@@ -178,11 +165,9 @@ services:
 volumes:
   redis_data:
   auth_data:
-  auth_postgres_data:
+  postgres_data:
   loganalizer_data:
-  loganalizer_postgres_data:
   vulnanalizer_data:
-  vulnanalizer_postgres_data:
 
 networks:
   stools_network:

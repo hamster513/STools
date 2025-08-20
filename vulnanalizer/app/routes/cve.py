@@ -161,12 +161,16 @@ async def download_cve():
     try:
         print("🔄 Starting CVE download...")
         
-        # Создаем фоновую задачу
-        db = get_db()
-        task_id = await db.create_background_task('cve_download')
-        
         # Скачиваем данные за последние годы (с 2010)
         current_year = datetime.now().year
+        
+        # Создаем фоновую задачу
+        db = get_db()
+        task_id = await db.create_background_task(
+            task_type='cve_download',
+            parameters={'years': list(range(2010, current_year + 1))},
+            description='Скачивание CVE данных с NVD'
+        )
         total_records = 0
         
         for year in range(2010, current_year + 1):

@@ -8,6 +8,8 @@ class UIManager {
         this.sidebarCollapsed = false;
         this.currentTheme = 'light';
         this.dropdowns = new Map();
+        
+
         this.init();
     }
 
@@ -109,7 +111,9 @@ class UIManager {
         const toggle = document.getElementById(toggleId);
         const dropdown = document.getElementById(dropdownId);
         
-        if (!toggle || !dropdown) return;
+        if (!toggle || !dropdown) {
+            return;
+        }
 
         this.dropdowns.set(toggleId, { toggle, dropdown, isOpen: false });
 
@@ -128,7 +132,9 @@ class UIManager {
 
     toggleDropdown(dropdownId) {
         const dropdown = this.dropdowns.get(dropdownId);
-        if (!dropdown) return;
+        if (!dropdown) {
+            return;
+        }
 
         if (dropdown.isOpen) {
             this.closeDropdown(dropdownId);
@@ -139,7 +145,9 @@ class UIManager {
 
     openDropdown(dropdownId) {
         const dropdown = this.dropdowns.get(dropdownId);
-        if (!dropdown) return;
+        if (!dropdown) {
+            return;
+        }
 
         // Закрываем все другие меню
         this.dropdowns.forEach((item, id) => {
@@ -154,7 +162,9 @@ class UIManager {
 
     closeDropdown(dropdownId) {
         const dropdown = this.dropdowns.get(dropdownId);
-        if (!dropdown) return;
+        if (!dropdown) {
+            return;
+        }
 
         dropdown.dropdown.classList.remove('show');
         dropdown.isOpen = false;
@@ -172,12 +182,12 @@ class UIManager {
         tabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
-                this.setActiveTab(tab);
+                this.navigateToSystem(tab);
             });
         });
     }
 
-    setActiveTab(activeTab) {
+    navigateToSystem(activeTab) {
         // Убираем активный класс у всех вкладок
         document.querySelectorAll('.system-tab').forEach(tab => {
             tab.classList.remove('active');
@@ -185,6 +195,14 @@ class UIManager {
         
         // Добавляем активный класс к выбранной вкладке
         activeTab.classList.add('active');
+
+        // Определяем, куда переходить
+        const tabId = activeTab.id;
+        if (tabId === 'vulnanalizer-tab') {
+            window.location.href = '/vulnanalizer/';
+        } else if (tabId === 'loganalizer-tab') {
+            window.location.href = '/loganalizer/';
+        }
     }
 
     initUserInfo() {
@@ -283,6 +301,24 @@ class UIManager {
                 this.navigateToUsers();
             });
         }
+
+        // Обработка перехода к управлению очередями
+        const backgroundTasksLink = document.getElementById('background-tasks-link');
+        if (backgroundTasksLink) {
+            backgroundTasksLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.navigateToBackgroundTasks();
+            });
+        }
+
+        // Обработка перехода к настройкам системы
+        const settingsLink = document.getElementById('settings-link');
+        if (settingsLink) {
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.navigateToSystemSettings();
+            });
+        }
     }
 
     logout() {
@@ -296,13 +332,23 @@ class UIManager {
         this.closeDropdown('settings-toggle');
         
         // Переходим к странице пользователей
-        const currentPath = window.location.pathname;
-        if (currentPath.includes('/vulnanalizer/')) {
-            this.showUsersPage();
-        } else if (currentPath.includes('/loganalizer/')) {
-            // Для loganalizer можно добавить аналогичную логику
-            console.log('Users page not available in LogAnalizer');
-        }
+        window.location.href = '/users/';
+    }
+
+    navigateToBackgroundTasks() {
+        // Закрываем выпадающее меню
+        this.closeDropdown('settings-toggle');
+        
+        // Переходим к странице управления очередями
+        window.location.href = '/background-tasks/';
+    }
+
+    navigateToSystemSettings() {
+        // Закрываем выпадающее меню
+        this.closeDropdown('settings-toggle');
+        
+        // Переходим к странице настроек системы
+        window.location.href = '/settings/';
     }
 
     showUsersPage() {
@@ -372,6 +418,8 @@ class UIManager {
         e.preventDefault();
         e.stopPropagation();
     }
+
+
 
     // ===== УТИЛИТЫ =====
     showNotification(message, type = 'info') {

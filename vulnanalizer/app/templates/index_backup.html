@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VulnAnalizer - Анализ уязвимостей</title>
+    <link rel="icon" type="image/svg+xml" href="/vulnanalizer/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/main.css?v=4.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="light-theme">
+    <!-- Верхняя панель переключения сервисов -->
+    <div class="top-panel">
+        <div class="system-tabs">
+            <a href="/vulnanalizer/" class="system-tab active" id="vulnanalizer-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">VulnAnalizer</span>
+                </div>
+            </a>
+            <a href="/loganalizer/" class="system-tab" id="loganalizer-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">LogAnalizer</span>
+                </div>
+            </a>
+        </div>
+        <div class="top-panel-right">
+            <div class="dropdown-container">
+                <button id="settings-toggle" class="dropdown-button">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div id="settings-dropdown" class="dropdown-menu">
+                    <a href="#" id="users-link" class="dropdown-item">
+                        <i class="fas fa-users"></i>
+                        <span>Пользователи</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <div class="version-info">
+                        <i class="fas fa-code-branch"></i>
+                        <span id="app-version">v0.1.0001</span>
+                    </div>
+                </div>
+            </div>
+            <div class="dropdown-container">
+                <button id="user-toggle" class="dropdown-button">
+                    <i class="fas fa-user"></i>
+                </button>
+                <div id="user-dropdown" class="dropdown-menu">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-details">
+                            <span id="user-name" class="user-name">Пользователь</span>
+                            <span class="user-role">Администратор</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="theme-link" class="dropdown-item">
+                        <i class="fas fa-moon"></i>
+                        <span id="theme-text">Темная</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="logout-link" class="dropdown-item">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Выйти</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковое меню -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-toggle" id="sidebar-toggle">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-tabs">
+                <a href="#" class="sidebar-tab active" data-page="analysis">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Поиск</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="hosts">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Импорт</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="settings">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Настройки</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="page-container">
+
+            <!-- Страница анализа -->
+            <div id="analysis-page" class="page-content">
+                <div class="analysis-container content-block">
+                    <div class="hosts-search-form">
+                        <h3>Критерии поиска</h3>
+                        <form id="hosts-search-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="hostname-search">Имя хоста:</label>
+                                    <input type="text" id="hostname-search" name="hostname" placeholder="server.example.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="ip-search">IP адрес:</label>
+                                    <input type="text" id="ip-search" name="ip_address" placeholder="192.168.1.1">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cve-host-search">CVE:</label>
+                                    <input type="text" id="cve-host-search" name="cve" placeholder="CVE-2021-44228">
+                                </div>
+                                <div class="form-group">
+                                    <label for="criticality-search">Критичность:</label>
+                                    <select id="criticality-search" name="criticality">
+                                        <option value="">Все</option>
+                                        <option value="Critical">Critical</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="exploits-only" name="exploits_only">
+                                    <label for="exploits-only">Только с эксплойтами</label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="epss-only" name="epss_only">
+                                    <label for="epss-only">Только с EPSS</label>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="results-per-page">Записей на странице:</label>
+                                    <select id="results-per-page" name="limit">
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100" selected>100</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sort-by">Сортировка:</label>
+                                    <select id="sort-by" name="sort_by">
+                                        <option value="">По умолчанию</option>
+                                        <option value="risk_score_desc">По риску (убывание)</option>
+                                        <option value="risk_score_asc">По риску (возрастание)</option>
+                                        <option value="cvss_desc">По CVSS (убывание)</option>
+                                        <option value="cvss_asc">По CVSS (возрастание)</option>
+                                        <option value="epss_score_desc">По EPSS (убывание)</option>
+                                        <option value="epss_score_asc">По EPSS (возрастание)</option>
+                                        <option value="exploits_count_desc">По количеству эксплойтов (убывание)</option>
+                                        <option value="exploits_count_asc">По количеству эксплойтов (возрастание)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search"></i> Найти
+                                </button>
+                                <button type="button" id="clear-hosts-results" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times"></i> Очистить
+                                </button>
+                                <button type="button" id="export-hosts" class="btn btn-success btn-sm">
+                                    <i class="fas fa-file-excel"></i> Экспорт в Excel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Отдельный контейнер для результатов поиска -->
+                <div class="hosts-search-results-container content-block content-block-no-margin">
+                    <!-- Заголовок таблицы с подписями колонок -->
+                    <div class="hosts-table-header">
+                        <div class="host-item single-line">
+                            <div class="host-name">Host</div>
+                            <div class="host-ip">IP</div>
+                            <div class="host-criticality">Severity</div>
+                            <div class="host-cve">CVE</div>
+                            <div class="host-cvss">CVSS</div>
+                            <div class="host-status">EPSS</div>
+                            <div class="host-exploits">PoC</div>
+                            <div class="host-risk">Risk</div>
+                        </div>
+                    </div>
+                    <div id="hosts-search-results" class="hosts-results">
+                        <!-- Результаты поиска хостов будут загружены динамически -->
+                    </div>
+                    <!-- Пагинация -->
+                    <div id="hosts-pagination" class="pagination-container" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="pagination-info">Показано 0 из 0 записей</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="prev-page" class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-chevron-left"></i> Предыдущая
+                            </button>
+                            <span id="page-numbers" class="page-numbers"></span>
+                            <button id="next-page" class="btn btn-secondary btn-sm" disabled>
+                                Следующая <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Страница пользователей -->
+            <div id="users-page" class="page-content">
+                <div class="users-dashboard">
+                    <div class="users-header">
+                        <div class="header-left">
+                            <h2><i class="fas fa-users"></i> Пользователи</h2>
+                            <p class="users-subtitle">Управление пользователями системы</p>
+                        </div>
+                        <div class="header-right">
+                            <button id="add-user-btn" class="btn btn-primary btn-modern btn-sm">
+                                <i class="fas fa-plus"></i>
+                                <span>Добавить пользователя</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="users-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number" id="total-users">0</div>
+                                <div class="stat-label">Всего пользователей</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon active">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number" id="active-users">0</div>
+                                <div class="stat-label">Активных</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon admin">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number" id="admin-users">0</div>
+                                <div class="stat-label">Администраторов</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="users-content">
+                        <div class="users-filters">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="users-search" placeholder="Поиск пользователей...">
+                            </div>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active" data-filter="all">
+                                    <i class="fas fa-list"></i> Все
+                                </button>
+                                <button class="filter-btn" data-filter="active">
+                                    <i class="fas fa-user-check"></i> Активные
+                                </button>
+                                <button class="filter-btn" data-filter="admin">
+                                    <i class="fas fa-user-shield"></i> Админы
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="users-grid" id="users-list">
+                            <!-- Список пользователей будет загружен динамически -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно для добавления/редактирования пользователя -->
+                <div id="user-modal" class="modal">
+                    <div class="modal-content modern-modal">
+                        <div class="modal-header">
+                            <div class="modal-title">
+                                <i class="fas fa-user-plus"></i>
+                                <h3 id="modal-title">Добавить пользователя</h3>
+                            </div>
+                            <button class="modal-close" id="close-modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="user-form" class="modern-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="username">Имя пользователя *</label>
+                                        <div class="input-wrapper">
+                                            <i class="fas fa-user"></i>
+                                            <input type="text" id="username" name="username" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="email">Email</label>
+                                        <div class="input-wrapper">
+                                            <i class="fas fa-envelope"></i>
+                                            <input type="email" id="email" name="email">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="password">Пароль *</label>
+                                        <div class="input-wrapper">
+                                            <i class="fas fa-lock"></i>
+                                            <input type="password" id="password" name="password" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="confirm-password">Подтвердите пароль *</label>
+                                        <div class="input-wrapper">
+                                            <i class="fas fa-lock"></i>
+                                            <input type="password" id="confirm-password" name="confirm-password" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group checkbox-group">
+                                        <label class="checkbox-label modern">
+                                            <input type="checkbox" id="is-admin" name="is-admin">
+                                            <span class="checkmark"></span>
+                                            <i class="fas fa-user-shield"></i>
+                                            <span>Администратор</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-group checkbox-group">
+                                        <label class="checkbox-label modern">
+                                            <input type="checkbox" id="is-active" name="is-active" checked>
+                                            <span class="checkmark"></span>
+                                            <i class="fas fa-user-check"></i>
+                                            <span>Активен</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-modern" id="cancel-btn">
+                                <i class="fas fa-times"></i> Отмена
+                            </button>
+                            <button type="button" class="btn btn-primary btn-modern" id="save-btn">
+                                <i class="fas fa-save"></i> Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно для смены пароля -->
+                <div id="password-modal" class="modal">
+                    <div class="modal-content modern-modal">
+                        <div class="modal-header">
+                            <div class="modal-title">
+                                <i class="fas fa-key"></i>
+                                <h3>Сменить пароль</h3>
+                            </div>
+                            <button class="modal-close" id="close-password-modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="password-form" class="modern-form">
+                                <div class="form-group">
+                                    <label for="new-password">Новый пароль *</label>
+                                    <div class="input-wrapper">
+                                        <i class="fas fa-lock"></i>
+                                        <input type="password" id="new-password" name="new-password" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="confirm-new-password">Подтвердите новый пароль *</label>
+                                    <div class="input-wrapper">
+                                        <i class="fas fa-lock"></i>
+                                        <input type="password" id="confirm-new-password" name="confirm-new-password" required>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-modern" id="cancel-password-btn">
+                                <i class="fas fa-times"></i> Отмена
+                            </button>
+                            <button type="button" class="btn btn-primary btn-modern" id="save-password-btn">
+                                <i class="fas fa-save"></i> Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Страница настроек -->
+            <div id="settings-page" class="page-content">
+                <div class="settings-container content-block">
+                                            <h3>Подключение к базе данных</h3>
+                    <form id="settings-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="db-host">Хост базы данных:</label>
+                                <input type="text" id="db-host" name="database_host" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="db-port">Порт:</label>
+                                <input type="text" id="db-port" name="database_port" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="db-name">Имя базы данных:</label>
+                                <input type="text" id="db-name" name="database_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="db-user">Пользователь:</label>
+                                <input type="text" id="db-user" name="database_user" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="db-password">Пароль:</label>
+                            <input type="password" id="db-password" name="database_password" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-save"></i> Сохранить
+                            </button>
+                            <button type="button" id="test-connection" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plug"></i> Проверить подключение
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Настройки Impact -->
+                <div class="impact-container content-block">
+                                            <h3>Расчет риска (Impact)</h3>
+                    <form id="impact-form">
+                        <div class="form-group">
+                            <label for="impact-resource-criticality">Критичность ресурса:</label>
+                            <select id="impact-resource-criticality" name="impact_resource_criticality" required>
+                                <option value="Critical">Critical (0.33)</option>
+                                <option value="High">High (0.25)</option>
+                                <option value="Medium">Medium (0.15)</option>
+                                <option value="None">None (0.1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="impact-confidential-data">Наличие конфиденциальных данных:</label>
+                            <select id="impact-confidential-data" name="impact_confidential_data" required>
+                                <option value="Есть">Есть (0.33)</option>
+                                <option value="Отсутствуют">Отсутствуют (0.1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="impact-internet-access">Доступен из сети интернет:</label>
+                            <select id="impact-internet-access" name="impact_internet_access" required>
+                                <option value="Доступен">Доступен (0.33)</option>
+                                <option value="Недоступен">Недоступен (0.1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="risk-threshold">Порог риска (красная зона): <span id="threshold-value">75</span>%</label>
+                            <input type="range" id="risk-threshold" name="risk_threshold" min="0" max="100" value="75" class="threshold-slider">
+                        </div>
+                        <div class="form-group">
+                            <label for="max-concurrent-requests">Максимум одновременных запросов к БД:</label>
+                            <input type="number" id="max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
+                            <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-save"></i> Сохранить Impact
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Настройки VM MaxPatrol -->
+                <div class="vm-settings-container content-block">
+                                            <h3>Интеграция с MaxPatrol VM</h3>
+                    <form id="vm-settings-form">
+                        <div class="form-group">
+                            <label for="vm-enabled">Включить интеграцию:</label>
+                            <select id="vm-enabled" name="vm_enabled" required>
+                                <option value="false">Отключено</option>
+                                <option value="true">Включено</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-host">Хост VM:</label>
+                            <input type="text" id="vm-host" name="vm_host" placeholder="msk01vm23.corp.local" required>
+                            <small>Адрес сервера MaxPatrol VM</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-username">Имя пользователя:</label>
+                            <input type="text" id="vm-username" name="vm_username" placeholder="username" required>
+                            <small>Логин для доступа к VM API</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-password">Пароль:</label>
+                            <input type="password" id="vm-password" name="vm_password" placeholder="password" required>
+                            <small>Пароль для доступа к VM API</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-client-secret">Client Secret:</label>
+                            <input type="password" id="vm-client-secret" name="vm_client_secret" placeholder="client_secret" required>
+                            <small>Секретный ключ для OAuth2 аутентификации</small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
+                                <i class="fas fa-save"></i> Сохранить VM
+                            </button>
+                            <button type="button" id="vm-test-connection-btn" class="btn btn-info">
+                                <i class="fas fa-plug"></i> Тест подключения
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Отдельный блок EPSS -->
+                <div class="epss-container content-block">
+                    <h3>Загрузка базы EPSS</h3>
+                    
+                    <form id="epss-upload-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="epss-file">Загрузить CSV-файл:</label>
+                            <input type="file" id="epss-file" name="file" accept=".csv" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm" id="epss-upload-btn">
+                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="epss-download-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="epss-status" style="margin-top:2rem;"></div>
+                </div>
+                
+                <!-- Отдельный блок Exploit DB -->
+                <div class="exploitdb-container content-block">
+                    <h3>Загрузка базы Exploit DB</h3>
+                    <form id="exploitdb-upload-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="exploitdb-file">Загрузить CSV-файл:</label>
+                            <input type="file" id="exploitdb-file" name="file" accept=".csv" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm" id="exploitdb-upload-btn">
+                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="exploitdb-download-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="exploitdb-status" style="margin-top:2rem;"></div>
+                </div>
+                
+                <!-- Отдельный блок CVE -->
+                <div class="cve-container content-block content-block-info">
+                    <h3>Загрузка базы CVE</h3>
+                    <form id="cve-upload-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="cve-file">Загрузить JSON-файл:</label>
+                            <input type="file" id="cve-file" name="file" accept=".json,.gz" required>
+                            <small>Поддерживаемые форматы: JSON, GZ (архив)</small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm" id="cve-upload-btn">
+                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить файл</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="cve-download-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с NVD</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="cve-urls-btn" class="btn btn-info btn-sm">
+                                <i class="fas fa-link"></i> Ссылки для скачивания
+                            </button>
+                            <button type="button" id="cve-cancel-btn" class="btn btn-danger btn-sm" style="display:none;">
+                                <i class="fas fa-stop"></i> <span class="btn-text">Остановить загрузку</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="cve-status" style="margin-top:2rem;"></div>
+                </div>
+
+                <!-- Секция очистки таблиц -->
+                <div class="clear-container content-block">
+                    <h3>Очистка таблиц</h3>
+                    <div class="clear-actions">
+                        <div class="clear-item">
+                            <h4>Хосты</h4>
+                            <p>Удалить все записи хостов из базы данных</p>
+                            <button type="button" id="clear-hosts-btn" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> Очистить хосты
+                            </button>
+                        </div>
+                        <div class="clear-item">
+                            <h4>EPSS</h4>
+                            <p>Удалить все записи EPSS из базы данных</p>
+                            <button type="button" id="clear-epss-btn" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> Очистить EPSS
+                            </button>
+                        </div>
+                        <div class="clear-item">
+                            <h4>ExploitDB</h4>
+                            <p>Удалить все записи ExploitDB из базы данных</p>
+                            <button type="button" id="clear-exploitdb-btn" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> Очистить ExploitDB
+                            </button>
+                        </div>
+                        <div class="clear-item">
+                            <h4>CVE</h4>
+                            <p>Удалить все записи CVE из базы данных</p>
+                            <button type="button" id="clear-cve-btn" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Очистить CVE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Страница хостов -->
+            <div id="hosts-page" class="page-content">
+                <div class="hosts-container content-block">
+                    <h3>Импорт хостов из MP VM</h3>
+                    <form id="hosts-upload-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="hosts-file">Загрузить файл хостов:</label>
+                            <input type="file" id="hosts-file" name="file" accept=".csv,.zip,.gz,.gzip" required>
+                            <small>Поддерживаемые форматы: CSV, ZIP, GZIP</small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm" id="hosts-upload-btn">
+                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+
+                            <button type="button" id="update-hosts-parallel-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-sync-alt"></i> <span class="btn-text">Полное обновление</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="cancel-update-btn" class="btn btn-danger btn-sm" style="display:none;">
+                                <i class="fas fa-stop"></i> <span class="btn-text">Остановить обновление</span>
+                            </button>
+                        </div>
+                    </form>
+                    <div id="hosts-status" style="margin-top:2rem;"></div>
+                    
+                    <!-- Прогресс-бар импорта -->
+                    <div id="import-progress-container" style="display:none; margin-top:2rem;">
+                        <h4>Прогресс импорта</h4>
+                        <div class="progress-info">
+                            <div class="progress-step">
+                                <span id="current-step-text">Подготовка...</span>
+                                <span id="step-progress-text">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-details">
+                                <div class="progress-item">
+                                    <span class="progress-label">Общий прогресс:</span>
+                                    <span id="overall-progress-text">0%</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Обработано записей:</span>
+                                    <span id="processed-records-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Всего записей:</span>
+                                    <span id="total-records-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Оставшееся время:</span>
+                                    <span id="estimated-time-text">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Прогресс фонового обновления -->
+                    <div id="background-update-progress-container" style="display:none; margin-top:2rem;">
+                        <h4>Прогресс обновления данных</h4>
+                        <div class="progress-info">
+                            <div class="progress-step">
+                                <span id="background-current-step-text">Инициализация...</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div id="background-progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-details">
+                                <div class="progress-item">
+                                    <span class="progress-label">Прогресс:</span>
+                                    <span id="background-overall-progress-text">0%</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Обработано CVE:</span>
+                                    <span id="background-processed-cves-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Всего CVE:</span>
+                                    <span id="background-total-cves-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Обновлено хостов:</span>
+                                    <span id="background-updated-hosts-text">0</span>
+                                </div>
+                                <div class="progress-item">
+                                    <span class="progress-label">Оставшееся время:</span>
+                                    <span id="background-estimated-time-text">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Импорт из VM MaxPatrol -->
+                <div class="vm-import-container">
+                    <h3>Импорт хостов из MaxPatrol VM</h3>
+                    <p class="vm-description">
+                        Импортируйте хосты с уязвимостями из MaxPatrol VM через API.
+                        Система автоматически получит данные и импортирует их в базу данных VulnAnalizer.
+                    </p>
+                    
+                    <div class="vm-import-section">
+                        <h4>Параметры импорта</h4>
+                        <div class="form-group">
+                            <label for="vm-os-filter">Дополнительный фильтр ОС (исключить):</label>
+                            <input type="text" id="vm-os-filter" name="vm_os_filter" placeholder="macOS,Android,ChromeOS" value="">
+                            <small>Дополнительные ОС через запятую для исключения. Базовые фильтры (Windows 7, Windows 10, ESXi, IOS, NX-OS, IOS XE, FreeBSD) применяются автоматически.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-limit">Лимит записей:</label>
+                            <input type="number" id="vm-limit" name="vm_limit" placeholder="0" value="0" min="0" max="100000">
+                            <small>0 = без лимита, иначе максимальное количество записей для импорта</small>
+                        </div>
+                        <div class="vm-import-info">
+                            <p><strong>Последний импорт:</strong> <span id="vm-last-import">Не выполнялся</span></p>
+                            <p><strong>Количество записей:</strong> <span id="vm-import-count">0</span></p>
+                            <p><strong>Статус:</strong> <span id="vm-import-status">Не настроено</span></p>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="vm-import-btn" class="btn btn-success btn-sm">
+                                <i class="fas fa-download"></i> Импорт хостов из VM
+                            </button>
+                            <button type="button" id="vm-refresh-status-btn" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-sync-alt"></i> Обновить статус
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="vm-status" style="margin-top:2rem;"></div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+    </main>
+
+    <!-- Уведомления -->
+    <div id="notifications" class="notifications"></div>
+
+    <script src="/static/js/ui-manager.js?v=5.0"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=3.6"></script>
+</body>
+</html> 

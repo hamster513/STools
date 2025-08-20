@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Управление очередями - STools{% endblock %}
+
+{% block content %}
+<div class="background-tasks-page">
+    <div class="background-tasks-container content-block">
+        <h3>Управление фоновыми задачами</h3>
+        <p class="background-tasks-description">
+            Мониторинг и управление фоновыми задачами системы. Отслеживайте прогресс выполнения задач, отменяйте их при необходимости и просматривайте историю выполнения.
+        </p>
+        
+        <div class="background-tasks-actions">
+            <button type="button" id="refresh-tasks-btn" class="btn btn-secondary btn-sm">
+                <i class="fas fa-sync-alt"></i> Обновить
+            </button>
+        </div>
+        
+        <!-- Статистика -->
+        <div id="tasks-stats" class="tasks-stats" style="margin-top:2rem;"></div>
+        
+        <!-- Активные задачи -->
+        <div class="tasks-section">
+            <h4>Активные задачи</h4>
+            <div id="active-tasks-list" class="tasks-list">
+                <!-- Активные задачи будут загружены динамически -->
+            </div>
+        </div>
+        
+        <!-- Завершенные задачи -->
+        <div class="tasks-section">
+            <h4>Последние завершенные задачи</h4>
+            <div id="completed-tasks-list" class="tasks-list">
+                <!-- Завершенные задачи будут загружены динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/background-tasks.js?v=1.0"></script>
+{% endblock %}
+
