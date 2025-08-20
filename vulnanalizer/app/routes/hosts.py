@@ -338,7 +338,7 @@ async def start_background_update():
         if existing_task and existing_task['status'] in ['processing', 'inserting']:
             return {"success": False, "message": "Обновление уже запущено"}
         
-        # Создаем фоновую задачу для воркера
+        # Создаем фоновую задачу для планировщика
         task_id = await db.create_background_task(
             task_type="hosts_update",
             parameters={
@@ -348,49 +348,11 @@ async def start_background_update():
             description="Последовательное обновление данных хостов"
         )
         
-        def progress_callback(status, step, **kwargs):
-            # Обновляем задачу в базе данных
-            asyncio.create_task(db.update_background_task(task_id, 
-                status=status, 
-                current_step=step,
-                total_items=kwargs.get('total_cves', 0),
-                processed_items=kwargs.get('processed_cves', 0),
-                total_records=kwargs.get('total_hosts', 0),
-                updated_records=kwargs.get('updated_hosts', 0)
-            ))
-        
-        # Запускаем фоновое обновление
-        result = await db.update_hosts_epss_and_exploits_background(progress_callback)
-        
-        # Обновляем финальный статус в базе данных
-        if result['success']:
-            # Проверяем, не была ли задача отменена
-            if 'отменено' in result.get('message', '').lower():
-                await db.update_background_task(task_id, 
-                    status='cancelled', 
-                    current_step='Отменено пользователем',
-                    total_items=result.get('processed_cves', 0),
-                    processed_items=result.get('processed_cves', 0),
-                    total_records=result.get('updated_count', 0),
-                    updated_records=result.get('updated_count', 0)
-                )
-            else:
-                await db.update_background_task(task_id, 
-                    status='completed', 
-                    current_step='Завершено',
-                    total_items=result.get('processed_cves', 0),
-                    processed_items=result.get('processed_cves', 0),
-                    total_records=result.get('updated_count', 0),
-                    updated_records=result.get('updated_count', 0)
-                )
-        else:
-            await db.update_background_task(task_id, 
-                status='error', 
-                current_step='Ошибка',
-                error_message=result.get('message', 'Неизвестная ошибка')
-            )
-        
-        return result
+        return {
+            "success": True,
+            "message": f"Задача обновления создана (ID: {task_id}). Обработка начнется автоматически.",
+            "task_id": task_id
+        }
         
     except Exception as e:
         print('Background update error:', traceback.format_exc())
@@ -438,14 +400,14 @@ async def get_background_update_progress():
         
         return {
             "status": task['status'],
-            "current_step": task.get('message', 'Инициализация...'),
-            "total_cves": total_cves,
-            "processed_cves": processed_cves,
-            "total_hosts": 0,  # Не используется в новой схеме
-            "updated_hosts": updated_hosts,
-            "progress_percent": task.get('progress', 0),
+            "current_step": task.get('current_step', 'Инициализация...'),
+            "total_cves": task.get('total_items', 0),
+            "processed_cves": task.get('processed_items', 0),
+            "total_hosts": task.get('total_records', 0),
+            "updated_hosts": task.get('updated_records', 0),
+            "progress_percent": task.get('progress_percent', 0),
             "estimated_time_seconds": None,  # Убрали расчет времени
-            "start_time": task.get('start_time').isoformat() if task.get('start_time') else None,
+            "start_time": task.get('start_time').isoformat() if task.get('start_time') else task.get('created_at').isoformat() if task.get('created_at') else None,
             "error_message": task.get('error_message')
         }
     except Exception as e:
@@ -513,6 +475,72 @@ async def start_background_update_parallel():
         
     except Exception as e:
         print('Background update error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/hosts/calculate-missing-risks")
+async def calculate_missing_risks():
+    """Рассчитать риски для всех хостов, которые их не имеют"""
+    try:
+        db = get_db()
+        
+        # Проверяем, не запущена ли уже задача
+        existing_task = await db.get_background_task_by_type('risk_calculation')
+        if existing_task and existing_task['status'] in ['processing', 'running']:
+            return {"success": False, "message": "Расчет рисков уже запущен"}
+        
+        # Создаем фоновую задачу для расчета рисков
+        task_id = await db.create_background_task(
+            task_type="risk_calculation",
+            parameters={
+                "calculation_type": "missing_risks"
+            },
+            description="Расчет рисков для хостов без EPSS и Risk данных"
+        )
+        
+        print(f"✅ Фоновая задача расчета рисков создана: {task_id}")
+        
+        return {
+            "success": True,
+            "task_id": task_id,
+            "message": "Расчет рисков для хостов без данных запущен в фоновом режиме"
+        }
+        
+    except Exception as e:
+        print('Risk calculation error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/hosts/update-data-optimized")
+async def start_optimized_update():
+    """Запустить оптимизированное обновление данных хостов (batch запросы)"""
+    try:
+        db = get_db()
+        
+        # Проверяем, не запущена ли уже задача
+        existing_task = await db.get_background_task_by_type('hosts_update')
+        if existing_task and existing_task['status'] in ['processing', 'inserting']:
+            return {"success": False, "message": "Обновление уже запущено"}
+        
+        # Создаем фоновую задачу для воркера
+        task_id = await db.create_background_task(
+            task_type="hosts_update",
+            parameters={
+                "update_type": "optimized_batch"
+            },
+            description="Оптимизированное обновление данных хостов (batch запросы)"
+        )
+        
+        print(f"✅ Фоновая задача оптимизированного обновления создана: {task_id}")
+        
+        return {
+            "success": True,
+            "task_id": task_id,
+            "message": "Оптимизированное обновление данных хостов запущено в фоновом режиме"
+        }
+        
+    except Exception as e:
+        print('Optimized update error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 @router.get("/api/hosts/{host_id}/risk")
 async def calculate_host_risk(host_id: int):

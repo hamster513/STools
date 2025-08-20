@@ -33,6 +33,8 @@ security = HTTPBearer()
 
 # Статические файлы и шаблоны
 app.mount("/static", StaticFiles(directory="static"), name="static")
+# Добавляем обработку для /auth/static/ (только для JS и других файлов auth)
+app.mount("/auth/static", StaticFiles(directory="static"), name="auth_static")
 templates = Jinja2Templates(directory="templates")
 
 # Кастомный роут для CSS файла с заголовками для предотвращения кэширования

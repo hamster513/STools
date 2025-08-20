@@ -110,11 +110,11 @@ def calculate_task_progress(task):
                         processed_cve = int(match.group(1))
                         total_cve = int(match.group(2))
                         risk_progress = (processed_cve / total_cve) * 20  # 20% за расчет рисков
-                        return min(100, base_progress + risk_progress)
+                        return int(min(100, base_progress + risk_progress))
                     else:
-                        return min(100, base_progress + 10)  # Импорт завершен, расчет рисков начался
+                        return int(min(100, base_progress + 10))  # Импорт завершен, расчет рисков начался
                 else:
-                    return min(100, base_progress)  # Только импорт
+                    return int(min(100, base_progress))  # Только импорт
             else:
                 # Fallback на старую логику, если нет данных о записях
                 if 'Расчет рисков' in current_step:
@@ -125,7 +125,7 @@ def calculate_task_progress(task):
                         processed_cve = int(match.group(1))
                         total_cve = int(match.group(2))
                         risk_progress = (processed_cve / total_cve) * 50
-                        return 50 + risk_progress
+                        return int(50 + risk_progress)
                     else:
                         return 50
                 else:
@@ -134,13 +134,30 @@ def calculate_task_progress(task):
             return 100
         else:
             return 0
+    elif task['task_type'] == 'hosts_update':
+        # Для задач обновления хостов используем processed_items и total_items
+        if task['status'] == 'processing':
+            current_step = task['current_step'] or ''
+            
+            # Извлекаем прогресс из строки "Обработка CVE 2763/6807: CVE-2020-1102"
+            match = re.search(r'(\d+)/(\d+)', current_step)
+            if match:
+                processed_cve = int(match.group(1))
+                total_cve = int(match.group(2))
+                progress = (processed_cve / total_cve) * 100
+                return int(progress)
+            else:
+                return 0
+        elif task['status'] == 'completed':
+            return 100
+        else:
+            return 0
     else:
         # Для других задач используем стандартную формулу
-        return (
-            (task['processed_items'] / task['total_items'] * 100) 
-            if task['total_items'] and task['total_items'] > 0 
-            else 0
-        )
+        if task['total_items'] and task['total_items'] > 0:
+            return int(task['processed_items'] / task['total_items'] * 100)
+        else:
+            return 0
 
 @router.post("/api/background-tasks/{task_id}/update-status")
 async def update_background_task_status(
@@ -551,3 +568,6 @@ async def optimize_database():
     except Exception as e:
         print(f"Error optimizing database: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Cache API endpoints temporarily disabled due to import issues
+# TODO: Fix imports and re-enable

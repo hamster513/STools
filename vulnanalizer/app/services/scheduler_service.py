@@ -326,6 +326,99 @@ class SchedulerService:
                 'error_message': error_msg,
                 'end_time': datetime.now()
             })
+
+    async def process_hosts_update_task(self, task_id: int, parameters: dict):
+        """Обработать задачу обновления хостов"""
+        try:
+            print(f"🔄 Начинаем обработку задачи обновления хостов {task_id}")
+            
+            # Обновляем статус на 'processing'
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Запуск обновления данных хостов'
+            })
+            
+            # Создаем функцию обратного вызова для обновления прогресса
+            total_updated_hosts = 0  # Счетчик для накопления обновленных хостов
+            
+            async def update_progress(status, step, **kwargs):
+                nonlocal total_updated_hosts
+                try:
+                    # Накапливаем количество обновленных хостов
+                    if kwargs.get('updated_hosts', 0) > 0:
+                        total_updated_hosts += kwargs.get('updated_hosts', 0)
+                    
+                    # Рассчитываем процент прогресса
+                    total_cves = kwargs.get('total_cves', 0)
+                    processed_cves = kwargs.get('processed_cves', 0)
+                    progress_percent = 0
+                    
+                    if total_cves > 0:
+                        progress_percent = int((processed_cves / total_cves) * 100)
+                    
+                    update_data = {
+                        'current_step': step,
+                        'total_items': total_cves,
+                        'processed_items': processed_cves,
+                        'total_records': kwargs.get('total_hosts', 0),
+                        'updated_records': total_updated_hosts,
+                        'progress_percent': progress_percent
+                    }
+                    
+                    # Убираем None значения
+                    update_data = {k: v for k, v in update_data.items() if v is not None}
+                    
+                    print(f"🔄 Обновляем задачу {task_id} с данными: {update_data}")
+                    await self.db.update_background_task(task_id, **update_data)
+                    print(f"✅ Задача {task_id} обновлена успешно")
+                    print(f"📊 Прогресс hosts_update: {step} - {processed_cves}/{total_cves} CVE ({progress_percent}%), {total_updated_hosts} хостов (всего)")
+                except Exception as e:
+                    print(f"⚠️ Ошибка обновления прогресса hosts_update: {e}")
+                    print(f"❌ Детали ошибки: {traceback.format_exc()}")
+            
+            # Проверяем тип обновления
+            update_type = parameters.get('update_type', 'parallel')
+            
+            if update_type == 'optimized_batch':
+                print(f"🚀 Используем оптимизированный batch метод обновления")
+                # Запускаем оптимизированное обновление данных хостов
+                result = await self.db.risk_calculation.update_hosts_optimized_batch(update_progress)
+            else:
+                print(f"🔄 Используем стандартный параллельный метод обновления")
+                # Запускаем стандартное обновление данных хостов
+                result = await self.db.update_hosts_epss_and_exploits_background(update_progress)
+            
+            # Обновляем финальный статус
+            if result['success']:
+                await self.db.update_background_task(task_id, **{
+                    'status': 'completed',
+                    'current_step': 'Завершено',
+                    'total_items': result.get('processed_cves', 0),
+                    'processed_items': result.get('processed_cves', 0),
+                    'total_records': result.get('updated_count', 0),
+                    'updated_records': result.get('updated_count', 0),
+                    'end_time': datetime.now()
+                })
+                print(f"✅ Обновление хостов завершено: {result.get('updated_count', 0)} записей")
+                print(f"📊 Финальная статистика: {result}")
+            else:
+                await self.db.update_background_task(task_id, **{
+                    'status': 'error',
+                    'current_step': 'Ошибка',
+                    'error_message': result.get('message', 'Неизвестная ошибка'),
+                    'end_time': datetime.now()
+                })
+                print(f"❌ Ошибка обновления хостов: {result.get('message', 'Неизвестная ошибка')}")
+            
+        except Exception as e:
+            error_msg = f"Ошибка обработки задачи обновления хостов: {str(e)}"
+            print(f"❌ {error_msg}")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'error_message': error_msg,
+                'end_time': datetime.now()
+            })
     
     async def process_background_tasks(self):
         """Обработка фоновых задач с проверкой зависших задач"""
@@ -376,6 +469,14 @@ class SchedulerService:
                     if task_type == 'hosts_import':
                         print(f"🚀 Запускаем обработку задачи импорта хостов {task_id}")
                         await self.process_hosts_import_task(task_id, parameters)
+                        print(f"✅ Обработка задачи {task_id} завершена")
+                    elif task_type == 'hosts_update':
+                        print(f"🚀 Запускаем обработку задачи обновления хостов {task_id}")
+                        await self.process_hosts_update_task(task_id, parameters)
+                        print(f"✅ Обработка задачи {task_id} завершена")
+                    elif task_type == 'risk_calculation':
+                        print(f"🚀 Запускаем обработку задачи расчета рисков {task_id}")
+                        await self.process_risk_calculation_task(task_id, parameters)
                         print(f"✅ Обработка задачи {task_id} завершена")
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
@@ -507,6 +608,89 @@ class SchedulerService:
             
         except Exception as e:
             print(f"❌ Error in custom task {task_name}: {e}")
+
+    async def process_risk_calculation_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработка задачи расчета рисков для хостов без данных"""
+        try:
+            print(f"🔍 Начинаем расчет рисков для хостов без данных (задача {task_id})")
+            
+            # Обновляем статус на 'processing'
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Поиск хостов без данных EPSS и Risk',
+                'start_time': datetime.now()
+            })
+            
+            # Получаем хосты без EPSS и Risk данных
+            conn = await self.db.get_connection()
+            await conn.execute('SET search_path TO vulnanalizer')
+            
+            # Находим CVE хостов без EPSS данных
+            cve_query = """
+                SELECT DISTINCT h.cve 
+                FROM hosts h 
+                LEFT JOIN epss e ON h.cve = e.cve 
+                WHERE h.cve IS NOT NULL AND h.cve != '' 
+                AND (h.epss_score IS NULL OR h.risk_score IS NULL)
+                AND e.cve IS NOT NULL
+                ORDER BY h.cve
+            """
+            cve_rows = await conn.fetch(cve_query)
+            
+            if not cve_rows:
+                print("✅ Нет хостов для расчета рисков")
+                await self.db.update_background_task(task_id, **{
+                    'status': 'completed',
+                    'current_step': 'Нет хостов для расчета рисков',
+                    'end_time': datetime.now()
+                })
+                return
+            
+            total_cves = len(cve_rows)
+            print(f"🔍 Найдено {total_cves} CVE для расчета рисков")
+            
+            # Обновляем общее количество
+            await self.db.update_background_task(task_id, **{
+                'total_items': total_cves,
+                'current_step': f'Найдено {total_cves} CVE для расчета рисков'
+            })
+            
+            # Получаем настройки
+            settings_query = "SELECT key, value FROM settings"
+            settings_rows = await conn.fetch(settings_query)
+            settings = {row['key']: row['value'] for row in settings_rows}
+            
+            # Создаем функцию обратного вызова для прогресса
+            async def update_progress(step: str, message: str, progress_percent: int = 0, **kwargs):
+                await self.db.update_background_task(task_id, **{
+                    'current_step': message,
+                    'progress_percent': progress_percent,
+                    'processed_items': kwargs.get('processed_cves', 0),
+                    'processed_records': kwargs.get('updated_hosts', 0)
+                })
+            
+            # Используем оптимизированный batch метод для обновления хостов
+            await self.db.risk_calculation.update_hosts_optimized_batch(update_progress)
+            
+            # Завершаем задачу
+            await self.db.update_background_task(task_id, **{
+                'status': 'completed',
+                'current_step': f'Расчет рисков завершен для {total_cves} CVE',
+                'end_time': datetime.now()
+            })
+            
+            print(f"✅ Расчет рисков завершен для {total_cves} CVE")
+            
+        except Exception as e:
+            print(f"❌ Ошибка расчета рисков: {e}")
+            print(f"❌ Error details: {traceback.format_exc()}")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'current_step': 'Ошибка расчета рисков',
+                'error_message': str(e),
+                'end_time': datetime.now()
+            })
 
 # Глобальный экземпляр планировщика
 scheduler_service = SchedulerService()

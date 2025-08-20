@@ -51,9 +51,8 @@ class VulnAnalizer {
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
             this.updateCVEStatus();
-            this.checkBackgroundUpdateStatus();
             this.loadBackgroundTasksData();
-            this.checkActiveImportTasks(); // Проверяем активные задачи импорта
+            this.checkActiveImportTasks(); // Проверяем активные задачи импорта и обновления
             
             // Загружаем настройки базы данных
             await this.loadDatabaseSettings();
@@ -1068,8 +1067,8 @@ class VulnAnalizer {
         // Запускаем мониторинг прогресса фонового обновления
         this.startBackgroundUpdateMonitoring();
         
-        // Проверяем статус фонового обновления при загрузке страницы
-        this.checkBackgroundUpdateStatus();
+        // Проверяем активные задачи при загрузке страницы
+        this.checkActiveImportTasks();
         
         // Поиск хостов
         const hostsSearchForm = document.getElementById('hosts-search-form');
@@ -2633,6 +2632,134 @@ class VulnAnalizer {
         
         return interval;
     }
+
+    // Функции для работы с прогресс-баром обновления хостов
+    showBackgroundUpdateProgress() {
+        const container = document.getElementById('background-update-progress-container');
+        if (container) {
+            container.style.display = 'block';
+            container.classList.add('fade-in');
+        }
+    }
+
+    hideBackgroundUpdateProgress() {
+        const container = document.getElementById('background-update-progress-container');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    updateBackgroundUpdateProgress(data) {
+        const statusText = document.getElementById('background-current-step-text');
+        if (statusText) {
+            statusText.textContent = data.current_step || 'Инициализация...';
+        }
+
+        if (data.status === 'processing' || data.status === 'initializing') {
+            const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+            if (cancelUpdateBtn) {
+                cancelUpdateBtn.style.display = 'inline-block';
+            }
+        }
+
+        const progressText = document.getElementById('background-overall-progress-text');
+        if (progressText) {
+            progressText.textContent = Math.round(data.progress_percent || 0) + '%';
+        }
+
+        const progressBarFill = document.getElementById('background-progress-bar-fill');
+        if (progressBarFill) {
+            progressBarFill.style.width = (data.progress_percent || 0) + '%';
+        }
+
+        const processedCvesText = document.getElementById('background-processed-cves-text');
+        if (processedCvesText) {
+            processedCvesText.textContent = (data.processed_cves || 0).toLocaleString();
+        }
+
+        const totalCvesText = document.getElementById('background-total-cves-text');
+        if (totalCvesText) {
+            totalCvesText.textContent = (data.total_cves || 0).toLocaleString();
+        }
+
+        const updatedHostsText = document.getElementById('background-updated-hosts-text');
+        if (updatedHostsText) {
+            updatedHostsText.textContent = (data.updated_hosts || 0).toLocaleString();
+        }
+
+        if (data.error_message && data.status !== 'cancelled' && !data.error_message.toLowerCase().includes('отменено')) {
+            this.showNotification('Ошибка: ' + data.error_message, 'error');
+        }
+
+        if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+            const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+            if (cancelUpdateBtn) {
+                cancelUpdateBtn.style.display = 'none';
+            }
+            
+            setTimeout(() => {
+                this.hideBackgroundUpdateProgress();
+            }, 3000);
+        }
+    }
+
+    startBackgroundUpdateMonitoring() {
+        // Очищаем предыдущий интервал
+        if (this.backgroundUpdateInterval) {
+            clearInterval(this.backgroundUpdateInterval);
+            this.backgroundUpdateInterval = null;
+        }
+
+        console.log('Starting background update monitoring in main app');
+        
+        this.backgroundUpdateInterval = setInterval(async () => {
+            try {
+                console.log('🔄 Polling background update progress in main app...');
+                const data = await fetch(this.getApiBasePath() + '/hosts/update-data-progress').then(r => r.json());
+                
+                console.log('📊 Background update data received in main app:', data);
+                
+                // Обновляем UI только если есть данные
+                if (data && typeof data === 'object') {
+                    this.updateBackgroundUpdateProgress(data);
+
+                    // Останавливаем интервал при завершении
+                    if (data.status === 'completed' || data.status === 'error' || data.status === 'idle') {
+                        console.log('✅ Background update completed, stopping monitoring in main app');
+                        this.stopBackgroundUpdateMonitoring();
+                        
+                        // Показываем уведомление о завершении
+                        if (data.status === 'completed') {
+                            this.showNotification(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
+                        } else if (data.status === 'error') {
+                            this.showNotification(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
+                        }
+                        
+                        // Скрываем прогресс-бар через 3 секунды
+                        setTimeout(() => {
+                            this.hideBackgroundUpdateProgress();
+                        }, 3000);
+                    }
+                }
+            } catch (err) {
+                console.error('Background update monitoring error in main app:', err);
+                this.stopBackgroundUpdateMonitoring();
+                
+                // Скрываем прогресс-бар при ошибке
+                setTimeout(() => {
+                    this.hideBackgroundUpdateProgress();
+                }, 3000);
+            }
+        }, 2000);
+    }
+
+    stopBackgroundUpdateMonitoring() {
+        if (this.backgroundUpdateInterval) {
+            clearInterval(this.backgroundUpdateInterval);
+            this.backgroundUpdateInterval = null;
+            console.log('Background update monitoring stopped in main app');
+        }
+    }
     
     updateBackgroundTaskProgress(task) {
         const container = document.getElementById('import-progress-container');
@@ -2710,140 +2837,11 @@ class VulnAnalizer {
         }
     }
 
-    updateBackgroundUpdateProgress(data) {
-        // Обновляем статус
-        const statusText = document.getElementById('background-current-step-text');
-        if (statusText) {
-            statusText.textContent = data.current_step || 'Инициализация...';
-        }
-
-        // Показываем кнопку отмены если задача активна
-        if (data.status === 'processing' || data.status === 'initializing') {
-            const cancelUpdateBtn = document.getElementById('cancel-update-btn');
-            if (cancelUpdateBtn) {
-                cancelUpdateBtn.style.display = 'inline-block';
-            }
-        }
-
-        // Обновляем прогресс
-        const progressText = document.getElementById('background-overall-progress-text');
-        if (progressText) {
-            progressText.textContent = Math.round(data.progress_percent || 0) + '%';
-        }
-
-        // Обновляем прогресс-бар
-        const progressBarFill = document.getElementById('background-progress-bar-fill');
-        if (progressBarFill) {
-            progressBarFill.style.width = (data.progress_percent || 0) + '%';
-        }
-
-        // Обновляем количество CVE
-        const processedCvesText = document.getElementById('background-processed-cves-text');
-        if (processedCvesText) {
-            processedCvesText.textContent = (data.processed_cves || 0).toLocaleString();
-        }
-
-        const totalCvesText = document.getElementById('background-total-cves-text');
-        if (totalCvesText) {
-            totalCvesText.textContent = (data.total_cves || 0).toLocaleString();
-        }
-
-        // Обновляем количество хостов
-        const updatedHostsText = document.getElementById('background-updated-hosts-text');
-        if (updatedHostsText) {
-            updatedHostsText.textContent = (data.updated_hosts || 0).toLocaleString();
-        }
 
 
 
-        // Показываем ошибку если есть (но не для отмены)
-        if (data.error_message && data.status !== 'cancelled' && !data.error_message.toLowerCase().includes('отменено')) {
-            this.showNotification('Ошибка: ' + data.error_message, 'error');
-        }
 
-        // Скрываем прогресс если завершено
-        if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
-            // Скрываем кнопку отмены
-            const cancelUpdateBtn = document.getElementById('cancel-update-btn');
-            if (cancelUpdateBtn) {
-                cancelUpdateBtn.style.display = 'none';
-            }
-            
-            setTimeout(() => {
-                this.hideBackgroundUpdateProgress();
-            }, 3000);
-        }
-    }
 
-    startBackgroundUpdateMonitoring() {
-        return setInterval(async () => {
-            try {
-                const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-progress');
-                if (resp.ok) {
-                    const data = await resp.json();
-                    
-                    this.updateBackgroundUpdateProgress(data);
-
-                    // Если обновление завершено или произошла ошибка, останавливаем мониторинг
-                    if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
-                        return false; // Остановить интервал
-                    }
-                }
-            } catch (err) {
-                console.error('Background update monitoring error:', err);
-            }
-        }, 2000); // Обновляем каждые 2 секунды
-    }
-
-    async checkBackgroundUpdateStatus() {
-        // Проверить статус фонового обновления при загрузке страницы
-        try {
-            console.log('Checking background update status...');
-            const resp = await fetch(this.getApiBasePath() + '/hosts/update-data-progress');
-            if (resp.ok) {
-                const data = await resp.json();
-                console.log('Background update status:', data);
-                
-                // Если есть активная задача, показываем прогресс
-                if (data.status === 'processing' || data.status === 'initializing') {
-                    this.showBackgroundUpdateProgress();
-                    this.updateBackgroundUpdateProgress(data);
-                    
-                    // Показываем кнопку отмены
-                    const cancelUpdateBtn = document.getElementById('cancel-update-btn');
-                    if (cancelUpdateBtn) {
-                        cancelUpdateBtn.style.display = 'inline-block';
-                    }
-                    
-                    console.log('Active background update found, showing progress');
-                } else {
-                    console.log('No active background update found');
-                }
-            }
-            
-            // Также проверяем активные задачи импорта
-            const tasksResp = await fetch(this.getApiBasePath() + '/background-tasks/status');
-            if (tasksResp.ok) {
-                const tasksData = await tasksResp.json();
-                console.log('Background tasks status:', tasksData);
-                
-                // Если есть активные задачи импорта, показываем прогресс
-                if (tasksData.active_tasks && tasksData.active_tasks.length > 0) {
-                    const importTask = tasksData.active_tasks.find(task => task.task_type === 'hosts_import');
-                    if (importTask) {
-                        console.log('Active import task found:', importTask);
-                        this.showImportProgress();
-                        this.updateBackgroundTaskProgress(importTask);
-                        
-                        // Запускаем мониторинг задачи
-                        this.startBackgroundTaskMonitoring(importTask.id);
-                    }
-                }
-            }
-        } catch (err) {
-            console.error('Error checking background update status:', err);
-        }
-    }
 
     async loadBackgroundTasksData() {
         try {
@@ -2982,7 +2980,9 @@ class VulnAnalizer {
     async checkActiveImportTasks() {
         try {
             console.log('Checking for active import tasks in main app...');
-            const response = await fetch(this.getApiBasePath() + '/hosts/import-progress', {
+            
+            // Проверяем импорт
+            const importResponse = await fetch(this.getApiBasePath() + '/hosts/import-progress', {
                 method: 'GET',
                 headers: {
                     'Cache-Control': 'no-cache',
@@ -2990,34 +2990,62 @@ class VulnAnalizer {
                 }
             });
             
-            if (response.ok) {
-                const data = await response.json();
+            if (importResponse.ok) {
+                const importData = await importResponse.json();
                 
-                if (data && data.status && data.status !== 'idle' && data.status !== 'completed' && data.status !== 'error' && data.status !== 'cancelled') {
-                    console.log('Found active import task in main app:', data);
+                if (importData && importData.status && importData.status !== 'idle' && importData.status !== 'completed' && importData.status !== 'error' && importData.status !== 'cancelled') {
+                    console.log('Found active import task in main app:', importData);
                     
                     // Показываем уведомление о том, что есть активная задача
-                    this.showNotification(`Обнаружена активная задача импорта: ${data.current_step}`, 'info');
+                    this.showNotification(`Обнаружена активная задача импорта: ${importData.current_step}`, 'info');
                     
                     // Показываем прогресс-бар если мы на странице хостов
                     const hostsPage = document.getElementById('hosts-page');
                     if (hostsPage && hostsPage.classList.contains('active')) {
                         this.showImportProgress();
                         this.updateImportProgress(
-                            data.status || 'unknown',
-                            data.current_step || '',
-                            data.progress || 0,
-                            data.current_step_progress || 0,
-                            data.total_records || 0,
-                            data.processed_records || 0,
-                            data.error_message || null
+                            importData.status || 'unknown',
+                            importData.current_step || '',
+                            importData.progress || 0,
+                            importData.current_step_progress || 0,
+                            importData.total_records || 0,
+                            importData.processed_records || 0,
+                            importData.error_message || null
                         );
-                        this.startBackgroundTaskMonitoring(data.task_id);
+                        this.startBackgroundTaskMonitoring(importData.task_id);
+                    }
+                }
+            }
+            
+            // Проверяем обновление
+            const updateResponse = await fetch(this.getApiBasePath() + '/hosts/update-data-progress', {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            if (updateResponse.ok) {
+                const updateData = await updateResponse.json();
+                
+                if (updateData && updateData.status && updateData.status !== 'idle' && updateData.status !== 'completed' && updateData.status !== 'error' && updateData.status !== 'cancelled') {
+                    console.log('Found active update task in main app:', updateData);
+                    
+                    // Показываем уведомление о том, что есть активная задача обновления
+                    this.showNotification(`Обнаружена активная задача обновления: ${updateData.current_step}`, 'info');
+                    
+                    // Показываем прогресс-бар если мы на странице хостов
+                    const hostsPage = document.getElementById('hosts-page');
+                    if (hostsPage && hostsPage.classList.contains('active')) {
+                        this.showBackgroundUpdateProgress();
+                        this.updateBackgroundUpdateProgress(updateData);
+                        this.startBackgroundUpdateMonitoring();
                     }
                 }
             }
         } catch (err) {
-            console.error('Error checking active import tasks in main app:', err);
+            console.error('Error checking active tasks in main app:', err);
         }
     }
 }

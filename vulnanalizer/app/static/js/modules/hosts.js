@@ -1033,22 +1033,43 @@ class HostsModule {
         
         this.backgroundUpdateInterval = setInterval(async () => {
             try {
+                console.log('🔄 Polling background update progress...');
                 const data = await this.app.api.getBackgroundUpdateProgress();
+                
+                console.log('📊 Background update data received:', data);
                 
                 // Обновляем UI только если есть данные
                 if (data && typeof data === 'object') {
                     this.updateBackgroundUpdateProgress(data);
 
                     // Останавливаем интервал при завершении
-                    if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+                    if (data.status === 'completed' || data.status === 'error' || data.status === 'idle') {
+                        console.log('✅ Background update completed, stopping monitoring');
                         this.stopBackgroundUpdateMonitoring();
+                        
+                        // Показываем уведомление о завершении
+                        if (data.status === 'completed') {
+                            this.app.notifications.show(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
+                        } else if (data.status === 'error') {
+                            this.app.notifications.show(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
+                        }
+                        
+                        // Скрываем прогресс-бар через 3 секунды
+                        setTimeout(() => {
+                            this.hideBackgroundUpdateProgress();
+                        }, 3000);
                     }
                 }
             } catch (err) {
                 console.error('Background update monitoring error:', err);
                 this.stopBackgroundUpdateMonitoring();
+                
+                // Скрываем прогресс-бар при ошибке
+                setTimeout(() => {
+                    this.hideBackgroundUpdateProgress();
+                }, 3000);
             }
-        }, 2000);
+        }, 2000); // Увеличиваем интервал до 2 секунд для стабильности
     }
 
     stopBackgroundUpdateMonitoring() {
@@ -1081,6 +1102,9 @@ class HostsModule {
                 if (cancelUpdateBtn) {
                     cancelUpdateBtn.style.display = 'inline-block';
                 }
+                
+                // Запускаем мониторинг прогресса обновления
+                this.startBackgroundUpdateMonitoring();
                 
                 console.log('Active background update found, showing progress');
             } else if (data.status === 'error') {
@@ -1130,6 +1154,10 @@ class HostsModule {
                     uploadBtn.disabled = true;
                 }
             }
+            
+            // Проверяем также задачи обновления
+            await this.checkBackgroundUpdateStatus();
+            
         } catch (err) {
             console.error('Error checking active import tasks:', err);
         }

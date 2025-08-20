@@ -26,6 +26,30 @@ class BackgroundTasksManager {
                 this.showNotification('Данные обновлены', 'success');
             });
         }
+
+        // Автоматическое обновление каждые 2 секунды
+        this.startAutoRefresh();
+    }
+
+    startAutoRefresh() {
+        // Очищаем предыдущий интервал
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+        }
+
+        console.log('Starting auto-refresh for background tasks...');
+        
+        this.autoRefreshInterval = setInterval(() => {
+            this.loadBackgroundTasksData();
+        }, 2000); // Обновляем каждые 2 секунды
+    }
+
+    stopAutoRefresh() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
+            console.log('Auto-refresh stopped for background tasks');
+        }
     }
 
     async loadBackgroundTasksData() {
@@ -177,10 +201,21 @@ class BackgroundTasksManager {
             alert(message);
         }
     }
+
+    destroy() {
+        this.stopAutoRefresh();
+    }
 }
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     window.backgroundTasksManager = new BackgroundTasksManager();
+});
+
+// Очистка ресурсов при уходе со страницы
+window.addEventListener('beforeunload', () => {
+    if (window.backgroundTasksManager) {
+        window.backgroundTasksManager.destroy();
+    }
 });
 

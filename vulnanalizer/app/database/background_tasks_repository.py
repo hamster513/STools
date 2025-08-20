@@ -31,7 +31,7 @@ class BackgroundTasksRepository(DatabaseBase):
         try:
             query = """
                 SELECT id, task_type, status, current_step, total_items, processed_items,
-                       total_records, processed_records, updated_records, start_time, end_time, 
+                       total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
                 FROM background_tasks 
                 WHERE id = $1
@@ -49,7 +49,7 @@ class BackgroundTasksRepository(DatabaseBase):
         try:
             query = """
                 SELECT id, task_type, status, current_step, total_items, processed_items,
-                       total_records, processed_records, updated_records, start_time, end_time, 
+                       total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
                 FROM background_tasks 
                 WHERE status = 'idle'
@@ -70,7 +70,7 @@ class BackgroundTasksRepository(DatabaseBase):
             param_count = 1
             
             for key, value in kwargs.items():
-                if key in ['total_items', 'processed_items', 'total_records', 'processed_records', 'updated_records']:
+                if key in ['total_items', 'processed_items', 'total_records', 'processed_records', 'updated_records', 'progress_percent']:
                     fields.append(f"{key} = ${param_count}")
                     values.append(value)
                     param_count += 1
@@ -143,7 +143,7 @@ class BackgroundTasksRepository(DatabaseBase):
         try:
             query = """
                 SELECT id, task_type, status, current_step, total_items, processed_items,
-                       total_records, processed_records, updated_records, start_time, end_time, 
+                       total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
                 FROM background_tasks 
                 WHERE status = 'completed'
@@ -190,7 +190,7 @@ class BackgroundTasksRepository(DatabaseBase):
         try:
             query = """
                 SELECT id, task_type, status, current_step, total_items, processed_items,
-                       total_records, processed_records, updated_records, start_time, end_time, 
+                       total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
                 FROM background_tasks 
                 WHERE task_type = $1
@@ -225,7 +225,7 @@ class BackgroundTasksRepository(DatabaseBase):
         try:
             query = """
                 SELECT id, task_type, status, current_step, total_items, processed_items,
-                       total_records, processed_records, updated_records, start_time, end_time, 
+                       total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
                 FROM background_tasks 
                 WHERE status = $1
