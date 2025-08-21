@@ -227,7 +227,8 @@ class HostsRepository(DatabaseBase):
                         f'Расчет рисков... ({i+1}/{total_cves} CVE, обновлено хостов: {updated_hosts})', 
                         progress_percent, 
                         current_step_progress=i+1, 
-                        processed_records=processed_cves)
+                        processed_cves=i+1,
+                        updated_hosts=updated_hosts)
                 
                 # Получаем EPSS данные из кэша
                 epss_row = epss_data.get(cve)

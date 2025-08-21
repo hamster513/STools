@@ -465,19 +465,19 @@ class SchedulerService:
                     })
                     print(f"✅ Статус задачи {task_id} обновлен на 'initializing'")
                     
-                    # Обрабатываем задачу в зависимости от типа
+                    # Обрабатываем задачу в зависимости от типа в отдельной задаче
                     if task_type == 'hosts_import':
-                        print(f"🚀 Запускаем обработку задачи импорта хостов {task_id}")
-                        await self.process_hosts_import_task(task_id, parameters)
-                        print(f"✅ Обработка задачи {task_id} завершена")
+                        print(f"🚀 Запускаем обработку задачи импорта хостов {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_hosts_import_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'hosts_import'))
                     elif task_type == 'hosts_update':
-                        print(f"🚀 Запускаем обработку задачи обновления хостов {task_id}")
-                        await self.process_hosts_update_task(task_id, parameters)
-                        print(f"✅ Обработка задачи {task_id} завершена")
+                        print(f"🚀 Запускаем обработку задачи обновления хостов {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_hosts_update_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'hosts_update'))
                     elif task_type == 'risk_calculation':
-                        print(f"🚀 Запускаем обработку задачи расчета рисков {task_id}")
-                        await self.process_risk_calculation_task(task_id, parameters)
-                        print(f"✅ Обработка задачи {task_id} завершена")
+                        print(f"🚀 Запускаем обработку задачи расчета рисков {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_risk_calculation_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'risk_calculation'))
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
                         await self.db.update_background_task(task_id, **{
@@ -609,6 +609,34 @@ class SchedulerService:
         except Exception as e:
             print(f"❌ Error in custom task {task_name}: {e}")
 
+    def _handle_task_completion(self, task, task_id: int, task_type: str):
+        """Обработчик завершения асинхронной задачи"""
+        try:
+            if task.cancelled():
+                print(f"⚠️ Задача {task_id} ({task_type}) была отменена")
+            elif task.exception():
+                error = task.exception()
+                print(f"❌ Задача {task_id} ({task_type}) завершилась с ошибкой: {error}")
+                # Создаем задачу для обновления статуса в БД
+                asyncio.create_task(self._update_task_error_status(task_id, str(error)))
+            else:
+                result = task.result()
+                print(f"✅ Задача {task_id} ({task_type}) успешно завершена")
+        except Exception as e:
+            print(f"❌ Ошибка в обработчике завершения задачи {task_id}: {e}")
+
+    async def _update_task_error_status(self, task_id: int, error_message: str):
+        """Обновить статус задачи на error"""
+        try:
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'error_message': error_message,
+                'end_time': datetime.now()
+            })
+            print(f"✅ Статус задачи {task_id} обновлен на error")
+        except Exception as e:
+            print(f"❌ Ошибка обновления статуса задачи {task_id}: {e}")
+
     async def process_risk_calculation_task(self, task_id: int, parameters: Dict[str, Any]):
         """Обработка задачи расчета рисков для хостов без данных"""
         try:
@@ -666,6 +694,7 @@ class SchedulerService:
                     'current_step': message,
                     'progress_percent': progress_percent,
                     'processed_items': kwargs.get('processed_cves', 0),
+                    'total_items': total_cves,
                     'processed_records': kwargs.get('updated_hosts', 0)
                 })
             

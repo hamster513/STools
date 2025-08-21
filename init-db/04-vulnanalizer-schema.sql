@@ -19,6 +19,24 @@ CREATE TABLE IF NOT EXISTS hosts (
     criticality VARCHAR(50) DEFAULT 'Medium',
     confidential_data BOOLEAN DEFAULT FALSE,
     internet_access BOOLEAN DEFAULT FALSE,
+    cve TEXT,
+    cvss DECIMAL(3,1),
+    status VARCHAR(50) DEFAULT 'Active',
+    os_name TEXT,
+    zone VARCHAR(100),
+    epss_score DECIMAL(10,9),
+    exploits_count INTEGER DEFAULT 0,
+    risk_score DECIMAL(5,2),
+    epss_updated_at TIMESTAMP,
+    exploits_updated_at TIMESTAMP,
+    risk_updated_at TIMESTAMP,
+    cvss_source VARCHAR(50),
+    epss_percentile DECIMAL(5,2),
+    risk_raw DECIMAL(10,6),
+    impact_score DECIMAL(5,2),
+    verified_exploits_count INTEGER DEFAULT 0,
+    has_exploits BOOLEAN DEFAULT FALSE,
+    last_exploit_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -73,7 +91,9 @@ CREATE TABLE IF NOT EXISTS background_tasks (
     total_items INTEGER DEFAULT 0,
     processed_items INTEGER DEFAULT 0,
     total_records INTEGER DEFAULT 0,
+    processed_records INTEGER DEFAULT 0,
     updated_records INTEGER DEFAULT 0,
+    progress_percent INTEGER DEFAULT 0,
     start_time TIMESTAMP,
     end_time TIMESTAMP,
     error_message TEXT,
@@ -96,6 +116,11 @@ CREATE TABLE IF NOT EXISTS system_settings (
 -- Индексы для оптимизации
 CREATE INDEX IF NOT EXISTS idx_hosts_hostname ON hosts(hostname);
 CREATE INDEX IF NOT EXISTS idx_hosts_ip_address ON hosts(ip_address);
+CREATE INDEX IF NOT EXISTS idx_hosts_cve ON hosts(cve);
+CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
+CREATE INDEX IF NOT EXISTS idx_hosts_zone ON hosts(zone);
+CREATE INDEX IF NOT EXISTS idx_hosts_epss_score ON hosts(epss_score);
+CREATE INDEX IF NOT EXISTS idx_hosts_risk_score ON hosts(risk_score);
 CREATE INDEX IF NOT EXISTS idx_cve_data_cve_id ON cve_data(cve_id);
 CREATE INDEX IF NOT EXISTS idx_cve_data_cvss_score ON cve_data(cvss_score);
 CREATE INDEX IF NOT EXISTS idx_host_vulnerabilities_host_id ON host_vulnerabilities(host_id);
