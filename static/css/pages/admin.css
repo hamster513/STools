@@ -196,32 +196,40 @@
 
 /* Элементы задач */
 .task-item {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
     padding: var(--spacing-lg);
-    transition: all var(--transition-speed);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: var(--spacing-md);
 }
 
 .task-item:hover {
     border-color: var(--primary-color);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    transform: translateY(-2px);
 }
 
 .task-item.active-task {
-    border-left: 4px solid var(--primary-color);
+    border-left: 6px solid var(--primary-color);
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
 }
 
 .task-item.completed-task {
-    border-left: 4px solid var(--success-color);
+    border-left: 6px solid var(--success-color);
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
 }
 
 .task-item.completed-task.error {
-    border-left: 4px solid var(--error-color);
+    border-left: 6px solid var(--error-color);
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
 }
 
 .task-item.completed-task.cancelled {
-    border-left: 4px solid var(--warning-color);
+    border-left: 6px solid var(--warning-color);
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
 }
 
 /* Заголовок задачи */
@@ -242,37 +250,40 @@
 }
 
 .task-status {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
+    padding: 6px 12px;
+    border-radius: 20px;
     font-size: var(--font-size-xs);
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .task-status.processing,
 .task-status.running,
 .task-status.initializing {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     color: white;
 }
 
 .task-status.completed {
-    background: var(--success-color);
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
     color: white;
 }
 
 .task-status.error {
-    background: var(--error-color);
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
     color: white;
 }
 
 .task-status.cancelled {
-    background: var(--warning-color);
-    color: white;
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
 }
 
 .task-status.idle {
-    background: var(--text-secondary);
+    background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
     color: white;
 }
 
@@ -286,24 +297,61 @@
 
 .task-progress .progress-bar {
     flex: 1;
-    height: 8px;
-    background: var(--border-color);
-    border-radius: var(--border-radius-sm);
+    height: 10px !important;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
     overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 .task-progress .progress-bar-fill {
+    height: 100% !important;
+    background: linear-gradient(90deg, #007bff 0%, #0056b3 100%) !important;
+    border-radius: 8px !important;
+    transition: width 0.3s ease !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Отключаем конфликтующий shimmer из общих стилей */
+.task-progress .progress-bar::after {
+    display: none !important;
+}
+
+.task-progress .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
     height: 100%;
-    background: var(--primary-color);
-    transition: width var(--transition-speed);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    animation: task-progress-shimmer 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes task-progress-shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 .task-progress .progress-text {
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--text-primary);
-    min-width: 40px;
+    min-width: 50px;
     text-align: right;
+    padding: 4px 8px;
+    background: rgba(0, 123, 255, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 123, 255, 0.2);
 }
 
 /* Детали задачи */
@@ -390,5 +438,114 @@
     .task-actions .btn {
         flex: 1;
     }
+}
+
+/* Темная тема для фоновых задач */
+.dark-theme .task-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .task-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dark-theme .task-item.active-task {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border-left-color: var(--success-color);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+}
+
+.dark-theme .task-item.completed-task {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.08) 0%, rgba(34, 197, 94, 0.04) 100%);
+    border-left-color: var(--success-color);
+}
+
+.dark-theme .task-item.completed-task.error {
+    background: linear-gradient(135deg, rgba(252, 165, 165, 0.1) 0%, rgba(248, 113, 113, 0.05) 100%);
+    border-left-color: var(--error-color);
+}
+
+.dark-theme .task-item.completed-task.cancelled {
+    background: linear-gradient(135deg, rgba(252, 211, 77, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+    border-left-color: var(--warning-color);
+}
+
+.dark-theme .task-header h4 {
+    color: var(--text-primary);
+}
+
+.dark-theme .task-progress .progress-bar {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark-theme .task-progress .progress-bar-fill {
+    background: linear-gradient(90deg, var(--success-color) 0%, var(--success-color-dark) 100%) !important;
+}
+
+.dark-theme .task-progress .progress-text {
+    color: var(--text-primary);
+    background: rgba(74, 222, 128, 0.2);
+    border-color: rgba(74, 222, 128, 0.3);
+}
+
+.dark-theme .task-details p {
+    color: var(--text-secondary);
+}
+
+.dark-theme .task-details strong {
+    color: var(--text-primary);
+}
+
+.dark-theme .task-details .error-text {
+    color: var(--error-color);
+}
+
+.dark-theme .task-status.processing,
+.dark-theme .task-status.running,
+.dark-theme .task-status.initializing {
+    background: linear-gradient(135deg, var(--success-color) 0%, var(--success-color-dark) 100%);
+    color: var(--text-inverse);
+}
+
+.dark-theme .task-status.completed {
+    background: linear-gradient(135deg, var(--success-color) 0%, var(--success-color-dark) 100%);
+    color: var(--text-inverse);
+}
+
+.dark-theme .task-status.error {
+    background: linear-gradient(135deg, var(--error-color) 0%, var(--error-color-dark) 100%);
+    color: var(--text-inverse);
+}
+
+.dark-theme .task-status.cancelled {
+    background: linear-gradient(135deg, var(--warning-color) 0%, var(--warning-color-dark) 100%);
+    color: var(--text-inverse);
+}
+
+.dark-theme .task-status.idle {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-color-dark) 100%);
+    color: var(--text-primary);
+}
+
+.dark-theme .no-tasks {
+    color: var(--text-secondary);
+}
+
+.dark-theme .stats-grid .stat-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-color: var(--border-color);
+}
+
+.dark-theme .stats-grid .stat-number {
+    color: var(--text-primary);
+}
+
+.dark-theme .stats-grid .stat-label {
+    color: var(--text-secondary);
 }
 

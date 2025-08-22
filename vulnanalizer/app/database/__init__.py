@@ -125,6 +125,10 @@ class NewDatabase:
             """Обновить статус фоновой задачи"""
             return await self.background_tasks.update_task(task_id, **kwargs)
 
+        async def get_background_task(self, task_id: int):
+            """Получить фоновую задачу по ID"""
+            return await self.background_tasks.get_task(task_id)
+
         async def get_epss_by_cve(self, cve_id: str):
             """Получить данные EPSS по CVE ID"""
             return await self.epss.get_epss_by_cve(cve_id)

@@ -30,7 +30,7 @@ async def get_background_tasks_status():
         # Получаем все активные задачи
         query = """
             SELECT id, task_type, status, current_step, total_items, processed_items,
-                   total_records, processed_records, updated_records, start_time, end_time, error_message, 
+                   total_records, processed_records, updated_records, progress_percent, start_time, end_time, error_message, 
                    cancelled, parameters, description, created_at, updated_at
             FROM background_tasks 
             WHERE status IN ('processing', 'running', 'initializing', 'idle')
@@ -41,7 +41,7 @@ async def get_background_tasks_status():
         # Получаем последние завершенные задачи
         query_completed = """
             SELECT id, task_type, status, current_step, total_items, processed_items,
-                   total_records, processed_records, updated_records, start_time, end_time, error_message, 
+                   total_records, processed_records, updated_records, progress_percent, start_time, end_time, error_message, 
                    cancelled, parameters, description, created_at, updated_at
             FROM background_tasks 
             WHERE status IN ('completed', 'error', 'cancelled')
@@ -152,6 +152,16 @@ def calculate_task_progress(task):
             return 100
         else:
             return 0
+    elif task['task_type'] == 'cve_download':
+        # Для задач загрузки CVE используем поле progress_percent из базы данных
+        if task['progress_percent'] is not None:
+            return int(task['progress_percent'])
+        else:
+            # Fallback на стандартную формулу
+            if task['total_items'] and task['total_items'] > 0:
+                return int(task['processed_items'] / task['total_items'] * 100)
+            else:
+                return 0
     else:
         # Для других задач используем стандартную формулу
         if task['total_items'] and task['total_items'] > 0:

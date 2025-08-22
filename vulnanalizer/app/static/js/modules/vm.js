@@ -208,10 +208,10 @@ class VMModule {
         let progressHtml = '';
         if (progress !== null) {
             progressHtml = `
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="operation-progress-bar">
+                    <div class="operation-progress-fill" style="width: ${progress}%"></div>
                 </div>
-                <div class="progress-text">${progress.toFixed(1)}%</div>
+                <div class="operation-progress-text">${progress.toFixed(1)}%</div>
             `;
         }
         

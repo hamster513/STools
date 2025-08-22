@@ -10,6 +10,7 @@ class VulnAnalizer {
         
         this.init();
         this.operationStatus = {}; // Хранит статус текущих операций
+        this.lastNotifiedCompletionTime = localStorage.getItem('app_last_notification_time'); // Отслеживаем последнее показанное уведомление
         this.paginationState = {
             currentPage: 1,
             totalPages: 1,
@@ -28,6 +29,30 @@ class VulnAnalizer {
         return '/api';
     }
 
+    initModules() {
+        // Инициализируем API модуль первым
+        if (typeof ApiModule !== 'undefined') {
+            this.api = new ApiModule(this);
+        }
+        
+        // Инициализируем модули если они доступны
+        if (typeof CVEModule !== 'undefined') {
+            this.cveModule = new CVEModule(this);
+        }
+        
+        if (typeof EPSSModule !== 'undefined') {
+            this.epssModule = new EPSSModule(this);
+        }
+        
+        if (typeof ExploitDBModule !== 'undefined') {
+            this.exploitdbModule = new ExploitDBModule(this);
+        }
+        
+        if (typeof HostsModule !== 'undefined') {
+            this.hostsModule = new HostsModule(this);
+        }
+    }
+
     init() {
         // Проверяем авторизацию
         this.checkAuth();
@@ -41,6 +66,9 @@ class VulnAnalizer {
         this.setupCVE();
         this.setupHosts();
         this.setupVM();
+        
+        // Инициализируем модули после настройки всех компонентов
+        this.initModules();
         
         // Инициализируем активную страницу
         this.initializeActivePage();
@@ -61,27 +89,27 @@ class VulnAnalizer {
 
     checkAuth() {
         const token = localStorage.getItem('auth_token');
-        console.log('checkAuth: token from localStorage:', token ? 'exists' : 'not found');
+
         
         if (!token) {
             // Если нет токена, перенаправляем на страницу входа
-            console.log('checkAuth: no token, redirecting to login');
+
             window.location.href = '/auth/';
             return;
         }
 
         // Проверяем токен через auth сервис
-        console.log('checkAuth: checking token with auth service');
+
         fetch('/auth/api/me', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         }).then(response => {
-            console.log('checkAuth: auth service response status:', response.status);
+
             if (response.ok) {
                 return response.json();
             } else {
-                console.log('checkAuth: auth failed, clearing localStorage and redirecting');
+
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user_info');
                 window.location.href = '/auth/';
@@ -89,9 +117,7 @@ class VulnAnalizer {
             }
         }).then(userData => {
             // Сохраняем информацию о пользователе
-            console.log('checkAuth: userData from auth service:', userData);
-            console.log('checkAuth: userData.user:', userData.user);
-            console.log('checkAuth: userData.user.is_admin:', userData.user?.is_admin);
+
             
             // Сохраняем только объект пользователя, а не весь ответ API
             if (userData.user) {
@@ -197,6 +223,11 @@ class VulnAnalizer {
                 // Если переключаемся на страницу настроек, загружаем настройки
                 if (targetPage === 'settings') {
                     await this.loadDatabaseSettings();
+                    
+                    // Инициализируем CVE Manager если он еще не инициализирован
+                    if (typeof CVEManager !== 'undefined' && !this.cveManager) {
+                        this.cveManager = new CVEManager(this);
+                    }
                 }
             });
         });
@@ -657,6 +688,16 @@ class VulnAnalizer {
     }
 
     setupCVE() {
+        // Инициализируем CVE Manager если он доступен
+        if (typeof CVEManager !== 'undefined') {
+            this.cveManager = new CVEManager(this);
+        } else {
+            console.warn('CVEManager not found, using legacy CVE functionality');
+            this.setupLegacyCVE();
+        }
+    }
+    
+    setupLegacyCVE() {
         // Загрузка CSV
         const cveForm = document.getElementById('cve-upload-form');
         if (cveForm) {
@@ -720,6 +761,43 @@ class VulnAnalizer {
                     btnText.textContent = 'Загрузить CSV';
                     spinner.style.display = 'none';
                     uploadBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Кнопка получения ссылок для скачивания
+        const cveUrlsBtn = document.getElementById('cve-urls-btn');
+        if (cveUrlsBtn) {
+            cveUrlsBtn.addEventListener('click', async () => {
+                try {
+                    const resp = await fetch(this.getApiBasePath() + '/cve/download-urls');
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        let urlsHtml = '<div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; margin-top: 10px;">';
+                        urlsHtml += '<h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE по годам</h4>';
+                        urlsHtml += '<p style="margin: 0 0 8px 0; line-height: 1.4; font-size: 0.8rem;">Скачайте файлы по ссылкам ниже для offline загрузки:</p>';
+                        
+                        data.urls.forEach(urlInfo => {
+                            urlsHtml += `<div style="margin-bottom: 6px;">`;
+                            urlsHtml += `<a href="${urlInfo.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">`;
+                            urlsHtml += `🔗 <span style="flex: 1;">CVE ${urlInfo.year} (${urlInfo.filename})</span>`;
+                            urlsHtml += `</a>`;
+                            urlsHtml += `</div>`;
+                        });
+                        
+                        urlsHtml += '</div>';
+                        
+                        const statusDiv = document.getElementById('cve-status');
+                        if (statusDiv) {
+                            statusDiv.innerHTML = urlsHtml;
+                        }
+                    } else {
+                        this.showNotification('Ошибка получения ссылок CVE', 'error');
+                    }
+                } catch (err) {
+                    console.error('CVE URLs error:', err);
+                    this.showNotification('Ошибка получения ссылок CVE', 'error');
                 }
             });
         }
@@ -827,42 +905,7 @@ class VulnAnalizer {
             });
         }
 
-        // Кнопка получения ссылок для скачивания
-        const cveUrlsBtn = document.getElementById('cve-urls-btn');
-        if (cveUrlsBtn) {
-            cveUrlsBtn.addEventListener('click', async () => {
-                try {
-                    const resp = await fetch(this.getApiBasePath() + '/cve/download-urls');
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        let urlsHtml = '<div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; margin-top: 10px;">';
-                        urlsHtml += '<h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE по годам</h4>';
-                        urlsHtml += '<p style="margin: 0 0 8px 0; line-height: 1.4; font-size: 0.8rem;">Скачайте файлы по ссылкам ниже для offline загрузки:</p>';
-                        
-                        data.urls.forEach(urlInfo => {
-                            urlsHtml += `<div style="margin-bottom: 6px;">`;
-                            urlsHtml += `<a href="${urlInfo.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">`;
-                            urlsHtml += `🔗 <span style="flex: 1;">CVE ${urlInfo.year} (${urlInfo.filename})</span>`;
-                            urlsHtml += `</a>`;
-                            urlsHtml += `</div>`;
-                        });
-                        
-                        urlsHtml += '</div>';
-                        
-                        const statusDiv = document.getElementById('cve-status');
-                        if (statusDiv) {
-                            statusDiv.innerHTML = urlsHtml;
-                        }
-                    } else {
-                        this.showNotification('Ошибка получения ссылок CVE', 'error');
-                    }
-                } catch (err) {
-                    console.error('CVE URLs error:', err);
-                    this.showNotification('Ошибка получения ссылок CVE', 'error');
-                }
-            });
-        }
+
     }
 
     setupHosts() {
@@ -1924,8 +1967,7 @@ class VulnAnalizer {
             settings[key] = value;
         }
 
-        console.log('DEBUG: Form data entries:', Array.from(formData.entries()));
-        console.log('DEBUG: Settings object:', settings);
+        
 
         try {
             const response = await fetch(this.getApiBasePath() + '/settings', {
@@ -1936,7 +1978,7 @@ class VulnAnalizer {
                 body: JSON.stringify(settings)
             });
 
-            console.log('DEBUG: Response status:', response.status);
+
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -1945,7 +1987,7 @@ class VulnAnalizer {
             }
 
             const data = await response.json();
-            console.log('DEBUG: Response data:', data);
+
             
             if (data.success) {
                 // Сохраняем порог риска в localStorage для быстрого доступа
@@ -2171,10 +2213,10 @@ class VulnAnalizer {
         let progressHtml = '';
         if (progress !== null) {
             progressHtml = `
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="operation-progress-bar">
+                    <div class="operation-progress-fill" style="width: ${progress}%"></div>
                 </div>
-                <div class="progress-text">${progress.toFixed(1)}%</div>
+                <div class="operation-progress-text">${progress.toFixed(1)}%</div>
             `;
         }
         
@@ -2199,10 +2241,10 @@ class VulnAnalizer {
         let progressHtml = '';
         if (progress !== null) {
             progressHtml = `
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="operation-progress-bar">
+                    <div class="operation-progress-fill" style="width: ${progress}%"></div>
                 </div>
-                <div class="progress-text">${progress.toFixed(1)}%</div>
+                <div class="operation-progress-text">${progress.toFixed(1)}%</div>
             `;
         }
         
@@ -2540,7 +2582,7 @@ class VulnAnalizer {
         const container = document.getElementById('import-progress-container');
         if (container) {
             container.style.display = 'block';
-            container.classList.add('fade-in');
+            container.className = 'operation-status active';
         }
     }
 
@@ -2556,15 +2598,13 @@ class VulnAnalizer {
         if (!container) return;
 
         // Обновляем классы для анимации
-        container.className = 'progress-info ' + status;
+        container.className = 'operation-status ' + status;
 
         // Обновляем текст текущего шага
         const currentStepText = document.getElementById('current-step-text');
         if (currentStepText) {
             currentStepText.textContent = currentStep;
         }
-
-
 
         // Обновляем общий прогресс
         const overallProgressText = document.getElementById('overall-progress-text');
@@ -2578,14 +2618,10 @@ class VulnAnalizer {
             progressBarFill.style.width = overallProgress + '%';
         }
 
-
-
         const totalRecordsText = document.getElementById('total-records-text');
         if (totalRecordsText) {
             totalRecordsText.textContent = totalRecords.toLocaleString();
         }
-
-
 
         // Показываем ошибку если есть
         if (errorMessage) {
@@ -2594,7 +2630,7 @@ class VulnAnalizer {
     }
 
     startBackgroundTaskMonitoring(taskId) {
-        console.log(`🔄 Начинаем мониторинг фоновой задачи ${taskId}`);
+
         
         // Показываем прогресс-бар
         this.showImportProgress();
@@ -2710,14 +2746,14 @@ class VulnAnalizer {
             this.backgroundUpdateInterval = null;
         }
 
-        console.log('Starting background update monitoring in main app');
+
         
         this.backgroundUpdateInterval = setInterval(async () => {
             try {
-                console.log('🔄 Polling background update progress in main app...');
+    
                 const data = await fetch(this.getApiBasePath() + '/hosts/update-data-progress').then(r => r.json());
                 
-                console.log('📊 Background update data received in main app:', data);
+    
                 
                 // Обновляем UI только если есть данные
                 if (data && typeof data === 'object') {
@@ -2725,14 +2761,18 @@ class VulnAnalizer {
 
                     // Останавливаем интервал при завершении
                     if (data.status === 'completed' || data.status === 'error' || data.status === 'idle') {
-                        console.log('✅ Background update completed, stopping monitoring in main app');
+            
                         this.stopBackgroundUpdateMonitoring();
                         
-                        // Показываем уведомление о завершении
-                        if (data.status === 'completed') {
+                        // Показываем уведомление о завершении только если это новое завершение
+                        if (data.status === 'completed' && !this.lastNotifiedCompletionTime) {
                             this.showNotification(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
-                        } else if (data.status === 'error') {
+                            this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
+                            localStorage.setItem('app_last_notification_time', this.lastNotifiedCompletionTime);
+                        } else if (data.status === 'error' && !this.lastNotifiedCompletionTime) {
                             this.showNotification(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
+                            this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
+                            localStorage.setItem('app_last_notification_time', this.lastNotifiedCompletionTime);
                         }
                         
                         // Скрываем прогресс-бар через 3 секунды
@@ -2757,7 +2797,7 @@ class VulnAnalizer {
         if (this.backgroundUpdateInterval) {
             clearInterval(this.backgroundUpdateInterval);
             this.backgroundUpdateInterval = null;
-            console.log('Background update monitoring stopped in main app');
+    
         }
     }
     
@@ -2845,11 +2885,11 @@ class VulnAnalizer {
 
     async loadBackgroundTasksData() {
         try {
-            console.log('Loading background tasks data...');
+    
             const resp = await fetch(this.getApiBasePath() + '/background-tasks/status');
             if (resp.ok) {
                 const data = await resp.json();
-                console.log('Background tasks data:', data);
+    
                 
                 this.updateBackgroundTasksUI(data);
             } else {
@@ -2874,10 +2914,10 @@ class VulnAnalizer {
                             <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
                         </div>
                         <div class="task-progress">
-                            <div class="progress-bar">
-                                <div class="progress-bar-fill" style="width: ${task.progress_percent}%"></div>
+                            <div class="operation-progress-bar">
+                                <div class="operation-progress-fill" style="width: ${task.progress_percent}%"></div>
                             </div>
-                            <span class="progress-text">${task.progress_percent}%</span>
+                            <span class="operation-progress-text">${task.progress_percent}%</span>
                         </div>
                         <div class="task-details">
                             <p><strong>Текущий шаг:</strong> ${task.current_step || 'Инициализация...'}</p>
@@ -2979,7 +3019,7 @@ class VulnAnalizer {
 
     async checkActiveImportTasks() {
         try {
-            console.log('Checking for active import tasks in main app...');
+    
             
             // Проверяем импорт
             const importResponse = await fetch(this.getApiBasePath() + '/hosts/import-progress', {
@@ -2994,7 +3034,7 @@ class VulnAnalizer {
                 const importData = await importResponse.json();
                 
                 if (importData && importData.status && importData.status !== 'idle' && importData.status !== 'completed' && importData.status !== 'error' && importData.status !== 'cancelled') {
-                    console.log('Found active import task in main app:', importData);
+        
                     
                     // Показываем уведомление о том, что есть активная задача
                     this.showNotification(`Обнаружена активная задача импорта: ${importData.current_step}`, 'info');
@@ -3030,7 +3070,7 @@ class VulnAnalizer {
                 const updateData = await updateResponse.json();
                 
                 if (updateData && updateData.status && updateData.status !== 'idle' && updateData.status !== 'completed' && updateData.status !== 'error' && updateData.status !== 'cancelled') {
-                    console.log('Found active update task in main app:', updateData);
+        
                     
                     // Показываем уведомление о том, что есть активная задача обновления
                     this.showNotification(`Обнаружена активная задача обновления: ${updateData.current_step}`, 'info');

@@ -10,6 +10,7 @@ class HostsModule {
             totalCount: 0,
             limit: 100
         };
+        this.lastNotifiedCompletionTime = localStorage.getItem('hosts_last_notification_time'); // Отслеживаем последнее показанное уведомление
         this.init();
     }
 
@@ -846,7 +847,7 @@ class HostsModule {
         const container = document.getElementById('import-progress-container');
         if (container) {
             container.style.display = 'block';
-            container.classList.add('fade-in');
+            container.className = 'operation-status active';
         }
     }
 
@@ -861,14 +862,12 @@ class HostsModule {
         const container = document.getElementById('import-progress-container');
         if (!container) return;
 
-        container.className = 'progress-info ' + status;
+        container.className = 'operation-status ' + status;
 
         const currentStepText = document.getElementById('current-step-text');
         if (currentStepText) {
             currentStepText.textContent = currentStep;
         }
-
-
 
         const overallProgressText = document.getElementById('overall-progress-text');
         if (overallProgressText) {
@@ -879,8 +878,6 @@ class HostsModule {
         if (progressBarFill) {
             progressBarFill.style.width = overallProgress + '%';
         }
-
-
 
         const totalRecordsText = document.getElementById('total-records-text');
         if (totalRecordsText) {
@@ -899,7 +896,7 @@ class HostsModule {
             this.importProgressInterval = null;
         }
 
-        console.log('Starting import progress monitoring');
+
         
         this.importProgressInterval = setInterval(async () => {
             try {
@@ -950,7 +947,7 @@ class HostsModule {
         if (this.importProgressInterval) {
             clearInterval(this.importProgressInterval);
             this.importProgressInterval = null;
-            console.log('Import progress monitoring stopped');
+    
         }
     }
 
@@ -958,6 +955,7 @@ class HostsModule {
         const container = document.getElementById('background-update-progress-container');
         if (container) {
             container.style.display = 'block';
+            container.className = 'operation-status active';
         }
     }
 
@@ -969,6 +967,11 @@ class HostsModule {
     }
 
     updateBackgroundUpdateProgress(data) {
+        const container = document.getElementById('background-update-progress-container');
+        if (container) {
+            container.className = 'operation-status ' + (data.status || 'unknown');
+        }
+
         const statusText = document.getElementById('background-current-step-text');
         if (statusText) {
             statusText.textContent = data.current_step || 'Инициализация...';
@@ -1029,14 +1032,14 @@ class HostsModule {
             this.backgroundUpdateInterval = null;
         }
 
-        console.log('Starting background update monitoring');
+
         
         this.backgroundUpdateInterval = setInterval(async () => {
             try {
-                console.log('🔄 Polling background update progress...');
+    
                 const data = await this.app.api.getBackgroundUpdateProgress();
                 
-                console.log('📊 Background update data received:', data);
+    
                 
                 // Обновляем UI только если есть данные
                 if (data && typeof data === 'object') {
@@ -1044,14 +1047,18 @@ class HostsModule {
 
                     // Останавливаем интервал при завершении
                     if (data.status === 'completed' || data.status === 'error' || data.status === 'idle') {
-                        console.log('✅ Background update completed, stopping monitoring');
+            
                         this.stopBackgroundUpdateMonitoring();
                         
-                        // Показываем уведомление о завершении
-                        if (data.status === 'completed') {
+                        // Показываем уведомление о завершении только если это новое завершение
+                        if (data.status === 'completed' && !this.lastNotifiedCompletionTime) {
                             this.app.notifications.show(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
-                        } else if (data.status === 'error') {
+                            this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
+                            localStorage.setItem('hosts_last_notification_time', this.lastNotifiedCompletionTime);
+                        } else if (data.status === 'error' && !this.lastNotifiedCompletionTime) {
                             this.app.notifications.show(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
+                            this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
+                            localStorage.setItem('hosts_last_notification_time', this.lastNotifiedCompletionTime);
                         }
                         
                         // Скрываем прогресс-бар через 3 секунды
@@ -1076,22 +1083,28 @@ class HostsModule {
         if (this.backgroundUpdateInterval) {
             clearInterval(this.backgroundUpdateInterval);
             this.backgroundUpdateInterval = null;
-            console.log('Background update monitoring stopped');
+    
         }
     }
 
     async checkBackgroundUpdateStatus() {
         try {
-            console.log('Checking background update status...');
+    
             const data = await this.app.api.getBackgroundUpdateProgress();
             
             // Проверяем, что получили валидные данные
             if (!data || typeof data !== 'object') {
-                console.log('Invalid background update status data');
+    
                 return;
             }
             
-            console.log('Background update status:', data);
+    
+            
+            // Инициализируем время последнего уведомления при первой проверке
+            if (!this.lastNotifiedCompletionTime && (data.status === 'completed' || data.status === 'error' || data.status === 'idle')) {
+                this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
+                localStorage.setItem('hosts_last_notification_time', this.lastNotifiedCompletionTime);
+            }
             
             // Проверяем только активные состояния
             if (data.status === 'processing' || data.status === 'initializing') {
@@ -1106,12 +1119,12 @@ class HostsModule {
                 // Запускаем мониторинг прогресса обновления
                 this.startBackgroundUpdateMonitoring();
                 
-                console.log('Active background update found, showing progress');
+    
             } else if (data.status === 'error') {
                 // Игнорируем ошибки сервера при отсутствии активного обновления
-                console.log('Background update error (likely no active update)');
+    
             } else {
-                console.log('No active background update found');
+
             }
         } catch (err) {
             console.error('Error checking background update status:', err);
@@ -1120,11 +1133,11 @@ class HostsModule {
 
     async checkActiveImportTasks() {
         try {
-            console.log('Checking for active import tasks...');
+    
             const data = await this.app.api.getHostsImportProgress();
             
             if (data && data.status && data.status !== 'idle') {
-                console.log('Found active import task:', data);
+    
                 
                 // Показываем прогресс-бар
                 this.showImportProgress();

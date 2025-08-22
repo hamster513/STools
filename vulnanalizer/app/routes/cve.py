@@ -6,11 +6,17 @@ import gzip
 import io
 import json
 import aiohttp
+import asyncio
 from datetime import datetime
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, File, UploadFile
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from database import get_db
+
+class CVEDownloadRequest(BaseModel):
+    years: Optional[List[int]] = None
 
 router = APIRouter()
 
@@ -181,135 +187,92 @@ def parse_cve_json(data):
         raise
 
 
-@router.post("/api/cve/upload")
-async def upload_cve(file: UploadFile = File(...)):
-    """Загрузить CVE данные из файла"""
-    try:
-        content = await file.read()
-        
-        # Проверяем, является ли файл архивом
-        if file.filename.endswith('.gz'):
-            print("📦 Распаковываем gzip архив...")
-            with gzip.GzipFile(fileobj=io.BytesIO(content)) as gz:
-                content = gz.read()
-        
-        # Декодируем контент
-        if isinstance(content, bytes):
-            content = content.decode('utf-8')
-        
-        print(f"📄 Парсим JSON файл размером {len(content)} символов...")
-        
-        # Парсим JSON
-        records = parse_cve_json(content)
-        
-        if not records:
-            raise Exception("Не удалось извлечь CVE записи из файла")
-        
-        print(f"✅ Извлечено {len(records)} CVE записей")
-        
-        # Сохраняем в базу данных
-        db = get_db()
-        await db.insert_cve_records(records)
-        
-        return {
-            "success": True,
-            "count": len(records),
-            "message": f"CVE данные успешно импортированы: {len(records)} записей"
-        }
-        
-    except Exception as e:
-        print(f'❌ CVE upload error: {traceback.format_exc()}')
-        raise HTTPException(status_code=500, detail=str(e))
+    @router.post("/api/cve/upload")
+    async def upload_cve(file: UploadFile = File(...)):
+        """Загрузить CVE данные из файла"""
+        try:
+            content = await file.read()
+            
+            # Проверяем, является ли файл архивом
+            if file.filename.endswith('.gz'):
+                try:
+                    with gzip.GzipFile(fileobj=io.BytesIO(content)) as gz:
+                        content = gz.read()
+                except Exception as gz_error:
+                    raise Exception(f"Ошибка распаковки gzip архива: {gz_error}")
+            
+            # Декодируем контент
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode('utf-8')
+                except UnicodeDecodeError as decode_error:
+                    raise Exception(f"Ошибка декодирования файла: {decode_error}")
+            
+            # Парсим JSON
+            try:
+                records = parse_cve_json(content)
+            except Exception as parse_error:
+                raise Exception(f"Ошибка парсинга JSON: {parse_error}")
+            
+            if not records:
+                raise Exception("Не удалось извлечь CVE записи из файла")
+            
+            # Сохраняем в базу данных
+            try:
+                db = get_db()
+                await db.insert_cve_records(records)
+            except Exception as db_error:
+                raise Exception(f"Ошибка сохранения в базу данных: {db_error}")
+            
+            return {
+                "success": True,
+                "count": len(records),
+                "message": f"CVE данные успешно импортированы: {len(records)} записей"
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/api/cve/download")
-async def download_cve():
-    """Скачать CVE данные с внешнего источника"""
+async def download_cve(request: CVEDownloadRequest):
+    """Скачать CVE данные с внешнего источника для выбранных лет"""
     try:
-        print("🔄 Starting CVE download...")
+        from services.cve_worker import cve_worker
         
-        # Скачиваем данные за последние годы (с 2002)
-        current_year = datetime.now().year
+        years = request.years
+        
+        # Если годы не указаны, используем последние 5 лет
+        if not years:
+            current_year = datetime.now().year
+            years = list(range(current_year - 4, current_year + 1))
+        
+        # Проверяем, не идет ли уже загрузка
+        if cve_worker.is_downloading():
+            raise HTTPException(status_code=400, detail="Загрузка уже выполняется")
         
         # Создаем фоновую задачу
         db = get_db()
         task_id = await db.create_background_task(
             task_type='cve_download',
-            parameters={'years': list(range(2002, current_year + 1))},
-            description='Скачивание CVE данных с NVD'
-        )
-        total_records = 0
-        
-        for year in range(2002, current_year + 1):
-            try:
-                # Обновляем статус задачи
-                await db.update_background_task(
-                    task_id, 
-                    current_step=f"Скачивание данных за {year} год...",
-                    processed_items=year - 2002,
-                    total_items=current_year - 2001
-                )
-                
-                url = f"https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz"
-                print(f"📥 Downloading from {url}")
-                
-                # Увеличиваем таймауты для больших файлов
-                timeout = aiohttp.ClientTimeout(total=600, connect=60)
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(url) as resp:
-                        if resp.status != 200:
-                            print(f"⚠️ Failed to download {year}: {resp.status}")
-                            continue
-                        
-                        print(f"📦 Reading compressed content for {year}...")
-                        gz_content = await resp.read()
-                        print(f"📊 Downloaded {len(gz_content)} bytes for {year}")
-                
-                print(f"🔓 Decompressing content for {year}...")
-                with gzip.GzipFile(fileobj=io.BytesIO(gz_content)) as gz:
-                    content = gz.read().decode('utf-8')
-                
-                print(f"📄 Decompressed {len(content)} characters for {year}")
-                
-                # Парсим JSON
-                print(f"📄 Парсинг JSON файла за {year} год...")
-                records = parse_cve_json(content)
-                print(f"📊 Извлечено {len(records)} записей CVE из JSON")
-                
-                if records:
-                    print(f"✅ Найдено {len(records)} записей CVE за {year} год")
-                    print(f"📥 Начинаем загрузку в базу данных...")
-                    await db.insert_cve_records(records)
-                    total_records += len(records)
-                    print(f"✅ Загружено {len(records)} записей CVE за {year} год")
-                else:
-                    print(f"⚠️ No CVE records found for {year}")
-                
-            except Exception as e:
-                print(f"⚠️ Error processing year {year}: {e}")
-                continue
-        
-        # Обновляем статус задачи
-        await db.update_background_task(
-            task_id, 
-            status='completed',
-            current_step='Загрузка завершена',
-            total_records=total_records,
-            updated_records=total_records
+            parameters={'years': years},
+            description=f'Скачивание CVE данных с NVD для лет: {years}'
         )
         
-        print("🎉 CVE download and processing completed successfully")
-        return {"success": True, "count": total_records}
+        # Запускаем worker в фоновом режиме
+        asyncio.create_task(cve_worker.start_download(years, task_id))
+        
+        return {
+            "success": True, 
+            "task_id": task_id,
+            "message": f"Загрузка CVE запущена для {len(years)} лет",
+            "years": years
+        }
         
     except Exception as e:
         error_msg = f"CVE download error: {str(e)}"
         print(error_msg)
         print('Full traceback:', traceback.format_exc())
-        
-        # Обновляем статус задачи с ошибкой
-        if 'task_id' in locals():
-            await db.update_background_task(task_id, status='error', error_message=error_msg)
-        
         raise HTTPException(status_code=500, detail=error_msg)
 
 
@@ -317,9 +280,42 @@ async def download_cve():
 async def cve_status():
     """Получить статус CVE данных"""
     try:
+        from services.cve_worker import cve_worker
+        
         db = get_db()
-        count = await db.count_cve_records()
-        return {"success": True, "count": count}
+        
+        # Получаем количество CVE записей
+        try:
+            count = await db.count_cve_records()
+        except Exception as count_error:
+            print(f'CVE count error: {count_error}')
+            count = 0
+        
+        # Получаем статус текущей загрузки
+        try:
+            is_downloading = cve_worker.is_downloading()
+            current_task_id = cve_worker.get_current_task_id()
+        except Exception as worker_error:
+            print(f'CVE worker error: {worker_error}')
+            is_downloading = False
+            current_task_id = None
+        
+        # Если идет загрузка, получаем детали задачи
+        task_details = None
+        if current_task_id:
+            try:
+                task_details = await db.get_background_task(current_task_id)
+            except Exception as task_error:
+                print(f'CVE task details error: {task_error}')
+                task_details = None
+        
+        return {
+            "success": True, 
+            "count": count,
+            "is_downloading": is_downloading,
+            "current_task_id": current_task_id,
+            "task_details": task_details
+        }
     except Exception as e:
         print('CVE status error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
@@ -487,11 +483,14 @@ async def download_cve_modified():
 async def cancel_cve_download():
     """Отменить текущую загрузку CVE"""
     try:
-        db = get_db()
-        cancelled = await db.cancel_background_task('cve_download')
+        from services.cve_worker import cve_worker
         
-        if cancelled:
-            return {"success": True, "message": "Загрузка CVE отменена"}
+        if cve_worker.is_downloading():
+            cancelled = await cve_worker.cancel_download()
+            if cancelled:
+                return {"success": True, "message": "Загрузка CVE отменена"}
+            else:
+                return {"success": False, "message": "Не удалось отменить загрузку"}
         else:
             return {"success": False, "message": "Активная загрузка CVE не найдена"}
             

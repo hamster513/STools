@@ -80,7 +80,9 @@ class EPSSModule {
     async uploadEPSS() {
         const fileInput = document.getElementById('epss-file');
         if (!fileInput.files.length) {
-            this.app.notifications.show('Выберите файл для загрузки', 'warning');
+            if (this.app.notifications && this.app.notifications.show) {
+                this.app.notifications.show('Выберите файл для загрузки', 'warning');
+            }
             return;
         }
         
@@ -113,17 +115,23 @@ class EPSSModule {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 this.showOperationComplete('epss', 'EPSS данные успешно загружены', `Загружено записей: ${data.count}`);
-                this.app.notifications.show(`Загружено записей: ${data.count}`, 'success');
+                if (this.app.notifications && this.app.notifications.show) {
+                    this.app.notifications.show(`Загружено записей: ${data.count}`, 'success');
+                }
                 this.updateStatus();
                 fileInput.value = '';
             } else {
                 this.showOperationError('epss', 'Ошибка загрузки EPSS', data.detail || 'Неизвестная ошибка');
-                this.app.notifications.show('Ошибка загрузки EPSS', 'error');
+                if (this.app.notifications && this.app.notifications.show) {
+                    this.app.notifications.show('Ошибка загрузки EPSS', 'error');
+                }
             }
         } catch (err) {
             console.error('EPSS upload error:', err);
             this.showOperationError('epss', 'Ошибка загрузки EPSS', err.message);
-            this.app.notifications.show('Ошибка загрузки EPSS', 'error');
+            if (this.app.notifications && this.app.notifications.show) {
+                this.app.notifications.show('Ошибка загрузки EPSS', 'error');
+            }
         } finally {
             // Восстанавливаем кнопку
             btnText.textContent = 'Загрузить CSV';
@@ -161,16 +169,22 @@ class EPSSModule {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 this.showOperationComplete('epss', 'EPSS данные успешно скачаны', `Загружено записей: ${data.count}`);
-                this.app.notifications.show(`Загружено записей: ${data.count}`, 'success');
+                if (this.app.notifications && this.app.notifications.show) {
+                    this.app.notifications.show(`Загружено записей: ${data.count}`, 'success');
+                }
                 this.updateStatus();
             } else {
                 this.showOperationError('epss', 'Ошибка скачивания EPSS', data.detail || 'Неизвестная ошибка');
-                this.app.notifications.show('Ошибка скачивания EPSS', 'error');
+                if (this.app.notifications && this.app.notifications.show) {
+                    this.app.notifications.show('Ошибка скачивания EPSS', 'error');
+                }
             }
         } catch (err) {
             console.error('EPSS download error:', err);
             this.showOperationError('epss', 'Ошибка скачивания EPSS', err.message);
-            this.app.notifications.show('Ошибка скачивания EPSS', 'error');
+            if (this.app.notifications && this.app.notifications.show) {
+                this.app.notifications.show('Ошибка скачивания EPSS', 'error');
+            }
         } finally {
             // Восстанавливаем кнопку
             btnText.textContent = 'Скачать с сайта';
@@ -187,10 +201,10 @@ class EPSSModule {
         let progressHtml = '';
         if (progress !== null) {
             progressHtml = `
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="operation-progress-bar">
+                    <div class="operation-progress-fill" style="width: ${progress}%"></div>
                 </div>
-                <div class="progress-text">${progress.toFixed(1)}%</div>
+                <div class="operation-progress-text">${progress.toFixed(1)}%</div>
             `;
         }
         
@@ -215,10 +229,10 @@ class EPSSModule {
         let progressHtml = '';
         if (progress !== null) {
             progressHtml = `
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="operation-progress-bar">
+                    <div class="operation-progress-fill" style="width: ${progress}%"></div>
                 </div>
-                <div class="progress-text">${progress.toFixed(1)}%</div>
+                <div class="operation-progress-text">${progress.toFixed(1)}%</div>
             `;
         }
         

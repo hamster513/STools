@@ -89,6 +89,93 @@
     flex-direction: row;
 }
 
+/* ===== СТИЛИ ДЛЯ ВЫБОРА ЛЕТ CVE ===== */
+.cve-container .year-selector {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #fafafa;
+    margin-bottom: 15px;
+}
+
+.cve-container .year-grid {
+    display: block !important;
+    margin-bottom: 10px;
+    max-width: 300px;
+    width: 100%;
+}
+
+.cve-container .year-grid::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.cve-container .year-checkbox {
+    float: left !important;
+    width: 48% !important;
+    margin: 1% !important;
+    padding: 4px 6px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    background-color: white !important;
+    cursor: pointer !important;
+    transition: all 0.2s;
+    font-size: 0.8rem !important;
+    min-height: 24px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.cve-container .year-checkbox:hover {
+    background-color: #f0f0f0 !important;
+    border-color: #007bff !important;
+}
+
+.cve-container .year-checkbox.selected {
+    background-color: #007bff !important;
+    color: white !important;
+    border-color: #007bff !important;
+}
+
+.cve-container .year-checkbox input[type="checkbox"] {
+    margin-left: 6px;
+    cursor: pointer;
+}
+
+.cve-container .year-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    clear: both;
+    margin-top: 10px;
+}
+
+.cve-container .year-controls .btn {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+}
+
+@media (max-width: 768px) {
+    .cve-container .year-checkbox {
+        width: 46% !important;
+        margin: 2% !important;
+        padding: 3px 4px !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .cve-container .year-controls {
+        gap: 6px;
+    }
+    
+    .cve-container .year-controls .btn {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+    }
+}
+
 .hosts-search-form .checkbox-group input[type="checkbox"] {
     width: auto;
     height: auto;

@@ -176,10 +176,10 @@ class NotificationsModule {
         notification.innerHTML = `
             <i class="fas fa-spinner fa-spin"></i>
             <span>${message}</span>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${progress}%"></div>
+            <div class="operation-progress-bar">
+                <div class="operation-progress-fill" style="width: ${progress}%"></div>
             </div>
-            <span class="progress-text">${progress.toFixed(1)}%</span>
+            <span class="operation-progress-text">${progress.toFixed(1)}%</span>
         `;
 
         const notifications = document.getElementById('notifications');

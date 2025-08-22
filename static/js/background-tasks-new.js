@@ -37,7 +37,7 @@ class BackgroundTasksManager {
             clearInterval(this.autoRefreshInterval);
         }
 
-        console.log('Starting auto-refresh for background tasks...');
+
         
         this.autoRefreshInterval = setInterval(() => {
             this.loadBackgroundTasksData();
@@ -48,13 +48,13 @@ class BackgroundTasksManager {
         if (this.autoRefreshInterval) {
             clearInterval(this.autoRefreshInterval);
             this.autoRefreshInterval = null;
-            console.log('Auto-refresh stopped for background tasks');
+
         }
     }
 
     async loadBackgroundTasksData() {
         try {
-            console.log('Loading background tasks data...');
+
             const resp = await fetch('/vulnanalizer/api/background-tasks/status', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -63,15 +63,15 @@ class BackgroundTasksManager {
             
             if (resp.ok) {
                 const data = await resp.json();
-                console.log('Background tasks data:', data);
+
                 
                 this.updateBackgroundTasksUI(data);
             } else {
-                console.error('Failed to load background tasks data');
+
                 this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
             }
         } catch (err) {
-            console.error('Error loading background tasks data:', err);
+
             this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
         }
     }
@@ -88,8 +88,8 @@ class BackgroundTasksManager {
                             <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
                         </div>
                         <div class="task-progress">
-                            <div class="operation-progress-bar" style="height: 10px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);">
-                                <div class="operation-progress-fill" style="width: ${task.progress_percent}%; height: 100%; background: linear-gradient(90deg, #007bff 0%, #0056b3 100%); border-radius: 8px; transition: width 0.3s ease; position: relative; overflow: hidden; min-width: 0; max-width: 100%;"></div>
+                            <div class="operation-progress-bar" style="height: 10px !important; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important; border: 1px solid #dee2e6 !important; border-radius: 8px !important; overflow: hidden !important; position: relative !important; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1) !important; width: 100% !important;">
+                                <div class="operation-progress-fill" style="width: ${task.progress_percent}% !important; height: 100% !important; background: linear-gradient(90deg, #007bff 0%, #0056b3 100%) !important; border-radius: 8px !important; transition: width 0.3s ease !important; position: relative !important; overflow: hidden !important; min-width: 0 !important; max-width: 100% !important; display: block !important;"></div>
                             </div>
                             <span class="progress-text">${task.progress_percent}%</span>
                         </div>
@@ -107,16 +107,7 @@ class BackgroundTasksManager {
                     </div>
                 `).join('');
                 
-                // Отладка прогресс-бара
-                setTimeout(() => {
-                    const progressBars = document.querySelectorAll('.task-progress .operation-progress-fill');
-                    progressBars.forEach((bar, index) => {
-                        console.log(`🎯 Progress bar ${index}:`, {
-                            width: bar.style.width,
-                            computed_width: window.getComputedStyle(bar).width
-                        });
-                    });
-                }, 100);
+
             } else {
                 activeTasksContainer.innerHTML = '<p class="no-tasks">Нет активных задач</p>';
             }
@@ -200,7 +191,7 @@ class BackgroundTasksManager {
                 this.showNotification('Ошибка отмены задачи', 'error');
             }
         } catch (err) {
-            console.error('Error cancelling task:', err);
+
             this.showNotification('Ошибка отмены задачи', 'error');
         }
     }
@@ -229,4 +220,3 @@ window.addEventListener('beforeunload', () => {
         window.backgroundTasksManager.destroy();
     }
 });
-

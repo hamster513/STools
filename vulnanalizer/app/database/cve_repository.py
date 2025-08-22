@@ -254,14 +254,12 @@ class CVERepository(DatabaseBase):
             
             # Получаем количество записей до вставки
             count_before = await conn.fetchval("SELECT COUNT(*) FROM cve")
-            print(f"CVE records in database before insert: {count_before}")
             
             inserted_count = 0
             updated_count = 0
             
             # Обрабатываем записи батчами для избежания проблем с соединением
             batch_size = 1000
-            print(f"Начинаем обработку {len(records)} записей CVE батчами по {batch_size} записей")
             
             for i in range(0, len(records), batch_size):
                 batch_records = records[i:i + batch_size]
@@ -270,7 +268,6 @@ class CVERepository(DatabaseBase):
                 try:
                     await conn.execute("SELECT 1")
                 except Exception as e:
-                    print(f"Connection lost, reconnecting... Error: {e}")
                     await conn.close()
                     conn = await asyncpg.connect(self.database_url)
                 
@@ -292,11 +289,37 @@ class CVERepository(DatabaseBase):
                             # Проверяем, существует ли запись
                             existing = await conn.fetchval("SELECT cve_id FROM cve WHERE cve_id = $1", rec['cve_id'])
                             
+                            # Конвертируем даты в объекты datetime
+                            published_date = None
+                            last_modified_date = None
+                            
+                            if rec.get('published_date'):
+                                if isinstance(rec['published_date'], str):
+                                    try:
+                                        # Убираем часовой пояс для совместимости
+                                        date_str = rec['published_date'].replace('Z', '').replace('+00:00', '')
+                                        published_date = datetime.fromisoformat(date_str)
+                                    except:
+                                        published_date = None
+                                else:
+                                    published_date = rec['published_date']
+                            
+                            if rec.get('last_modified_date'):
+                                if isinstance(rec['last_modified_date'], str):
+                                    try:
+                                        # Убираем часовой пояс для совместимости
+                                        date_str = rec['last_modified_date'].replace('Z', '').replace('+00:00', '')
+                                        last_modified_date = datetime.fromisoformat(date_str)
+                                    except:
+                                        last_modified_date = None
+                                else:
+                                    last_modified_date = rec['last_modified_date']
+                            
                             await conn.execute(query, 
                                 rec['cve_id'], rec.get('description'), rec.get('cvss_v3_base_score'),
                                 rec.get('cvss_v3_base_severity'), rec.get('cvss_v2_base_score'),
                                 rec.get('cvss_v2_base_severity'), rec.get('exploitability_score'),
-                                rec.get('impact_score'), rec.get('published_date'), rec.get('last_modified_date'))
+                                rec.get('impact_score'), published_date, last_modified_date)
                             
                             if existing:
                                 updated_count += 1
@@ -304,29 +327,21 @@ class CVERepository(DatabaseBase):
                                 inserted_count += 1
                                 
                     except Exception as e:
-                        print(f"Error inserting CVE record {rec['cve_id']}: {e}")
                         continue
                 
                 # Показываем прогресс
-                print(f"Обработка CVE: {i + len(batch_records)}/{len(records)} записей")
             
             # Получаем количество записей после вставки
             count_after = await conn.fetchval("SELECT COUNT(*) FROM cve")
-            print(f"CVE records in database after insert: {count_after}")
-            print(f"New CVE records inserted: {inserted_count}")
-            print(f"Existing CVE records updated: {updated_count}")
-            print(f"Total CVE records processed: {len(records)}")
-            print(f"Net change in CVE database: {count_after - count_before}")
             
         except Exception as e:
-            print(f"Error in insert_cve_records: {e}")
             raise e
         finally:
             if conn:
                 try:
                     await conn.close()
                 except Exception as e:
-                    print(f"Error closing connection: {e}")
+                    pass
 
     async def get_cve_by_id(self, cve_id: str):
         """Получить данные CVE по ID"""
@@ -373,91 +388,4 @@ class CVERepository(DatabaseBase):
         finally:
             await self.release_connection(conn)
     
-    async def insert_cve_records(self, records: list):
-        """Вставить записи CVE с улучшенным управлением соединениями"""
-        conn = None
-        try:
-            # Создаем отдельное соединение для массовой вставки
-            conn = await asyncpg.connect(self.database_url)
-            
-            # Устанавливаем схему для vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            # Проверяем, что соединение активно
-            await conn.execute("SELECT 1")
-            
-            # Получаем количество записей до вставки
-            count_before = await conn.fetchval("SELECT COUNT(*) FROM cve")
-            print(f"CVE records in database before insert: {count_before}")
-            
-            inserted_count = 0
-            updated_count = 0
-            
-            # Обрабатываем записи батчами для избежания проблем с соединением
-            batch_size = 1000
-            print(f"Начинаем обработку {len(records)} записей CVE батчами по {batch_size} записей")
-            
-            for i in range(0, len(records), batch_size):
-                batch_records = records[i:i + batch_size]
-                
-                # Проверяем соединение перед каждым батчем
-                try:
-                    await conn.execute("SELECT 1")
-                except Exception as e:
-                    print(f"Connection lost, reconnecting... Error: {e}")
-                    await conn.close()
-                    conn = await asyncpg.connect(self.database_url)
-                
-                query = """
-                    INSERT INTO cve (cve_id, description, cvss_v3_base_score, cvss_v3_base_severity, 
-                                    cvss_v2_base_score, cvss_v2_base_severity, exploitability_score, 
-                                    impact_score, published_date, last_modified_date)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                    ON CONFLICT (cve_id) DO UPDATE SET 
-                        description = $2, cvss_v3_base_score = $3, cvss_v3_base_severity = $4,
-                        cvss_v2_base_score = $5, cvss_v2_base_severity = $6, exploitability_score = $7,
-                        impact_score = $8, published_date = $9, last_modified_date = $10
-                """
-                
-                for rec in batch_records:
-                    try:
-                        # Обрабатываем каждую запись в отдельной транзакции
-                        async with conn.transaction():
-                            # Проверяем, существует ли запись
-                            existing = await conn.fetchval("SELECT cve_id FROM cve WHERE cve_id = $1", rec['cve_id'])
-                            
-                            await conn.execute(query, 
-                                rec['cve_id'], rec.get('description'), rec.get('cvss_v3_base_score'),
-                                rec.get('cvss_v3_base_severity'), rec.get('cvss_v2_base_score'),
-                                rec.get('cvss_v2_base_severity'), rec.get('exploitability_score'),
-                                rec.get('impact_score'), rec.get('published_date'), rec.get('last_modified_date'))
-                            
-                            if existing:
-                                updated_count += 1
-                            else:
-                                inserted_count += 1
-                                
-                    except Exception as e:
-                        print(f"Error inserting CVE record {rec['cve_id']}: {e}")
-                        continue
-                
-                # Показываем прогресс
-                print(f"Обработка CVE: {i + len(batch_records)}/{len(records)} записей")
-            
-            # Получаем количество записей после вставки
-            count_after = await conn.fetchval("SELECT COUNT(*) FROM cve")
-            print(f"CVE records in database after insert: {count_after}")
-            print(f"New CVE records inserted: {inserted_count}")
-            print(f"Existing CVE records updated: {updated_count}")
-            print(f"Total CVE records processed: {len(records)}")
-            print(f"Net change in CVE database: {count_after - count_before}")
-            
-        except Exception as e:
-            print(f"Error in insert_cve_records: {e}")
-            raise e
-        finally:
-            if conn:
-                try:
-                    await conn.close()
-                except Exception as e:
-                    print(f"Error closing connection: {e}")
+
