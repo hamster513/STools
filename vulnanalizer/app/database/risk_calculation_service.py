@@ -500,9 +500,26 @@ class RiskCalculationService(DatabaseBase):
             cve_rows_data = await conn.fetch(cve_query, cve_list)
             cve_data = {row['cve']: row for row in cve_rows_data}
             
-            # Получаем все ExploitDB данные одним batch запросом
-            # В таблице exploitdb нет колонки cve, поэтому пропускаем
-            exploitdb_data = {}
+            # Получаем все ExploitDB данные одним batch запросом (оптимизированно)
+            exploitdb_query = """
+                SELECT DISTINCT split_part(codes, ';', 1) as cve_id, COUNT(*) as exploit_count
+                FROM exploitdb 
+                WHERE codes IS NOT NULL AND codes LIKE 'CVE-%'
+                GROUP BY split_part(codes, ';', 1)
+                LIMIT 10000
+            """
+            try:
+                # Добавляем таймаут для запроса
+                import asyncio
+                exploitdb_rows = await asyncio.wait_for(conn.fetch(exploitdb_query), timeout=30.0)
+                exploitdb_data = {row['cve_id']: row['exploit_count'] for row in exploitdb_rows}
+                print(f"✅ Загружено ExploitDB данных: {len(exploitdb_data)} CVE с эксплойтами")
+            except asyncio.TimeoutError:
+                print("⚠️ Таймаут при загрузке ExploitDB данных, пропускаем анализ эксплойтов")
+                exploitdb_data = {}
+            except Exception as e:
+                print(f"⚠️ Ошибка загрузки ExploitDB данных: {e}")
+                exploitdb_data = {}
             
             print(f"✅ Загружено EPSS данных: {len(epss_data)} из {len(cve_list)} CVE")
             print(f"✅ Загружено CVSS данных: {len(cve_data)} из {len(cve_list)} CVE")
@@ -576,6 +593,10 @@ class RiskCalculationService(DatabaseBase):
                                         risk_raw = risk_result['raw_risk']
                                 except Exception as risk_error:
                                     print(f"⚠️ Error calculating risk for host {host_row['id']}: {risk_error}")
+                            
+                            # Определяем информацию об эксплойтах
+                            exploit_count = exploitdb_data.get(cve, 0)
+                            has_exploits = exploit_count > 0
                             
                             # Обновляем хост
                             update_query = """

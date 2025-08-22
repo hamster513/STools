@@ -22,6 +22,17 @@ services:
       POSTGRES_DB: stools_db
       POSTGRES_USER: stools_user
       POSTGRES_PASSWORD: stools_pass
+      # Увеличиваем лимиты для больших импортов
+      POSTGRES_SHARED_BUFFERS: 2GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 6GB
+      POSTGRES_WORK_MEM: 256MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 1GB
+      POSTGRES_WAL_BUFFERS: 64MB
+      POSTGRES_CHECKPOINT_SEGMENTS: 32
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.9
+      POSTGRES_WAL_KEEP_SEGMENTS: 64
+      POSTGRES_MAX_WAL_SIZE: 4GB
+      POSTGRES_MIN_WAL_SIZE: 1GB
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db:/docker-entrypoint-initdb.d

@@ -506,15 +506,16 @@ async def get_cve_download_urls():
     current_year = datetime.now().year
     urls = []
     
-    for year in range(2010, current_year + 1):
+    # Добавляем ссылки на CVE 2.0 для всех лет с 2002
+    for year in range(2002, current_year + 1):
         urls.append({
-            "year": year,
-            "url": f"https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{year}.json.gz",
-            "filename": f"nvdcve-1.1-{year}.json.gz"
+            "year": f"{year} (CVE 2.0)",
+            "url": f"https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz",
+            "filename": f"nvdcve-2.0-{year}.json.gz"
         })
     
     return {
         "success": True,
         "urls": urls,
-        "note": "Скачайте файлы по ссылкам выше для offline загрузки"
+        "note": "Скачайте файлы по ссылкам выше для offline загрузки. CVE 2.0 - новый формат NVD (2002-2025)."
     }

@@ -135,11 +135,11 @@ class HostsRepository(DatabaseBase):
                 
                 print(f"💾 Обработано записей: {inserted_count:,}/{total_records:,} ({progress_percent:.1f}%)")
             
-            # Этап 3: Расчет рисков (25%)
+            # Этап 3: Анализ эксплойтов и расчет рисков (25%)
             if progress_callback:
-                await progress_callback('calculating_risk', 'Расчет рисков для загруженных хостов...', 75)
+                await progress_callback('calculating_risk', 'Анализ эксплойтов и расчет рисков...', 75)
             
-            print("🔍 Начинаем расчет рисков для загруженных хостов...")
+            print("🔍 Начинаем анализ эксплойтов и расчет рисков для загруженных хостов...")
             
             try:
                 settings_query = "SELECT key, value FROM settings"
@@ -158,20 +158,20 @@ class HostsRepository(DatabaseBase):
             cve_rows = await conn.fetch(cve_query)
             
             if cve_rows:
-                print(f"📊 Найдено {len(cve_rows)} уникальных CVE для расчета риска")
+                print(f"📊 Найдено {len(cve_rows)} уникальных CVE для анализа")
                 
-                print(f"🔄 Начинаем расчет рисков для {len(cve_rows)} CVE...")
+                print(f"🔄 Начинаем анализ эксплойтов и расчет рисков для {len(cve_rows)} CVE...")
                 
                 try:
-                    # Используем надежный расчет рисков для импорта
-                    await self._calculate_risks_during_import(cve_rows, conn, settings, progress_callback)
-                    print("✅ Расчет рисков завершен успешно")
+                    # Используем улучшенный расчет рисков с анализом эксплойтов
+                    await self._calculate_risks_with_exploits_during_import(cve_rows, conn, settings, progress_callback)
+                    print("✅ Анализ эксплойтов и расчет рисков завершен успешно")
                 except Exception as risk_error:
-                    print(f"❌ Ошибка в расчете рисков: {risk_error}")
+                    print(f"❌ Ошибка в анализе эксплойтов и расчете рисков: {risk_error}")
                     import traceback
                     print(f"❌ Детали ошибки: {traceback.format_exc()}")
             else:
-                print("⚠️ Нет CVE для расчета рисков")
+                print("⚠️ Нет CVE для анализа")
             
             # Завершение
             if progress_callback:
@@ -193,9 +193,9 @@ class HostsRepository(DatabaseBase):
             if conn:
                 await conn.close()
 
-    async def _calculate_risks_during_import(self, cve_rows, conn, settings, progress_callback):
-        """Улучшенный расчет рисков во время импорта с полной обработкой всех CVE"""
-        print(f"🔍 Начинаем улучшенный расчет рисков для {len(cve_rows)} CVE")
+    async def _calculate_risks_with_exploits_during_import(self, cve_rows, conn, settings, progress_callback):
+        """Улучшенный расчет рисков во время импорта с анализом эксплойтов"""
+        print(f"🔍 Начинаем анализ эксплойтов и расчет рисков для {len(cve_rows)} CVE")
         
         total_cves = len(cve_rows)
         processed_cves = 0
@@ -213,8 +213,30 @@ class HostsRepository(DatabaseBase):
         cve_rows_data = await conn.fetch(cve_query, cve_list)
         cve_data = {row['cve']: row for row in cve_rows_data}
         
+        # Получаем все ExploitDB данные одним запросом (оптимизированно)
+        exploitdb_query = """
+            SELECT DISTINCT split_part(codes, ';', 1) as cve_id, COUNT(*) as exploit_count
+            FROM exploitdb 
+            WHERE codes IS NOT NULL AND codes LIKE 'CVE-%'
+            GROUP BY split_part(codes, ';', 1)
+            LIMIT 10000
+        """
+        try:
+            # Добавляем таймаут для запроса
+            import asyncio
+            exploitdb_rows = await asyncio.wait_for(conn.fetch(exploitdb_query), timeout=30.0)
+            exploitdb_data = {row['cve_id']: row['exploit_count'] for row in exploitdb_rows}
+            print(f"✅ Загружено ExploitDB данных: {len(exploitdb_data)} CVE с эксплойтами")
+        except asyncio.TimeoutError:
+            print("⚠️ Таймаут при загрузке ExploitDB данных, пропускаем анализ эксплойтов")
+            exploitdb_data = {}
+        except Exception as e:
+            print(f"⚠️ Ошибка загрузки ExploitDB данных: {e}")
+            exploitdb_data = {}
+        
         print(f"✅ Загружено EPSS данных: {len(epss_data)} из {len(cve_list)} CVE")
         print(f"✅ Загружено CVSS данных: {len(cve_data)} из {len(cve_list)} CVE")
+        print(f"✅ Загружено ExploitDB данных: {len(exploitdb_data)} CVE с эксплойтами")
         
         for i, cve_row in enumerate(cve_rows):
             cve = cve_row['cve']
@@ -230,13 +252,15 @@ class HostsRepository(DatabaseBase):
                         processed_cves=i+1,
                         updated_hosts=updated_hosts)
                 
-                # Получаем EPSS данные из кэша
+                # Получаем данные из кэша
                 epss_row = epss_data.get(cve)
                 cve_data_row = cve_data.get(cve)
+                exploit_count = exploitdb_data.get(cve, 0)
+                has_exploits = exploit_count > 0
                 
                 if not epss_row or epss_row['epss'] is None:
                     print(f"⚠️ Нет EPSS данных для {cve}")
-                    continue
+                    # Продолжаем обработку даже без EPSS для обновления информации об эксплойтах
                 
                 # Получаем хосты для этого CVE
                 hosts_query = "SELECT id, cvss, criticality FROM hosts WHERE cve = $1"
@@ -307,18 +331,21 @@ class HostsRepository(DatabaseBase):
                             cvss_score = float(host_row['cvss'])
                             cvss_source = 'Host'
                         
-                        # Обновляем хост
+                        # Обновляем хост с информацией об эксплойтах
                         update_query = """
                             UPDATE hosts SET
                                 cvss = $1,
                                 cvss_source = $2,
                                 epss_score = $3,
                                 epss_percentile = $4,
-                                risk_score = $5,
-                                risk_raw = $6,
-                                epss_updated_at = $7,
-                                risk_updated_at = $8
-                            WHERE id = $9
+                                exploits_count = $5,
+                                has_exploits = $6,
+                                risk_score = $7,
+                                risk_raw = $8,
+                                epss_updated_at = $9,
+                                exploits_updated_at = $10,
+                                risk_updated_at = $11
+                            WHERE id = $12
                         """
                         
                         await conn.execute(update_query,
@@ -326,8 +353,11 @@ class HostsRepository(DatabaseBase):
                             cvss_source,
                             epss_score,
                             float(epss_row['percentile']) if epss_row['percentile'] else None,
+                            exploit_count,
+                            has_exploits,
                             risk_score,
                             raw_risk,
+                            datetime.now(),
                             datetime.now(),
                             datetime.now(),
                             host_row['id']
