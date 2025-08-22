@@ -1,31 +1,50 @@
 /* Стили для статусбаров операций */
 
 .operation-status {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 2px solid #dee2e6;
+    background: linear-gradient(135deg, var(--bg-light, #f8f9fa) 0%, var(--bg-lighter, #e9ecef) 100%);
+    border: 2px solid var(--border-color, #dee2e6);
     border-radius: 12px;
     padding: 16px;
     margin: 12px 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px var(--shadow-color, rgba(0, 0, 0, 0.1));
     transition: all 0.3s ease;
 }
 
 .operation-status.active {
-    border-color: #007bff;
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    border-color: var(--primary-color, #007bff);
+    background: linear-gradient(135deg, var(--primary-light, #e3f2fd) 0%, var(--primary-lighter, #bbdefb) 100%);
+    box-shadow: 0 4px 12px var(--primary-shadow, rgba(0, 123, 255, 0.15));
 }
 
 .operation-status.success {
-    border-color: #28a745;
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+    border-color: var(--success-color, #28a745);
+    background: linear-gradient(135deg, var(--success-light, #d4edda) 0%, var(--success-lighter, #c3e6cb) 100%);
+    box-shadow: 0 4px 12px var(--success-shadow, rgba(40, 167, 69, 0.15));
 }
 
 .operation-status.error {
-    border-color: #dc3545;
-    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.15);
+    border-color: var(--error-color, #dc3545);
+    background: linear-gradient(135deg, var(--error-light, #f8d7da) 0%, var(--error-lighter, #f5c6cb) 100%);
+    box-shadow: 0 4px 12px var(--error-shadow, rgba(220, 53, 69, 0.15));
+}
+
+/* Дополнительные состояния для предотвращения моргания */
+.operation-status.processing {
+    border-color: var(--primary-color, #007bff);
+    background: linear-gradient(135deg, var(--primary-light, #e3f2fd) 0%, var(--primary-lighter, #bbdefb) 100%);
+    box-shadow: 0 4px 12px var(--primary-shadow, rgba(0, 123, 255, 0.15));
+}
+
+.operation-status.initializing {
+    border-color: var(--info-color, #17a2b8);
+    background: linear-gradient(135deg, var(--info-light, #d1ecf1) 0%, var(--info-lighter, #bee5eb) 100%);
+    box-shadow: 0 4px 12px var(--info-shadow, rgba(23, 162, 184, 0.15));
+}
+
+.operation-status.completed {
+    border-color: var(--success-color, #28a745);
+    background: linear-gradient(135deg, var(--success-light, #d4edda) 0%, var(--success-lighter, #c3e6cb) 100%);
+    box-shadow: 0 4px 12px var(--success-shadow, rgba(40, 167, 69, 0.15));
 }
 
 .status-header {
@@ -73,7 +92,7 @@
 }
 
 .operation-progress-bar {
-    background-color: #e9ecef;
+    background-color: var(--progress-bg, #e9ecef);
     border-radius: 8px;
     height: 8px;
     margin: 12px 0 8px 0;
@@ -83,7 +102,7 @@
 }
 
 .operation-progress-fill {
-    background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+    background: linear-gradient(90deg, var(--progress-fill-start, #007bff) 0%, var(--progress-fill-end, #0056b3) 100%);
     height: 100%;
     border-radius: 8px;
     transition: width 0.3s ease;
@@ -115,14 +134,14 @@
     text-align: center;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--text-muted, #6c757d);
     margin-top: 4px;
 }
 
 .operation-step {
     margin-bottom: 8px;
     font-weight: 500;
-    color: #495057;
+    color: var(--text-primary, #495057);
 }
 
 .operation-details {
@@ -140,12 +159,12 @@
 }
 
 .operation-label {
-    color: #6c757d;
+    color: var(--text-muted, #6c757d);
     font-weight: 500;
 }
 
 .operation-item span:last-child {
-    color: #495057;
+    color: var(--text-primary, #495057);
     font-weight: 600;
 }
 

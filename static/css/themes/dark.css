@@ -49,6 +49,41 @@
     --danger-color-dark: #f87171;
     --danger-color-light: #fecaca;
     
+    /* Progress bar colors */
+    --progress-bg: rgba(255, 255, 255, 0.1);
+    --progress-fill-start: #4a4a4a;
+    --progress-fill-end: #666666;
+    
+    /* Background colors for operation status */
+    --bg-light: rgba(255, 255, 255, 0.05);
+    --bg-lighter: rgba(255, 255, 255, 0.1);
+    
+    /* Primary colors for operation status */
+    --primary-light: rgba(74, 74, 74, 0.2);
+    --primary-lighter: rgba(102, 102, 102, 0.2);
+    --primary-shadow: rgba(74, 74, 74, 0.3);
+    
+    /* Success colors for operation status */
+    --success-light: rgba(74, 222, 128, 0.2);
+    --success-lighter: rgba(34, 197, 94, 0.2);
+    --success-shadow: rgba(74, 222, 128, 0.3);
+    
+    /* Error colors for operation status */
+    --error-light: rgba(252, 165, 165, 0.2);
+    --error-lighter: rgba(248, 113, 113, 0.2);
+    --error-shadow: rgba(252, 165, 165, 0.3);
+    
+    /* Info colors for operation status */
+    --info-color: #93c5fd;
+    --info-light: rgba(147, 197, 253, 0.2);
+    --info-lighter: rgba(96, 165, 250, 0.2);
+    --info-shadow: rgba(147, 197, 253, 0.3);
+    
+    /* Text colors for operation status */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.9);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    
     /* Shadows - как в окне авторизации */
     --shadow-sm: 0 8px 25px rgba(0, 0, 0, 0.2);
     --shadow-md: 0 15px 35px rgba(0, 0, 0, 0.3);
@@ -97,6 +132,53 @@
     border-color: var(--primary-color-light);
     transform: translateY(-3px);
     box-shadow: var(--shadow-md);
+}
+
+/* Dark theme styles for operation status */
+.dark-theme h4 {
+    color: var(--text-primary);
+}
+
+.dark-theme .operation-status {
+    background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-lighter) 100%);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-color);
+}
+
+.dark-theme .operation-status.active {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+    box-shadow: var(--primary-shadow);
+}
+
+.dark-theme .operation-status.success {
+    border-color: var(--success-color);
+    background: linear-gradient(135deg, var(--success-light) 0%, var(--success-lighter) 100%);
+    box-shadow: var(--success-shadow);
+}
+
+.dark-theme .operation-status.error {
+    border-color: var(--error-color);
+    background: linear-gradient(135deg, var(--error-light) 0%, var(--error-lighter) 100%);
+    box-shadow: var(--error-shadow);
+}
+
+.dark-theme .operation-status.processing {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+    box-shadow: var(--primary-shadow);
+}
+
+.dark-theme .operation-status.initializing {
+    border-color: var(--info-color);
+    background: linear-gradient(135deg, var(--info-light) 0%, var(--info-lighter) 100%);
+    box-shadow: var(--info-shadow);
+}
+
+.dark-theme .operation-status.completed {
+    border-color: var(--success-color);
+    background: linear-gradient(135deg, var(--success-light) 0%, var(--success-lighter) 100%);
+    box-shadow: var(--success-shadow);
 }
 
 .dark-theme .btn-secondary {
