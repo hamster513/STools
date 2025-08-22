@@ -98,6 +98,32 @@ class SettingsModule {
         }
 
         // Закрытие при клике вне меню настроек
+        
+        // Модальное окно с формулой расчета риска
+        const showFormulaBtn = document.getElementById('show-risk-formula');
+        const closeFormulaBtn = document.getElementById('close-risk-formula');
+        const formulaModal = document.getElementById('risk-formula-modal');
+        
+        if (showFormulaBtn) {
+            showFormulaBtn.addEventListener('click', () => {
+                this.showRiskFormulaModal();
+            });
+        }
+        
+        if (closeFormulaBtn) {
+            closeFormulaBtn.addEventListener('click', () => {
+                this.hideRiskFormulaModal();
+            });
+        }
+        
+        // Закрытие модального окна при клике вне его
+        if (formulaModal) {
+            formulaModal.addEventListener('click', (e) => {
+                if (e.target === formulaModal) {
+                    this.hideRiskFormulaModal();
+                }
+            });
+        }
         document.addEventListener('click', (e) => {
             if (settingsToggle && !settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
                 settingsDropdown.classList.remove('show');
@@ -406,6 +432,23 @@ class SettingsModule {
             }
         } catch (error) {
             console.error('Error loading app version:', error);
+        }
+    }
+
+    // Методы для работы с модальным окном формулы
+    showRiskFormulaModal() {
+        const modal = document.getElementById('risk-formula-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Блокируем прокрутку страницы
+        }
+    }
+
+    hideRiskFormulaModal() {
+        const modal = document.getElementById('risk-formula-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Восстанавливаем прокрутку страницы
         }
     }
 }

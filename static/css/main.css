@@ -22,6 +22,7 @@
 @import url('./components/sidebar.css');
 @import url('./components/content.css');
 @import url('./components/modals.css');
+@import url('./components/operation-status.css');
 @import url('./components/alerts.css');
 @import url('./components/progress.css');
 

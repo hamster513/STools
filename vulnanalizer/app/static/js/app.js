@@ -51,6 +51,10 @@ class VulnAnalizer {
         if (typeof HostsModule !== 'undefined') {
             this.hostsModule = new HostsModule(this);
         }
+        
+        if (typeof SettingsModule !== 'undefined') {
+            this.settingsModule = new SettingsModule(this);
+        }
     }
 
     init() {

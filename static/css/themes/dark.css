@@ -250,10 +250,36 @@
 }
 
 .dark-theme .modal {
-    background: var(--surface-color);
-    backdrop-filter: var(--backdrop-blur);
-    border-color: var(--border-color);
-    box-shadow: var(--shadow-xl);
+    background: var(--bg-dark, #1a1a1a);
+}
+
+.dark-theme .modal-content {
+    background: var(--bg-darker, #2d2d2d);
+    border-color: var(--border-color, #404040);
+}
+
+.dark-theme .modal-header h3,
+.dark-theme .formula-section h4,
+.dark-theme .formula-section h5,
+.dark-theme .formula-text,
+.dark-theme .formula-note,
+.dark-theme .example-data p,
+.dark-theme .example-data li,
+.dark-theme .example-calculation p,
+.dark-theme .calculation-steps .step,
+.dark-theme .risk-level .level-name,
+.dark-theme .risk-level .level-range {
+    color: var(--text-primary, #ffffff);
+}
+
+.dark-theme .formula-box {
+    background: linear-gradient(135deg, var(--bg-dark, #1a1a1a) 0%, var(--bg-darker, #2d2d2d) 100%);
+    border-color: var(--border-color, #404040);
+}
+
+.dark-theme .weight-group ul li,
+.dark-theme .example-box {
+    color: var(--text-secondary, #cccccc);
 }
 
 .dark-theme .dropdown-menu {

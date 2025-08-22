@@ -4,7 +4,6 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
-    <link rel="stylesheet" href="/static/css/components/operation-status.css?v=1.0">
 {% endblock %}
 
 {% block ui_manager_js %}
@@ -266,7 +265,12 @@
 
                 <!-- Настройки Impact -->
                 <div class="content-block">
-                    <h3><i class="fas fa-chart-line"></i> Расчет риска (Impact)</h3>
+                    <h3>
+                        <i class="fas fa-chart-line"></i> Расчет риска (Impact)
+                        <button type="button" class="btn btn-link btn-sm formula-btn" id="show-risk-formula" title="Показать формулу расчета">
+                            <i class="fas fa-square-root-alt"></i>
+                        </button>
+                    </h3>
                     <form id="impact-form">
                         <div class="form-group">
                             <label for="impact-resource-criticality">Критичность ресурса:</label>
@@ -501,6 +505,113 @@
         </div>
     </div>
 </main>
+
+<!-- Модальное окно с формулой расчета риска -->
+<div id="risk-formula-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-square-root-alt"></i> Формула расчета риска</h3>
+            <button type="button" class="modal-close" id="close-risk-formula">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="formula-section">
+                <h4>🎯 Основная формула</h4>
+                <div class="formula-box">
+                    <div class="formula-main">
+                        <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact</span>
+                    </div>
+                    <div class="formula-note">
+                        Где: <strong>Risk</strong> - итоговый риск в процентах (0-100%)
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-section">
+                <h4>📊 Расчет Impact</h4>
+                <div class="formula-box">
+                    <div class="formula-main">
+                        <span class="formula-text">Impact = Resource_Criticality + Confidential_Data + Internet_Access</span>
+                    </div>
+                </div>
+                
+                <div class="impact-weights">
+                    <div class="weight-group">
+                        <h5>⚖️ Критичность ресурса:</h5>
+                        <ul>
+                            <li><strong>Critical:</strong> 0.33</li>
+                            <li><strong>High:</strong> 0.25</li>
+                            <li><strong>Medium:</strong> 0.15</li>
+                            <li><strong>None:</strong> 0.1</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="weight-group">
+                        <h5>🔒 Конфиденциальные данные:</h5>
+                        <ul>
+                            <li><strong>Есть:</strong> 0.33</li>
+                            <li><strong>Отсутствуют:</strong> 0.1</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="weight-group">
+                        <h5>🌐 Доступ из интернета:</h5>
+                        <ul>
+                            <li><strong>Доступен:</strong> 0.33</li>
+                            <li><strong>Недоступен:</strong> 0.1</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-section">
+                <h4>📈 Пример расчета</h4>
+                <div class="example-box">
+                    <div class="example-data">
+                        <p><strong>Исходные данные:</strong></p>
+                        <ul>
+                            <li>EPSS = 0.5 (50% вероятность эксплуатации)</li>
+                            <li>CVSS = 8.0 (высокая критичность)</li>
+                            <li>Критичность ресурса = Critical (0.33)</li>
+                            <li>Конфиденциальные данные = Есть (0.33)</li>
+                            <li>Доступ из интернета = Доступен (0.33)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="example-calculation">
+                        <p><strong>Расчет:</strong></p>
+                        <div class="calculation-steps">
+                            <div class="step">1. Impact = 0.33 + 0.33 + 0.33 = <strong>0.99</strong></div>
+                            <div class="step">2. Risk = 0.5 × (8.0 ÷ 10) × 0.99 = <strong>0.396</strong></div>
+                            <div class="step">3. Risk Score = min(1, 0.396) × 100 = <strong>39.6%</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-section">
+                <h4>🎚️ Шкала риска</h4>
+                <div class="risk-scale">
+                    <div class="risk-level low">
+                        <span class="level-name">Низкий риск</span>
+                        <span class="level-range">0-20%</span>
+                    </div>
+                    <div class="risk-level medium">
+                        <span class="level-name">Средний риск</span>
+                        <span class="level-range">20-40%</span>
+                    </div>
+                    <div class="risk-level high">
+                        <span class="level-name">Высокий риск</span>
+                        <span class="level-range">40-70%</span>
+                    </div>
+                    <div class="risk-level critical">
+                        <span class="level-name">Критический риск</span>
+                        <span class="level-range">70-100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Уведомления -->
 <div id="notifications" class="notifications"></div>
