@@ -319,3 +319,93 @@
     border-radius: var(--border-radius);
     font-size: 0.875rem;
 }
+
+/* Общие стили для всех таблиц предварительного просмотра */
+.epss-table-container,
+.exploitdb-table-container,
+.cve-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.epss-table,
+.exploitdb-table,
+.cve-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.epss-table th,
+.epss-table td,
+.exploitdb-table th,
+.exploitdb-table td,
+.cve-table th,
+.cve-table td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.epss-table th,
+.exploitdb-table th,
+.cve-table th {
+    background: var(--surface-color);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.epss-table tr:hover,
+.exploitdb-table tr:hover,
+.cve-table tr:hover {
+    background: var(--hover-color);
+}
+
+/* Стили для EPSS */
+.epss-score {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.epss-percentile {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Стили для ExploitDB */
+.exploit-verified {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.exploit-verified.true {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.exploit-verified.false {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Стили для CVE */
+.cvss-score {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.cvss-critical { background: #fee2e2; color: #991b1b; }
+.cvss-high { background: #fef3c7; color: #92400e; }
+.cvss-medium { background: #dbeafe; color: #1e40af; }
+.cvss-low { background: #d1fae5; color: #065f46; }
+.cvss-none { background: #f3f4f6; color: #374151; }

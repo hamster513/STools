@@ -73,6 +73,24 @@ class VulnAnalizer {
         } else {
             console.warn('MetasploitModalModule не найден!');
         }
+        
+        if (typeof EPSSModalModule !== 'undefined') {
+            this.epssModal = new EPSSModalModule(this);
+        } else {
+            console.warn('EPSSModalModule не найден!');
+        }
+        
+        if (typeof ExploitDBModalModule !== 'undefined') {
+            this.exploitdbModal = new ExploitDBModalModule(this);
+        } else {
+            console.warn('ExploitDBModalModule не найден!');
+        }
+        
+        if (typeof CVEPreviewModalModule !== 'undefined') {
+            this.cvePreviewModal = new CVEPreviewModalModule(this);
+        } else {
+            console.warn('CVEPreviewModalModule не найден!');
+        }
     }
 
     init() {

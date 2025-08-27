@@ -519,6 +519,52 @@ async def get_cve_download_urls():
         return {"success": False, "error": str(e)}
 
 
+@router.get("/api/cve/preview")
+async def get_cve_preview():
+    """Получить первые 20 записей CVE для предварительного просмотра"""
+    try:
+        db = get_db()
+        
+        # Получаем первые 20 записей из базы данных
+        query = """
+            SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity, 
+                   cvss_v2_base_score, cvss_v2_base_severity, published_date, last_modified_date,
+                   created_at
+            FROM vulnanalizer.cve 
+            ORDER BY created_at DESC 
+            LIMIT 20
+        """
+        
+        conn = await db.get_connection()
+        try:
+            results = await conn.fetch(query)
+        finally:
+            await db.release_connection(conn)
+        
+        # Конвертируем результаты в список словарей
+        records = []
+        for row in results:
+            records.append({
+                "cve_id": row['cve_id'],
+                "description": row['description'],
+                "cvss_v3_score": row['cvss_v3_base_score'],
+                "cvss_v3_severity": row['cvss_v3_base_severity'],
+                "cvss_v2_score": row['cvss_v2_base_score'],
+                "cvss_v2_severity": row['cvss_v2_base_severity'],
+                "published_date": row['published_date'].isoformat() if row['published_date'] else None,
+                "last_modified_date": row['last_modified_date'].isoformat() if row['last_modified_date'] else None,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+        
+        return {
+            "success": True,
+            "records": records,
+            "count": len(records)
+        }
+    except Exception as e:
+        print(f"Error getting CVE preview: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/api/cve/{cve_id}/description")
 async def get_cve_description(cve_id: str):
     """Получить описание CVE по ID"""

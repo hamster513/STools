@@ -29,6 +29,14 @@ class EPSSModule {
                 await this.downloadEPSS();
             });
         }
+
+        // Кнопка просмотра данных
+        const epssPreviewBtn = document.getElementById('epss-preview-btn');
+        if (epssPreviewBtn) {
+            epssPreviewBtn.addEventListener('click', () => {
+                this.showEPSSPreview();
+            });
+        }
     }
 
     async updateStatus() {
@@ -291,6 +299,15 @@ class EPSSModule {
                 ${errorHtml}
             </div>
         `;
+    }
+
+    showEPSSPreview() {
+        // Показываем модальное окно через основной класс приложения
+        if (this.app.epssModal) {
+            this.app.epssModal.show();
+        } else {
+            console.error('EPSSModal not found in app');
+        }
     }
 }
 

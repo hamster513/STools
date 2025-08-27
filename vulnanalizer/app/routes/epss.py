@@ -180,6 +180,47 @@ async def epss_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/api/epss/preview")
+async def get_epss_preview():
+    """Получить первые 20 записей EPSS для предварительного просмотра"""
+    try:
+        db = get_db()
+        
+        # Получаем первые 20 записей из базы данных
+        query = """
+            SELECT cve, epss, percentile, cvss, date, created_at
+            FROM vulnanalizer.epss 
+            ORDER BY created_at DESC 
+            LIMIT 20
+        """
+        
+        conn = await db.get_connection()
+        try:
+            results = await conn.fetch(query)
+        finally:
+            await db.release_connection(conn)
+        
+        # Конвертируем результаты в список словарей
+        records = []
+        for row in results:
+            records.append({
+                "cve": row['cve'],
+                "epss": float(row['epss']),
+                "percentile": float(row['percentile']),
+                "cvss": float(row['cvss']) if row['cvss'] else None,
+                "date": row['date'].isoformat() if row['date'] else None,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+        
+        return {
+            "success": True,
+            "records": records,
+            "count": len(records)
+        }
+    except Exception as e:
+        print(f"Error getting EPSS preview: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/epss/clear")
 async def clear_epss():
     """Очистить все EPSS данные"""

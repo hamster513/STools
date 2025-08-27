@@ -45,6 +45,14 @@ class CVEModule {
                 await this.getDownloadUrls();
             });
         }
+
+        // Кнопка просмотра данных
+        const cvePreviewBtn = document.getElementById('cve-preview-btn');
+        if (cvePreviewBtn) {
+            cvePreviewBtn.addEventListener('click', () => {
+                this.showCVEPreview();
+            });
+        }
     }
 
     async updateStatus() {
@@ -369,6 +377,15 @@ class CVEModule {
                 ${errorHtml}
             </div>
         `;
+    }
+
+    showCVEPreview() {
+        // Показываем модальное окно через основной класс приложения
+        if (this.app.cvePreviewModal) {
+            this.app.cvePreviewModal.show();
+        } else {
+            console.error('CVEPreviewModal not found in app');
+        }
     }
 }
 
