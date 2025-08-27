@@ -320,14 +320,16 @@ class SettingsModule {
             const data = await this.app.api.clearHosts();
 
             if (data.success) {
-                this.app.notifications.show('Таблица хостов очищена успешно!', 'success');
-                this.app.hosts.updateStatus();
+                window.notifications.show('Таблица хостов очищена успешно!', 'success');
+                if (this.app.hostsModule) {
+                    this.app.hostsModule.updateStatus();
+                }
             } else {
-                this.app.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
+                window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
             console.error('Clear hosts error:', error);
-            this.app.notifications.show('Ошибка очистки хостов', 'error');
+            window.notifications.show('Ошибка очистки хостов', 'error');
         } finally {
             const btn = document.getElementById('clear-hosts-btn');
             btn.innerHTML = '<i class="fas fa-trash"></i> Очистить хосты';
@@ -349,14 +351,16 @@ class SettingsModule {
             const data = await this.app.api.clearEPSS();
 
             if (data.success) {
-                this.app.notifications.show('Таблица EPSS очищена успешно!', 'success');
-                this.app.epss.updateStatus();
+                window.notifications.show('Таблица EPSS очищена успешно!', 'success');
+                if (this.app.epssModule) {
+                    this.app.epssModule.updateStatus();
+                }
             } else {
-                this.app.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
+                window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
             console.error('Clear EPSS error:', error);
-            this.app.notifications.show('Ошибка очистки EPSS', 'error');
+            window.notifications.show('Ошибка очистки EPSS', 'error');
         } finally {
             const btn = document.getElementById('clear-epss-btn');
             btn.innerHTML = '<i class="fas fa-trash"></i> Очистить EPSS';
@@ -378,14 +382,16 @@ class SettingsModule {
             const data = await this.app.api.clearExploitDB();
 
             if (data.success) {
-                this.app.notifications.show('Таблица ExploitDB очищена успешно!', 'success');
-                this.app.exploitdb.updateStatus();
+                window.notifications.show('Таблица ExploitDB очищена успешно!', 'success');
+                if (this.app.exploitdbModule) {
+                    this.app.exploitdbModule.updateStatus();
+                }
             } else {
-                this.app.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
+                window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
             console.error('Clear ExploitDB error:', error);
-            this.app.notifications.show('Ошибка очистки ExploitDB', 'error');
+            window.notifications.show('Ошибка очистки ExploitDB', 'error');
         } finally {
             const btn = document.getElementById('clear-exploitdb-btn');
             btn.innerHTML = '<i class="fas fa-trash"></i> Очистить ExploitDB';
@@ -407,14 +413,16 @@ class SettingsModule {
             const data = await this.app.api.clearCVE();
 
             if (data.success) {
-                this.app.notifications.show('Таблица CVE очищена успешно!', 'success');
-                this.app.cve.updateStatus();
+                window.notifications.show('Таблица CVE очищена успешно!', 'success');
+                if (this.app.cveModule) {
+                    this.app.cveModule.updateStatus();
+                }
             } else {
-                this.app.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
+                window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
             console.error('Clear CVE error:', error);
-            this.app.notifications.show('Ошибка очистки CVE', 'error');
+            window.notifications.show('Ошибка очистки CVE', 'error');
         } finally {
             const btn = document.getElementById('clear-cve-btn');
             btn.innerHTML = '<i class="fas fa-trash"></i> Очистить CVE';

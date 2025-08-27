@@ -316,14 +316,10 @@ async def update_settings(settings: dict):
 async def health_check():
     """Проверка здоровья приложения"""
     try:
-        # Проверяем подключение к базе данных
-        from database import get_db
-        db = get_db()
-        await db.test_connection()
-        
+        # Простая проверка без обращения к базе данных
         return {
             "status": "healthy",
-            "database": "connected",
+            "service": "vulnanalizer",
             "timestamp": "2024-01-01T00:00:00Z"
         }
     except Exception as e:

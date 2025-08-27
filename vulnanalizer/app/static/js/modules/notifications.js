@@ -223,3 +223,6 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
     window.NotificationsModule = NotificationsModule;
 }
+
+// Создаем глобальный экземпляр
+window.notifications = new NotificationsModule();

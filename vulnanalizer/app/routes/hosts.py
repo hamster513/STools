@@ -452,7 +452,7 @@ async def start_background_update_parallel():
         
         # Проверяем, не запущена ли уже задача
         existing_task = await db.get_background_task_by_type('hosts_update')
-        if existing_task and existing_task['status'] in ['processing', 'inserting']:
+        if existing_task and existing_task['status'] in ['processing', 'inserting', 'running', 'initializing']:
             return {"success": False, "message": "Обновление уже запущено"}
         
         # Создаем фоновую задачу для воркера

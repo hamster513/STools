@@ -175,11 +175,11 @@ class HostsModule {
                 const groupBy = formData.get('group_by') || '';
                 this.renderResults(data.results, groupBy, data);
             } else {
-                this.app.notifications.show('Ошибка поиска хостов', 'error');
+                window.notifications.show('Ошибка поиска хостов', 'error');
             }
         } catch (err) {
             console.error('Hosts search error:', err);
-            this.app.notifications.show('Ошибка поиска хостов', 'error');
+            window.notifications.show('Ошибка поиска хостов', 'error');
         }
     }
 
@@ -528,13 +528,13 @@ class HostsModule {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 
-                this.app.notifications.show('Экспорт завершен успешно!', 'success');
+                window.notifications.show('Экспорт завершен успешно!', 'success');
             } else {
-                this.app.notifications.show(`Ошибка экспорта: ${response.error}`, 'error');
+                window.notifications.show(`Ошибка экспорта: ${response.error}`, 'error');
             }
         } catch (error) {
             console.error('Export error:', error);
-            this.app.notifications.show('Ошибка экспорта: ' + error.message, 'error');
+            window.notifications.show('Ошибка экспорта: ' + error.message, 'error');
         } finally {
             // Восстанавливаем кнопку
             const exportBtn = document.getElementById('export-hosts');
@@ -546,7 +546,7 @@ class HostsModule {
     async uploadHosts() {
         const fileInput = document.getElementById('hosts-file');
         if (!fileInput.files.length) {
-            this.app.notifications.show('Выберите файл для загрузки', 'warning');
+            window.notifications.show('Выберите файл для загрузки', 'warning');
             return;
         }
         
@@ -556,7 +556,7 @@ class HostsModule {
         // Проверяем размер файла (максимум 2GB)
         const maxFileSize = 2 * 1024 * 1024 * 1024;
         if (file.size > maxFileSize) {
-            this.app.notifications.show(`Файл слишком большой (${fileSizeMB} МБ). Максимальный размер: 2 ГБ.`, 'error');
+            window.notifications.show(`Файл слишком большой (${fileSizeMB} МБ). Максимальный размер: 2 ГБ.`, 'error');
             return;
         }
         
@@ -590,7 +590,7 @@ class HostsModule {
                 // НЕ останавливаем мониторинг прогресса - он будет отслеживать фоновую обработку
                 // clearInterval(progressInterval); // УБИРАЕМ ЭТУ СТРОКУ
                 
-                this.app.notifications.show('Файл загружен. Обработка запущена в фоновом режиме.', 'success');
+                window.notifications.show('Файл загружен. Обработка запущена в фоновом режиме.', 'success');
                 this.updateStatus();
                 fileInput.value = '';
                 
@@ -607,7 +607,7 @@ class HostsModule {
                 clearInterval(progressInterval);
                 
                 this.updateImportProgress('error', 'Ошибка импорта', 0, 0, 0, 0, data.detail || 'Неизвестная ошибка');
-                this.app.notifications.show('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), 'error');
+                window.notifications.show('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), 'error');
                 
                 // Скрываем прогресс-бар через 3 секунды
                 setTimeout(() => {
@@ -625,7 +625,7 @@ class HostsModule {
             }
             
             this.updateImportProgress('error', 'Ошибка импорта', 0, 0, 0, 0, errorMessage);
-            this.app.notifications.show('Ошибка импорта: ' + errorMessage, 'error');
+            window.notifications.show('Ошибка импорта: ' + errorMessage, 'error');
             
             // Скрываем прогресс-бар через 3 секунды
             setTimeout(() => {
@@ -647,10 +647,10 @@ class HostsModule {
         const btnText = updateHostsParallelBtn.querySelector('.btn-text');
         const spinner = updateHostsParallelBtn.querySelector('.fa-spinner');
         
-        // Показываем индикатор загрузки
+        // Блокируем кнопку сразу при нажатии
+        updateHostsParallelBtn.disabled = true;
         btnText.textContent = 'Запуск...';
         spinner.style.display = 'inline-block';
-        updateHostsParallelBtn.disabled = true;
         
         // Показываем кнопку отмены
         const cancelUpdateBtn = document.getElementById('cancel-update-btn');
@@ -665,35 +665,46 @@ class HostsModule {
             const data = await this.app.api.startBackgroundUpdate();
             
             if (data.success) {
-                this.app.notifications.show('Обновление запущено', 'success');
+                window.notifications.show('Обновление запущено', 'success');
                 this.updateStatus();
                 
                 // Если процесс завершился сразу, скрываем кнопку отмены
                 if (cancelUpdateBtn) {
                     cancelUpdateBtn.style.display = 'none';
                 }
+                
+                // Восстанавливаем кнопку только если задача не запустилась
+                btnText.textContent = 'Полное обновление';
+                spinner.style.display = 'none';
+                updateHostsParallelBtn.disabled = false;
             } else {
-                this.app.notifications.show(data.message, 'error');
+                window.notifications.show(data.message, 'error');
                 
                 // При ошибке также скрываем кнопку отмены
                 if (cancelUpdateBtn) {
                     cancelUpdateBtn.style.display = 'none';
                 }
+                
+                // Восстанавливаем кнопку при ошибке
+                btnText.textContent = 'Полное обновление';
+                spinner.style.display = 'none';
+                updateHostsParallelBtn.disabled = false;
             }
         } catch (err) {
             console.error('Background update error:', err);
-            this.app.notifications.show('Ошибка запуска обновления', 'error');
+            window.notifications.show('Ошибка запуска обновления', 'error');
             
             // При ошибке скрываем кнопку отмены
             if (cancelUpdateBtn) {
                 cancelUpdateBtn.style.display = 'none';
             }
-        } finally {
-            // Восстанавливаем кнопку
+            
+            // Восстанавливаем кнопку при ошибке
             btnText.textContent = 'Полное обновление';
             spinner.style.display = 'none';
             updateHostsParallelBtn.disabled = false;
         }
+        // Убираем finally блок - кнопка восстанавливается только при ошибке или если задача не запустилась
     }
 
     async cancelBackgroundUpdate() {
@@ -701,17 +712,17 @@ class HostsModule {
             const data = await this.app.api.cancelBackgroundUpdate();
             
             if (data.success) {
-                this.app.notifications.show(data.message, 'info');
+                window.notifications.show(data.message, 'info');
                 const cancelUpdateBtn = document.getElementById('cancel-update-btn');
                 if (cancelUpdateBtn) {
                     cancelUpdateBtn.style.display = 'none';
                 }
             } else {
-                this.app.notifications.show(data.message, 'warning');
+                window.notifications.show(data.message, 'warning');
             }
         } catch (err) {
             console.error('Cancel update error:', err);
-            this.app.notifications.show('Ошибка отмены обновления', 'error');
+            window.notifications.show('Ошибка отмены обновления', 'error');
         }
     }
 
@@ -885,7 +896,7 @@ class HostsModule {
         }
 
         if (errorMessage) {
-            this.app.notifications.show('Ошибка: ' + errorMessage, 'error');
+            window.notifications.show('Ошибка: ' + errorMessage, 'error');
         }
     }
 
@@ -920,9 +931,9 @@ class HostsModule {
                         
                         // Показываем уведомление о завершении
                         if (data.status === 'completed') {
-                            this.app.notifications.show(`Импорт завершен: ${data.processed_records || 0} записей`, 'success');
+                            window.notifications.show(`Импорт завершен: ${data.processed_records || 0} записей`, 'success');
                         } else if (data.status === 'error') {
-                            this.app.notifications.show(`Ошибка импорта: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
+                            window.notifications.show(`Ошибка импорта: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
                         }
                         
                         // Скрываем прогресс-бар через 3 секунды
@@ -1010,7 +1021,7 @@ class HostsModule {
         }
 
         if (data.error_message && data.status !== 'cancelled' && !data.error_message.toLowerCase().includes('отменено')) {
-            this.app.notifications.show('Ошибка: ' + data.error_message, 'error');
+            window.notifications.show('Ошибка: ' + data.error_message, 'error');
         }
 
         if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
@@ -1052,11 +1063,11 @@ class HostsModule {
                         
                         // Показываем уведомление о завершении только если это новое завершение
                         if (data.status === 'completed' && !this.lastNotifiedCompletionTime) {
-                            this.app.notifications.show(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
+                            window.notifications.show(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
                             this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
                             localStorage.setItem('hosts_last_notification_time', this.lastNotifiedCompletionTime);
                         } else if (data.status === 'error' && !this.lastNotifiedCompletionTime) {
-                            this.app.notifications.show(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
+                            window.notifications.show(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
                             this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
                             localStorage.setItem('hosts_last_notification_time', this.lastNotifiedCompletionTime);
                         }
