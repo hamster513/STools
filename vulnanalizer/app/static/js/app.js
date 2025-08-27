@@ -58,6 +58,8 @@ class VulnAnalizer {
         
         if (typeof CVEModalModule !== 'undefined') {
             this.cveModal = new CVEModalModule(this);
+        } else {
+            console.warn('CVEModalModule не найден!');
         }
     }
 
@@ -1243,6 +1245,9 @@ class VulnAnalizer {
     }
 
     async searchHosts(page = 1) {
+        // Отключаем дублирующий поиск - используем hosts.js
+        return;
+        
         const form = document.getElementById('hosts-search-form');
         const resultsDiv = document.getElementById('hosts-search-results');
         

@@ -6,7 +6,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: transparent;
     display: grid;
     place-items: center;
     z-index: 1000;
@@ -105,11 +105,15 @@
 #cve-modal {
     position: fixed;
     z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    top: 50%;
+    left: calc(var(--sidebar-width) + 10%);
+    right: 10%;
+    transform: translateY(-50%);
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    max-height: 90vh;
+    overflow: hidden;
     display: none;
 }
 
@@ -220,20 +224,18 @@
 /* Clickable CVE styles */
 .cve-link {
     color: var(--primary-color);
-    text-decoration: none;
+    text-decoration: underline;
     cursor: pointer;
-    transition: all var(--transition-speed);
-    border-bottom: 1px solid transparent;
+    font-weight: 500;
 }
 
 .cve-link:hover {
-    color: var(--primary-color-dark);
-    border-bottom-color: var(--primary-color);
-    text-decoration: none;
+    color: var(--primary-hover);
+    text-decoration: underline;
 }
 
 .cve-link:active {
-    color: var(--primary-color-darker);
+    color: var(--text-primary);
 }
 
 /* Modal variants */

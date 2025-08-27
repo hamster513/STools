@@ -617,39 +617,37 @@
 <div id="notifications" class="notifications"></div>
 
 <!-- Модальное окно для описания CVE -->
-<div id="cve-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="cve-modal-title">Описание CVE</h3>
-            <span class="close" id="cve-modal-close">&times;</span>
+<div id="cve-modal" class="modal-content" style="display: none;">
+    <div class="modal-header">
+        <h3 id="cve-modal-title">Описание CVE</h3>
+        <span class="close" id="cve-modal-close">&times;</span>
+    </div>
+    <div class="modal-body">
+        <div id="cve-modal-loading" style="text-align: center; padding: 2rem;">
+            <i class="fas fa-spinner fa-spin"></i> Загрузка...
         </div>
-        <div class="modal-body">
-            <div id="cve-modal-loading" style="text-align: center; padding: 2rem;">
-                <i class="fas fa-spinner fa-spin"></i> Загрузка...
-            </div>
-            <div id="cve-modal-content" style="display: none;">
-                <div class="cve-info">
-                    <div class="cve-header">
-                        <h4 id="cve-id"></h4>
-                        <div class="cve-scores">
-                            <div id="cvss-v3-info" class="cvss-info"></div>
-                            <div id="cvss-v2-info" class="cvss-info"></div>
-                        </div>
-                    </div>
-                    <div class="cve-dates">
-                        <div id="published-date" class="cve-date"></div>
-                        <div id="modified-date" class="cve-date"></div>
-                    </div>
-                    <div class="cve-description">
-                        <h5>Описание:</h5>
-                        <p id="cve-description-text"></p>
+        <div id="cve-modal-content" style="display: none;">
+            <div class="cve-info">
+                <div class="cve-header">
+                    <h4 id="cve-id"></h4>
+                    <div class="cve-scores">
+                        <div id="cvss-v3-info" class="cvss-info"></div>
+                        <div id="cvss-v2-info" class="cvss-info"></div>
                     </div>
                 </div>
+                <div class="cve-dates">
+                    <div id="published-date" class="cve-date"></div>
+                    <div id="modified-date" class="cve-date"></div>
+                </div>
+                <div class="cve-description">
+                    <h5>Описание:</h5>
+                    <p id="cve-description-text"></p>
+                </div>
             </div>
-            <div id="cve-modal-error" style="display: none; text-align: center; color: var(--error-color);">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p id="cve-error-message"></p>
-            </div>
+        </div>
+        <div id="cve-modal-error" style="display: none; text-align: center; color: var(--error-color);">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p id="cve-error-message"></p>
         </div>
     </div>
 </div>
@@ -658,7 +656,7 @@
     <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
 <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
 <script src="/vulnanalizer/static/js/modules/auth.js?v=2.0"></script>
-    <script src="/vulnanalizer/static/js/modules/hosts.js?v=3.3"></script>
+            <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.0"></script>
 <script src="/vulnanalizer/static/js/modules/epss.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/exploitdb.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/cve.js?v=2.0"></script>

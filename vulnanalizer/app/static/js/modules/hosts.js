@@ -18,6 +18,9 @@ class HostsModule {
         this.setupEventListeners();
         this.updateStatus();
         this.checkActiveImportTasks(); // Проверяем активные задачи импорта
+        
+        // Отслеживаем изменения innerHTML в hosts-search-results
+        this.trackInnerHTMLChanges();
     }
 
     setupEventListeners() {
@@ -184,8 +187,18 @@ class HostsModule {
     }
 
     renderResults(hosts, groupBy = '', paginationData = null) {
+        // Защита от повторных вызовов
+        if (this.isRendering) {
+            return;
+        }
+        
+        this.isRendering = true;
+        
         const resultsDiv = document.getElementById('hosts-search-results');
-        if (!resultsDiv) return;
+        if (!resultsDiv) {
+            this.isRendering = false;
+            return;
+        }
         
         if (!hosts || hosts.length === 0) {
             resultsDiv.innerHTML = `
@@ -262,8 +275,21 @@ class HostsModule {
         
         resultsDiv.innerHTML = html;
         
+        // Проверяем, что вставилось
+        setTimeout(() => {
+            // Ищем CVE ссылки в вставленном HTML
+            const cveLinks = resultsDiv.querySelectorAll('.cve-link');
+            
+            if (cveLinks.length === 0) {
+                console.warn('CVE ссылки не найдены в DOM после вставки!');
+            }
+        }, 100);
+        
         // Отображаем пагинацию
         this.renderPagination();
+        
+        // Снимаем блокировку
+        this.isRendering = false;
     }
 
     groupHosts(hosts, groupBy) {
@@ -367,7 +393,7 @@ class HostsModule {
                 <div class="host-criticality">
                     <span class="${criticalityClass}">${host.criticality}</span>
                 </div>
-                <div class="host-cve">${this.app.cveModal ? this.app.cveModal.createCVELink(host.cve) : host.cve}</div>
+                <div class="host-cve">${this.createCVELink(host.cve)}</div>
                 <div class="host-cvss">
                     ${host.cvss ? 
                         (host.cvss_source && host.cvss_source.includes('v2') ? 
@@ -390,6 +416,47 @@ class HostsModule {
                 <div class="host-risk" id="host-risk-${host.id}">${riskDisplay}</div>
             </div>
         `;
+    }
+
+    createCVELink(cveId) {
+        if (!cveId) return 'N/A';
+        
+        // Проверяем, доступен ли модуль CVE
+        if (this.app.cveModal && typeof this.app.cveModal.createCVELink === 'function') {
+            return this.app.cveModal.createCVELink(cveId);
+        }
+        
+        // Fallback - создаем простую ссылку
+        return `<span class="cve-link" onclick="if(window.vulnAnalizer && window.vulnAnalizer.cveModal) { window.vulnAnalizer.cveModal.show('${cveId}'); }">${cveId}</span>`;
+    }
+
+    trackInnerHTMLChanges() {
+        const resultsDiv = document.getElementById('hosts-search-results');
+        if (!resultsDiv) return;
+        
+        // Создаем наблюдатель за изменениями
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    // Проверяем CVE ссылки после изменения
+                    setTimeout(() => {
+                        const cveLinks = resultsDiv.querySelectorAll('.cve-link');
+                        
+                        if (cveLinks.length === 0) {
+                            console.warn('CVE ссылки исчезли после изменения DOM!');
+                        }
+                    }, 50);
+                }
+            });
+        });
+        
+        // Начинаем наблюдение
+        observer.observe(resultsDiv, {
+            childList: true,
+            subtree: true
+        });
+        
+
     }
 
     clearResults() {

@@ -2,16 +2,16 @@
 
 .dark-theme {
     /* Colors - основаны на палитре окна авторизации */
-    --primary-color: #4a4a4a;
-    --primary-color-dark: #2d2d2d;
-    --primary-color-light: #666666;
+    --primary-color: #4a9eff;
+    --primary-color-dark: #3385d6;
+    --primary-color-light: #66b3ff;
     
     --secondary-color: #666666;
     --secondary-color-dark: #4a4a4a;
     --secondary-color-light: #888888;
     
     --background-color: #1a1a1a;
-    --surface-color: rgba(255, 255, 255, 0.1);
+    --surface-color: #2d2d2d;
     --surface-color-dark: rgba(0, 0, 0, 0.4);
     --surface-color-light: rgba(255, 255, 255, 0.2);
     

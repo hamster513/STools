@@ -298,6 +298,23 @@
     font-weight: 500;
 }
 
+/* CVE Link styling */
+.host-cve .cve-link {
+    color: var(--primary-color);
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.host-cve .cve-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.host-cve .cve-link:active {
+    color: var(--text-primary);
+}
+
 /* Host CVSS styling */
 .host-cvss {
     text-align: center;
