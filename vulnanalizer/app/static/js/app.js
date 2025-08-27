@@ -76,6 +76,7 @@ class VulnAnalizer {
         this.setupCVE();
         this.setupHosts();
         this.setupVM();
+        this.setupCollapsibleBlocks();
         
         // Инициализируем модули после настройки всех компонентов
         this.initModules();
@@ -3013,6 +3014,45 @@ class VulnAnalizer {
         } catch (err) {
             console.error('Error checking active tasks in main app:', err);
         }
+    }
+
+    setupCollapsibleBlocks() {
+        const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+        
+        collapsibleHeaders.forEach(header => {
+            // Инициализируем стрелки как свернутые по умолчанию
+            const arrow = header.querySelector('.collapsible-arrow i');
+            if (arrow) {
+                arrow.style.transform = 'rotate(-90deg)';
+            }
+            header.classList.add('collapsed');
+            
+            header.addEventListener('click', (e) => {
+                // Предотвращаем срабатывание при клике на форму внутри
+                if (e.target.closest('form') || e.target.closest('button')) {
+                    return;
+                }
+                
+                const targetId = header.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                
+                if (content) {
+                    const isCollapsed = content.style.display === 'none' || content.style.display === '';
+                    
+                    if (isCollapsed) {
+                        // Разворачиваем блок
+                        content.style.display = 'block';
+                        arrow.style.transform = 'rotate(0deg)';
+                        header.classList.remove('collapsed');
+                    } else {
+                        // Сворачиваем блок
+                        content.style.display = 'none';
+                        arrow.style.transform = 'rotate(-90deg)';
+                        header.classList.add('collapsed');
+                    }
+                }
+            });
+        });
     }
 }
 

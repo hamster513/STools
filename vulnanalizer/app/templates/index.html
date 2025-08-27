@@ -4,6 +4,7 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
+    <link rel="stylesheet" href="/static/css/components/collapsible.css?v=1.0">
 {% endblock %}
 
 {% block ui_manager_js %}
@@ -247,9 +248,15 @@
             
             <div class="settings-container">
                 <!-- Настройки производительности -->
-                <div class="content-block">
-                    <h3><i class="fas fa-tachometer-alt"></i> Настройки производительности</h3>
-                    <form id="performance-form">
+                <div class="collapsible-block">
+                    <div class="collapsible-header" data-target="performance-settings">
+                        <h3><i class="fas fa-tachometer-alt"></i> Настройки производительности</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="performance-settings">
+                        <form id="performance-form">
                         <div class="form-group">
                             <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
                             <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
@@ -261,17 +268,24 @@
                             </button>
                         </div>
                     </form>
+                    </div>
                 </div>
 
                 <!-- Настройки Impact -->
-                <div class="content-block">
-                    <h3>
-                        <i class="fas fa-chart-line"></i> Расчет риска (Impact)
-                        <button type="button" class="btn btn-link btn-sm formula-btn" id="show-risk-formula" title="Показать формулу расчета">
-                            <i class="fas fa-square-root-alt"></i>
-                        </button>
-                    </h3>
-                    <form id="impact-form">
+                <div class="collapsible-block">
+                    <div class="collapsible-header" data-target="impact-settings">
+                        <h3>
+                            <i class="fas fa-chart-line"></i> Расчет риска (Impact)
+                            <button type="button" class="btn btn-link btn-sm formula-btn" id="show-risk-formula" title="Показать формулу расчета">
+                                <i class="fas fa-square-root-alt"></i>
+                            </button>
+                        </h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="impact-settings">
+                        <form id="impact-form">
                         <div class="form-group">
                             <label for="impact-resource-criticality">Критичность ресурса:</label>
                             <select id="impact-resource-criticality" name="impact_resource_criticality" required>
@@ -310,12 +324,19 @@
                             </button>
                         </div>
                     </form>
+                    </div>
                 </div>
 
                 <!-- Настройки VM MaxPatrol -->
-                <div class="content-block">
-                    <h3><i class="fas fa-server"></i> Интеграция с MaxPatrol VM</h3>
-                    <form id="vm-settings-form">
+                <div class="collapsible-block">
+                    <div class="collapsible-header" data-target="vm-settings">
+                        <h3><i class="fas fa-server"></i> Интеграция с MaxPatrol VM</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="vm-settings">
+                        <form id="vm-settings-form">
                         <div class="form-group">
                             <label for="vm-enabled">Включить интеграцию:</label>
                             <select id="vm-enabled" name="vm_enabled" required>
@@ -352,12 +373,19 @@
                             </button>
                         </div>
                     </form>
+                    </div>
                 </div>
                 
                 <!-- EPSS -->
-                <div class="epss-container content-block">
-                    <h3>Загрузка базы EPSS</h3>
-                    <form id="epss-upload-form" enctype="multipart/form-data">
+                <div class="epss-container collapsible-block">
+                    <div class="collapsible-header" data-target="epss-settings">
+                        <h3>Загрузка базы EPSS</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="epss-settings">
+                        <form id="epss-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
                             <label for="epss-file">Загрузить CSV-файл:</label>
                             <input type="file" id="epss-file" name="file" accept=".csv" required>
@@ -374,12 +402,19 @@
                         </div>
                     </form>
                     <div id="epss-status" style="margin-top:2rem;"></div>
+                    </div>
                 </div>
 
                 <!-- ExploitDB -->
-                <div class="exploitdb-container content-block">
-                    <h3>Загрузка базы ExploitDB</h3>
-                    <form id="exploitdb-upload-form" enctype="multipart/form-data">
+                <div class="exploitdb-container collapsible-block">
+                    <div class="collapsible-header" data-target="exploitdb-settings">
+                        <h3>Загрузка базы ExploitDB</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="exploitdb-settings">
+                        <form id="exploitdb-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
                             <label for="exploitdb-file">Загрузить CSV-файл:</label>
                             <input type="file" id="exploitdb-file" name="file" accept=".csv" required>
@@ -396,11 +431,18 @@
                         </div>
                     </form>
                     <div id="exploitdb-status" style="margin-top:2rem;"></div>
+                    </div>
                 </div>
 
                 <!-- CVE -->
-                <div class="cve-container content-block">
-                    <h3><i class="fas fa-bug"></i> Управление базой CVE</h3>
+                <div class="cve-container collapsible-block">
+                    <div class="collapsible-header" data-target="cve-settings">
+                        <h3><i class="fas fa-bug"></i> Управление базой CVE</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="cve-settings">
                     
                     <!-- Выбор лет для загрузки -->
                     <div class="form-group mb-3">
@@ -465,11 +507,18 @@
                             </div>
                         </form>
                     </div>
+                    </div>
                 </div>
 
                 <!-- Очистка таблиц -->
-                <div class="clear-container content-block">
-                    <h3>Очистка таблиц</h3>
+                <div class="clear-container collapsible-block">
+                    <div class="collapsible-header" data-target="clear-settings">
+                        <h3>Очистка таблиц</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="clear-settings">
                     <div class="clear-actions">
                         <div class="clear-item">
                             <h4>Хосты</h4>
@@ -499,6 +548,7 @@
                                 <i class="fas fa-trash"></i> Очистить CVE
                             </button>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

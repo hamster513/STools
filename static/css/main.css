@@ -25,6 +25,7 @@
 @import url('./components/operation-status.css');
 @import url('./components/alerts.css');
 @import url('./components/progress.css');
+@import url('./components/collapsible.css');
 
 /* ===== PAGES ===== */
 @import url('./pages/vulnanalizer.css');

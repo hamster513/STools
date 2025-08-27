@@ -1,0 +1,161 @@
+/* ===== COLLAPSIBLE BLOCKS ===== */
+
+/* Основной контейнер сворачиваемого блока */
+.collapsible-block {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-lg);
+    overflow: hidden;
+    transition: all var(--transition-speed);
+    box-shadow: var(--shadow-sm);
+}
+
+.collapsible-block:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+/* Заголовок блока с стрелкой */
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    user-select: none;
+}
+
+.collapsible-header:hover {
+    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+.collapsible-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Крупная круглая стрелка */
+.collapsible-arrow {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-speed);
+    box-shadow: var(--shadow-sm);
+}
+
+.collapsible-arrow i {
+    color: white;
+    font-size: 12px;
+    transition: transform var(--transition-speed);
+    transform: rotate(0deg);
+}
+
+.collapsible-header:hover .collapsible-arrow {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.collapsible-header.collapsed .collapsible-arrow i {
+    transform: rotate(-90deg);
+}
+
+/* Контентная область */
+.collapsible-content {
+    padding: var(--spacing-lg);
+    background: var(--surface-color);
+    transition: all var(--transition-speed);
+    display: none; /* По умолчанию скрыто */
+}
+
+/* Анимация при сворачивании */
+.collapsible-content {
+    max-height: 2000px;
+    opacity: 1;
+    transition: max-height var(--transition-speed), opacity var(--transition-speed), padding var(--transition-speed);
+}
+
+.collapsible-content[style*="display: none"] {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Темная тема */
+[data-theme="dark"] .collapsible-header {
+    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.01) 100%);
+}
+
+[data-theme="dark"] .collapsible-header:hover {
+    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.03) 100%);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .collapsible-header {
+        padding: var(--spacing-md);
+    }
+    
+    .collapsible-header h3 {
+        font-size: 1rem;
+    }
+    
+    .collapsible-arrow {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .collapsible-arrow i {
+        font-size: 10px;
+    }
+    
+    .collapsible-content {
+        padding: var(--spacing-md);
+    }
+}
+
+/* Анимация для кнопок внутри заголовка */
+.collapsible-header .btn {
+    transition: all var(--transition-speed);
+}
+
+.collapsible-header:hover .btn {
+    transform: scale(1.05);
+}
+
+/* Специальные стили для контейнеров с дополнительными классами */
+.epss-container.collapsible-block,
+.exploitdb-container.collapsible-block,
+.cve-container.collapsible-block,
+.clear-container.collapsible-block {
+    border-left: 4px solid var(--primary-color);
+}
+
+.epss-container.collapsible-block {
+    border-left-color: var(--success-color);
+}
+
+.exploitdb-container.collapsible-block {
+    border-left-color: var(--warning-color);
+}
+
+.cve-container.collapsible-block {
+    border-left-color: var(--danger-color);
+}
+
+.clear-container.collapsible-block {
+    border-left-color: var(--info-color);
+}

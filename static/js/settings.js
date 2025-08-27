@@ -8,6 +8,7 @@ class SettingsManager {
 
     init() {
         this.setupEventListeners();
+        this.setupCollapsibleBlocks();
         this.loadSettings();
         this.updateSystemInfo();
     }
@@ -55,6 +56,48 @@ class SettingsManager {
                 this.updateSystemInfo();
             });
         }
+    }
+
+    setupCollapsibleBlocks() {
+        const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+        
+        collapsibleHeaders.forEach(header => {
+            // Инициализируем стрелки как свернутые по умолчанию
+            const arrow = header.querySelector('.collapsible-arrow');
+            if (arrow) {
+                arrow.style.transform = 'rotate(-90deg)';
+            }
+            header.classList.add('collapsed');
+            
+            // Инициализируем контент как свернутый
+            const targetId = header.getAttribute('data-target');
+            const content = document.getElementById(targetId);
+            if (content) {
+                content.classList.add('collapsed');
+            }
+            
+            header.addEventListener('click', (e) => {
+                // Предотвращаем срабатывание при клике на форму внутри
+                if (e.target.closest('form') || e.target.closest('button')) {
+                    return;
+                }
+                
+                if (!content || !arrow) return;
+                
+                // Переключаем состояние
+                if (content.classList.contains('collapsed')) {
+                    // Разворачиваем
+                    content.classList.remove('collapsed');
+                    header.classList.remove('collapsed');
+                    arrow.style.transform = 'rotate(0deg)';
+                } else {
+                    // Сворачиваем
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                    arrow.style.transform = 'rotate(-90deg)';
+                }
+            });
+        });
     }
 
     async loadSettings() {
