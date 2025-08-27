@@ -533,7 +533,11 @@ async def get_cve_description(cve_id: str):
             WHERE cve_id = $1
         """
         
-        result = await db.fetch_one(query, cve_id)
+        conn = await db.get_connection()
+        try:
+            result = await conn.fetchrow(query, cve_id)
+        finally:
+            await db.release_connection(conn)
         
         if not result:
             return {"success": False, "error": "CVE не найден"}
