@@ -4,7 +4,7 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
-    <link rel="stylesheet" href="/static/css/components/collapsible.css?v=1.0">
+            <link rel="stylesheet" href="/static/css/components/collapsible.css?v=1.2">
 {% endblock %}
 
 {% block ui_manager_js %}
@@ -434,6 +434,46 @@
                     </div>
                 </div>
 
+                <!-- Metasploit -->
+                <div class="metasploit-container collapsible-block">
+                    <div class="collapsible-header" data-target="metasploit-settings">
+                        <h3><i class="fas fa-bug"></i> Загрузка базы Metasploit</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="metasploit-settings">
+                        <form id="metasploit-upload-form" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="metasploit-file">Загрузить JSON-файл:</label>
+                                <input type="file" id="metasploit-file" name="file" accept=".json" required>
+                                <small>Файл modules_metadata_base.json с GitHub Metasploit</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm" id="metasploit-upload-btn">
+                                    <i class="fas fa-upload"></i> <span class="btn-text">Загрузить JSON</span>
+                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                                </button>
+                                <button type="button" id="metasploit-download-btn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с GitHub</span>
+                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                                </button>
+                                <button type="button" id="metasploit-cancel-btn" class="btn btn-danger btn-sm" style="display: none;">
+                                    <i class="fas fa-stop"></i> <span class="btn-text">Остановить загрузку</span>
+                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                                </button>
+                                <button type="button" id="metasploit-urls-btn" class="btn btn-info btn-sm">
+                                    <i class="fas fa-link"></i> Ссылка для скачивания
+                                </button>
+                                <button type="button" id="metasploit-preview-btn" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-eye"></i> Просмотр данных
+                                </button>
+                            </div>
+                        </form>
+                        <div id="metasploit-status" style="margin-top:2rem;"></div>
+                    </div>
+                </div>
+
                 <!-- CVE -->
                 <div class="cve-container collapsible-block">
                     <div class="collapsible-header" data-target="cve-settings">
@@ -546,6 +586,13 @@
                             <p>Удалить все записи CVE из базы данных</p>
                             <button type="button" id="clear-cve-btn" class="btn btn-danger btn-sm">
                                 <i class="fas fa-trash"></i> Очистить CVE
+                            </button>
+                        </div>
+                        <div class="clear-item">
+                            <h4>Metasploit</h4>
+                            <p>Удалить все записи Metasploit из базы данных</p>
+                            <button type="button" id="clear-metasploit-btn" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> Очистить Metasploit
                             </button>
                         </div>
                     </div>
@@ -702,6 +749,47 @@
     </div>
 </div>
 
+<!-- Модальное окно для просмотра Metasploit -->
+<div id="metasploit-modal" class="modal-content" style="display: none;">
+    <div class="modal-header">
+        <h3 id="metasploit-modal-title">Просмотр данных Metasploit (первые 20 записей)</h3>
+        <span class="close" id="metasploit-modal-close">&times;</span>
+    </div>
+    <div class="modal-body">
+        <div id="metasploit-modal-loading" style="text-align: center; padding: 2rem;">
+            <i class="fas fa-spinner fa-spin"></i> Загрузка...
+        </div>
+        <div id="metasploit-modal-content" style="display: none;">
+            <div class="metasploit-preview">
+                <div class="preview-info">
+                    <p>Показано записей: <span id="metasploit-count">0</span></p>
+                </div>
+                <div class="metasploit-table-container">
+                    <table class="metasploit-table">
+                        <thead>
+                            <tr>
+                                <th>Module Name</th>
+                                <th>Name</th>
+                                <th>Rank</th>
+                                <th>Type</th>
+                                <th>Disclosure Date</th>
+                                <th>Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metasploit-table-body">
+                            <!-- Данные будут загружены динамически -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="metasploit-modal-error" style="display: none; text-align: center; color: var(--error-color);">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p id="metasploit-error-message"></p>
+        </div>
+    </div>
+</div>
+
 <!-- Скрипты -->
     <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
 <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
@@ -713,6 +801,8 @@
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
     <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.2"></script>
     <script src="/vulnanalizer/static/js/modules/settings.js?v=2.1"></script>
+        <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
+        <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.1"></script>
 <script src="/vulnanalizer/static/js/modules/vm.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/navigation.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/utils.js?v=2.0"></script>

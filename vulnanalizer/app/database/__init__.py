@@ -9,6 +9,7 @@ from .hosts_repository import HostsRepository
 from .background_tasks_repository import BackgroundTasksRepository
 from .settings_repository import SettingsRepository
 from .risk_calculation_service import RiskCalculationService
+from .metasploit_repository import MetasploitRepository
 
 # Класс Database для обратной совместимости
 class Database:
@@ -27,6 +28,7 @@ class NewDatabase:
             self.epss = EPSSRepository()
             self.exploitdb = ExploitDBRepository()
             self.cve = CVERepository()
+            self.metasploit = MetasploitRepository()
             self.background_tasks = BackgroundTasksRepository()
             self.settings = SettingsRepository()
             self.risk_calculation = RiskCalculationService()
@@ -172,6 +174,18 @@ class NewDatabase:
         async def clear_cve(self):
             """Очистка таблицы CVE"""
             return await self.cve.clear_cve()
+
+        async def insert_metasploit_modules(self, records):
+            """Вставить записи Metasploit"""
+            return await self.metasploit.insert_modules(records)
+
+        async def count_metasploit_modules(self):
+            """Получить количество записей Metasploit"""
+            return await self.metasploit.get_modules_count()
+
+        async def clear_metasploit_data(self):
+            """Очистка таблицы Metasploit"""
+            return await self.metasploit.clear_all_data()
 
         async def get_vm_settings(self):
             """Получить настройки VM MaxPatrol"""

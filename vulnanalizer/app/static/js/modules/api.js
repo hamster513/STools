@@ -418,6 +418,44 @@ class ApiModule {
     async deleteUser(userId) {
         return this.delete(`/users/${userId}/delete`);
     }
+
+    // ===== МЕТОДЫ ДЛЯ РАБОТЫ С METASPLOIT =====
+
+    /**
+     * Получить статус Metasploit
+     */
+    async getMetasploitStatus() {
+        return this.get('/metasploit/status');
+    }
+
+    /**
+     * Загрузить файл Metasploit
+     * @param {FormData} formData - Данные файла
+     */
+    async uploadMetasploit(formData) {
+        return this.post('/metasploit/upload', formData);
+    }
+
+    /**
+     * Скачать Metasploit с GitHub
+     */
+    async downloadMetasploit() {
+        return this.post('/metasploit/download');
+    }
+
+    /**
+     * Отменить загрузку Metasploit
+     */
+    async cancelMetasploit() {
+        return this.post('/metasploit/cancel');
+    }
+
+    /**
+     * Очистить данные Metasploit
+     */
+    async clearMetasploit() {
+        return this.delete('/metasploit/clear');
+    }
 }
 
 // Экспорт модуля

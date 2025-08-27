@@ -15,6 +15,7 @@ from routes.epss import router as epss_router
 from routes.exploitdb import router as exploitdb_router
 from routes.cve import router as cve_router
 from routes.vm import router as vm_router
+from routes.metasploit import router as metasploit_router
 
 def get_version():
     try:
@@ -77,6 +78,7 @@ app.include_router(epss_router)
 app.include_router(exploitdb_router)
 app.include_router(cve_router)
 app.include_router(vm_router)
+app.include_router(metasploit_router)
 
 # События жизненного цикла
 @app.on_event("startup")

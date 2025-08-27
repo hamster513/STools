@@ -61,6 +61,18 @@ class VulnAnalizer {
         } else {
             console.warn('CVEModalModule не найден!');
         }
+        
+        if (typeof MetasploitModule !== 'undefined') {
+            this.metasploitModule = new MetasploitModule(this);
+        } else {
+            console.warn('MetasploitModule не найден!');
+        }
+        
+        if (typeof MetasploitModalModule !== 'undefined') {
+            this.metasploitModal = new MetasploitModalModule(this);
+        } else {
+            console.warn('MetasploitModalModule не найден!');
+        }
     }
 
     init() {
@@ -90,6 +102,7 @@ class VulnAnalizer {
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
             this.updateCVEStatus();
+            this.updateMetasploitStatus();
             this.loadBackgroundTasksData();
             this.checkActiveImportTasks(); // Проверяем активные задачи импорта и обновления
             
@@ -1208,6 +1221,13 @@ class VulnAnalizer {
             }
         } catch (err) {
             statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса CVE</span>';
+        }
+    }
+
+    async updateMetasploitStatus() {
+        // Делегируем обновление статуса в модуль Metasploit
+        if (this.metasploitModule) {
+            await this.metasploitModule.updateMetasploitStatus();
         }
     }
 

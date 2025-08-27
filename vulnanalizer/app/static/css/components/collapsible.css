@@ -140,6 +140,7 @@
 .epss-container.collapsible-block,
 .exploitdb-container.collapsible-block,
 .cve-container.collapsible-block,
+.metasploit-container.collapsible-block,
 .clear-container.collapsible-block {
     border-left: 4px solid var(--primary-color);
 }
@@ -156,6 +157,165 @@
     border-left-color: var(--danger-color);
 }
 
+.metasploit-container.collapsible-block {
+    border-left-color: var(--warning-color);
+}
+
 .clear-container.collapsible-block {
     border-left-color: var(--info-color);
+}
+
+/* Стили для прогресс-бара */
+.progress-info {
+    width: 100%;
+    margin: var(--spacing-sm) 0;
+}
+
+.progress-step {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-color);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-color-light));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+    text-align: right;
+}
+
+.progress-details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+    font-style: italic;
+}
+
+/* Стили для статуса */
+.status-info {
+    margin-top: var(--spacing-md);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.status-item i {
+    font-size: 1rem;
+    min-width: 16px;
+}
+
+.status-item span {
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.status-item .text-success {
+    color: var(--success-color);
+}
+
+.status-item .text-warning {
+    color: var(--warning-color);
+}
+
+.status-item .text-primary {
+    color: var(--primary-color);
+}
+
+/* Стили для таблицы Metasploit */
+.metasploit-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.metasploit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.metasploit-table th,
+.metasploit-table td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.metasploit-table th {
+    background: var(--surface-color);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.metasploit-table tr:hover {
+    background: var(--hover-color);
+}
+
+.rank-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.rank-manual { background: #fef3c7; color: #92400e; }
+.rank-low { background: #dbeafe; color: #1e40af; }
+.rank-average { background: #fef3c7; color: #92400e; }
+.rank-normal { background: #d1fae5; color: #065f46; }
+.rank-good { background: #dbeafe; color: #1e40af; }
+.rank-excellent { background: #fef3c7; color: #92400e; }
+.rank-unknown { background: #f3f4f6; color: #374151; }
+
+.type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.type-exploit { background: #fee2e2; color: #991b1b; }
+.type-payload { background: #dbeafe; color: #1e40af; }
+.type-auxiliary { background: #fef3c7; color: #92400e; }
+.type-post { background: #d1fae5; color: #065f46; }
+.type-encoder { background: #e0e7ff; color: #3730a3; }
+.type-nop { background: #f3f4f6; color: #374151; }
+.type-evasion { background: #fce7f3; color: #be185d; }
+.type-unknown { background: #f3f4f6; color: #374151; }
+
+.preview-info {
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--surface-color);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
 }
