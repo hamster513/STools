@@ -882,19 +882,19 @@
 </div>
 
 <!-- Модальное окно для просмотра CVE -->
-<div id="cve-modal" class="modal-content" style="display: none;">
+<div id="cve-preview-modal" class="modal-content" style="display: none;">
     <div class="modal-header">
-        <h3 id="cve-modal-title">Просмотр данных CVE (первые 20 записей)</h3>
-        <span class="close" id="cve-modal-close">&times;</span>
+        <h3 id="cve-preview-modal-title">Просмотр данных CVE (первые 20 записей)</h3>
+        <span class="close" id="cve-preview-modal-close">&times;</span>
     </div>
     <div class="modal-body">
-        <div id="cve-modal-loading" style="text-align: center; padding: 2rem;">
+        <div id="cve-preview-modal-loading" style="text-align: center; padding: 2rem;">
             <i class="fas fa-spinner fa-spin"></i> Загрузка...
         </div>
-        <div id="cve-modal-content" style="display: none;">
+        <div id="cve-preview-modal-content" style="display: none;">
             <div class="cve-preview">
                 <div class="preview-info">
-                    <p>Показано записей: <span id="cve-count">0</span></p>
+                    <p>Показано записей: <span id="cve-preview-count">0</span></p>
                 </div>
                 <div class="cve-table-container">
                     <table class="cve-table">
@@ -908,16 +908,16 @@
                                 <th>Created At</th>
                             </tr>
                         </thead>
-                        <tbody id="cve-table-body">
+                        <tbody id="cve-preview-table-body">
                             <!-- Данные будут загружены динамически -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-        <div id="cve-modal-error" style="display: none; text-align: center; color: var(--error-color);">
+        <div id="cve-preview-modal-error" style="display: none; text-align: center; color: var(--error-color);">
             <i class="fas fa-exclamation-triangle"></i>
-            <p id="cve-error-message"></p>
+            <p id="cve-preview-error-message"></p>
         </div>
     </div>
 </div>
@@ -937,7 +937,7 @@
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.1"></script>
         <script src="/vulnanalizer/static/js/modules/epss-modal.js?v=1.0"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb-modal.js?v=1.0"></script>
-        <script src="/vulnanalizer/static/js/modules/cve-preview-modal.js?v=1.0"></script>
+        <script src="/vulnanalizer/static/js/modules/cve-preview-modal.js?v=1.1"></script>
 <script src="/vulnanalizer/static/js/modules/vm.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/navigation.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/utils.js?v=2.0"></script>
