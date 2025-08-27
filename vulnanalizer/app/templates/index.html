@@ -4,7 +4,7 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
-            <link rel="stylesheet" href="/static/css/components/collapsible.css?v=1.3">
+            <link rel="stylesheet" href="/static/css/components/collapsible.css?v=2.9">
 {% endblock %}
 
 {% block ui_manager_js %}
@@ -765,36 +765,8 @@
         <span class="close" id="metasploit-modal-close">&times;</span>
     </div>
     <div class="modal-body">
-        <div id="metasploit-modal-loading" style="text-align: center; padding: 2rem;">
-            <i class="fas fa-spinner fa-spin"></i> Загрузка...
-        </div>
-        <div id="metasploit-modal-content" style="display: none;">
-            <div class="metasploit-preview">
-                <div class="preview-info">
-                    <p>Показано записей: <span id="metasploit-count">0</span></p>
-                </div>
-                <div class="metasploit-table-container">
-                    <table class="metasploit-table">
-                        <thead>
-                            <tr>
-                                <th>Module Name</th>
-                                <th>Name</th>
-                                <th>Rank</th>
-                                <th>Type</th>
-                                <th>Disclosure Date</th>
-                                <th>Created At</th>
-                            </tr>
-                        </thead>
-                        <tbody id="metasploit-table-body">
-                            <!-- Данные будут загружены динамически -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div id="metasploit-modal-error" style="display: none; text-align: center; color: var(--error-color);">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p id="metasploit-error-message"></p>
+        <div id="metasploit-modal-content">
+            <!-- Контент будет загружен динамически -->
         </div>
     </div>
 </div>
@@ -806,36 +778,8 @@
         <span class="close" id="epss-modal-close">&times;</span>
     </div>
     <div class="modal-body">
-        <div id="epss-modal-loading" style="text-align: center; padding: 2rem;">
-            <i class="fas fa-spinner fa-spin"></i> Загрузка...
-        </div>
-        <div id="epss-modal-content" style="display: none;">
-            <div class="epss-preview">
-                <div class="preview-info">
-                    <p>Показано записей: <span id="epss-count">0</span></p>
-                </div>
-                <div class="epss-table-container">
-                    <table class="epss-table">
-                        <thead>
-                            <tr>
-                                <th>CVE</th>
-                                <th>EPSS Score</th>
-                                <th>Percentile</th>
-                                <th>CVSS</th>
-                                <th>Date</th>
-                                <th>Created At</th>
-                            </tr>
-                        </thead>
-                        <tbody id="epss-table-body">
-                            <!-- Данные будут загружены динамически -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div id="epss-modal-error" style="display: none; text-align: center; color: var(--error-color);">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p id="epss-error-message"></p>
+        <div id="epss-modal-content">
+            <!-- Контент будет загружен динамически -->
         </div>
     </div>
 </div>
@@ -847,36 +791,8 @@
         <span class="close" id="exploitdb-modal-close">&times;</span>
     </div>
     <div class="modal-body">
-        <div id="exploitdb-modal-loading" style="text-align: center; padding: 2rem;">
-            <i class="fas fa-spinner fa-spin"></i> Загрузка...
-        </div>
-        <div id="exploitdb-modal-content" style="display: none;">
-            <div class="exploitdb-preview">
-                <div class="preview-info">
-                    <p>Показано записей: <span id="exploitdb-count">0</span></p>
-                </div>
-                <div class="exploitdb-table-container">
-                    <table class="exploitdb-table">
-                        <thead>
-                            <tr>
-                                <th>Exploit ID</th>
-                                <th>File Path</th>
-                                <th>Description</th>
-                                <th>Type</th>
-                                <th>Platform</th>
-                                <th>Date Published</th>
-                            </tr>
-                        </thead>
-                        <tbody id="exploitdb-table-body">
-                            <!-- Данные будут загружены динамически -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div id="exploitdb-modal-error" style="display: none; text-align: center; color: var(--error-color);">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p id="exploitdb-error-message"></p>
+        <div id="exploitdb-modal-content">
+            <!-- Контент будет загружен динамически -->
         </div>
     </div>
 </div>
@@ -888,36 +804,8 @@
         <span class="close" id="cve-preview-modal-close">&times;</span>
     </div>
     <div class="modal-body">
-        <div id="cve-preview-modal-loading" style="text-align: center; padding: 2rem;">
-            <i class="fas fa-spinner fa-spin"></i> Загрузка...
-        </div>
-        <div id="cve-preview-modal-content" style="display: none;">
-            <div class="cve-preview">
-                <div class="preview-info">
-                    <p>Показано записей: <span id="cve-preview-count">0</span></p>
-                </div>
-                <div class="cve-table-container">
-                    <table class="cve-table">
-                        <thead>
-                            <tr>
-                                <th>CVE ID</th>
-                                <th>Description</th>
-                                <th>CVSS v3</th>
-                                <th>CVSS v2</th>
-                                <th>Published Date</th>
-                                <th>Created At</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cve-preview-table-body">
-                            <!-- Данные будут загружены динамически -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div id="cve-preview-modal-error" style="display: none; text-align: center; color: var(--error-color);">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p id="cve-preview-error-message"></p>
+        <div id="cve-preview-modal-content">
+            <!-- Контент будет загружен динамически -->
         </div>
     </div>
 </div>
@@ -927,21 +815,22 @@
 <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
 <script src="/vulnanalizer/static/js/modules/auth.js?v=2.0"></script>
             <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.0"></script>
-        <script src="/vulnanalizer/static/js/modules/epss.js?v=2.1"></script>
+        <script src="/vulnanalizer/static/js/modules/epss.js?v=2.3"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
-    <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.2"></script>
+    <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.3"></script>
     <script src="/vulnanalizer/static/js/modules/settings.js?v=2.1"></script>
+        <script src="/vulnanalizer/static/js/modules/base-modal.js?v=1.9"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
-        <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.1"></script>
-        <script src="/vulnanalizer/static/js/modules/epss-modal.js?v=1.0"></script>
-        <script src="/vulnanalizer/static/js/modules/exploitdb-modal.js?v=1.0"></script>
-        <script src="/vulnanalizer/static/js/modules/cve-preview-modal.js?v=1.1"></script>
+        <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
+        <script src="/vulnanalizer/static/js/modules/epss-modal.js?v=1.3"></script>
+        <script src="/vulnanalizer/static/js/modules/exploitdb-modal.js?v=1.2"></script>
+        <script src="/vulnanalizer/static/js/modules/cve-preview-modal.js?v=1.2"></script>
 <script src="/vulnanalizer/static/js/modules/vm.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/navigation.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/utils.js?v=2.0"></script>
-    <script src="/vulnanalizer/static/js/app.js?v=5.6"></script>
+    <script src="/vulnanalizer/static/js/app.js?v=5.7"></script>
 
 
 {% endblock %}

@@ -184,7 +184,7 @@ async def get_metasploit_preview():
         
         return JSONResponse(content={
             "success": True,
-            "modules": modules,
+            "records": modules,
             "count": len(modules)
         })
     except Exception as e:

@@ -347,3 +347,38 @@
         gap: var(--spacing-sm);
     }
 }
+
+/* Базовые стили для модальных окон с классом modal-content */
+.modal-content {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 1000 !important;
+    background-color: var(--surface-color) !important;
+    border-radius: var(--border-radius) !important;
+    box-shadow: var(--shadow-xl) !important;
+    overflow: hidden !important;
+}
+
+/* Специальные стили для модальных окон предварительного просмотра данных */
+#epss-modal,
+#exploitdb-modal,
+#metasploit-modal,
+#cve-preview-modal {
+    width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
+    max-width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
+    min-width: 1000px !important;
+    right: 5vw !important;
+    left: auto !important;
+    transform: translateY(-50%) !important;
+}
+
+#epss-modal > div,
+#exploitdb-modal > div,
+#metasploit-modal > div,
+#cve-preview-modal > div {
+    width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
+    max-width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
+    min-width: 1000px !important;
+}

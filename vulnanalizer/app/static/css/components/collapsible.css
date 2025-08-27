@@ -409,3 +409,341 @@
 .cvss-medium { background: #dbeafe; color: #1e40af; }
 .cvss-low { background: #d1fae5; color: #065f46; }
 .cvss-none { background: #f3f4f6; color: #374151; }
+
+/* Стили для базового модального окна - переопределяем общие стили */
+.modal-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    display: none !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 1000 !important;
+}
+
+
+
+#epss-modal.modal-content,
+#exploitdb-modal.modal-content,
+#metasploit-modal.modal-content,
+#cve-preview-modal.modal-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    display: none !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 1000 !important;
+}
+
+.modal-content.show {
+    display: flex !important;
+}
+
+#epss-modal.modal-content.show,
+#exploitdb-modal.modal-content.show,
+#metasploit-modal.modal-content.show,
+#cve-preview-modal.modal-content.show {
+    display: flex !important;
+}
+
+/* Внутренний контейнер модального окна - специфичные селекторы */
+#epss-modal.modal-content > div,
+#exploitdb-modal.modal-content > div,
+#metasploit-modal.modal-content > div,
+#cve-preview-modal.modal-content > div {
+    background: var(--bg-color) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    width: 95vw !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+}
+
+/* Принудительно вертикальная структура */
+#epss-modal.modal-content > div,
+#exploitdb-modal.modal-content > div,
+#metasploit-modal.modal-content > div,
+#cve-preview-modal.modal-content > div {
+    flex-direction: column !important;
+}
+
+#epss-modal .modal-header,
+#exploitdb-modal .modal-header,
+#metasploit-modal .modal-header,
+#cve-preview-modal .modal-header {
+    order: 1 !important;
+}
+
+#epss-modal .modal-body,
+#exploitdb-modal .modal-body,
+#metasploit-modal .modal-body,
+#cve-preview-modal .modal-body {
+    order: 2 !important;
+}
+
+/* Исправляем заголовок модального окна - специфичные селекторы */
+#epss-modal .modal-header,
+#exploitdb-modal .modal-header,
+#metasploit-modal .modal-header,
+#cve-preview-modal .modal-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 1rem 1.5rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: var(--card-bg) !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+}
+
+#epss-modal .modal-header h3,
+#exploitdb-modal .modal-header h3,
+#metasploit-modal .modal-header h3,
+#cve-preview-modal .modal-header h3 {
+    margin: 0 !important;
+    color: var(--text-color) !important;
+    font-size: 1.2rem !important;
+    flex: 1 !important;
+    text-align: center !important;
+}
+
+#epss-modal .close,
+#exploitdb-modal .close,
+#metasploit-modal .close,
+#cve-preview-modal .close {
+    color: var(--text-muted) !important;
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    transition: color 0.2s !important;
+    flex-shrink: 0 !important;
+    margin-left: 1rem !important;
+}
+
+#epss-modal .close:hover,
+#exploitdb-modal .close:hover,
+#metasploit-modal .close:hover,
+#cve-preview-modal .close:hover {
+    color: var(--text-color) !important;
+}
+
+#epss-modal .modal-body,
+#exploitdb-modal .modal-body,
+#metasploit-modal .modal-body,
+#cve-preview-modal .modal-body {
+    padding: 1.5rem !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+    width: 100% !important;
+}
+
+/* Исправляем таблицу */
+.modal-table-container {
+    overflow-x: auto !important;
+    margin-top: 1rem !important;
+    width: 100% !important;
+}
+
+.data-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 0.9rem !important;
+    table-layout: fixed !important;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem !important;
+    text-align: left !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    word-wrap: break-word !important;
+    overflow: hidden !important;
+}
+
+.data-table th {
+    background: var(--card-bg) !important;
+    font-weight: 600 !important;
+    color: var(--text-color) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1 !important;
+    white-space: nowrap !important;
+}
+
+.data-table td {
+    color: var(--text-color) !important;
+}
+
+.data-table tbody tr:hover {
+    background: var(--hover-bg) !important;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--card-bg);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+.close {
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: var(--text-color);
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Стили для таблиц в модальных окнах */
+.modal-table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+    background: var(--card-bg);
+    font-weight: 600;
+    color: var(--text-color);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.data-table td {
+    color: var(--text-color);
+}
+
+.data-table tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+/* Стили для загрузки и ошибок */
+.modal-loading,
+.modal-error {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-color);
+}
+
+.modal-loading .spinner {
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.modal-error i {
+    font-size: 2rem;
+    color: var(--error-color);
+    margin-bottom: 1rem;
+}
+
+.no-data {
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* ПРИНУДИТЕЛЬНОЕ ИСПРАВЛЕНИЕ ЛАЙАУТА МОДАЛЬНЫХ ОКОН */
+#epss-modal,
+#exploitdb-modal,
+#metasploit-modal,
+#cve-preview-modal {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#epss-modal > div,
+#exploitdb-modal > div,
+#metasploit-modal > div,
+#cve-preview-modal > div {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    background: var(--bg-color) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    overflow: hidden !important;
+}
+
+#epss-modal .modal-header,
+#exploitdb-modal .modal-header,
+#metasploit-modal .modal-header,
+#cve-preview-modal .modal-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 1rem 1.5rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: var(--card-bg) !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
+}
+
+#epss-modal .modal-body,
+#exploitdb-modal .modal-body,
+#metasploit-modal .modal-body,
+#cve-preview-modal .modal-body {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1.5rem !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+    width: 100% !important;
+}
+
+

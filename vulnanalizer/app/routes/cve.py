@@ -510,7 +510,7 @@ async def get_cve_download_urls():
         for year in range(current_year - 4, current_year + 1):
             urls.append({
                 "year": year,
-                "url": f"https://nvd.nist.gov/vuln/data-feeds/json/1.1/nvdcve-1.1-{year}.json.gz"
+                "url": f"https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz"
             })
         
         return {"success": True, "urls": urls}
