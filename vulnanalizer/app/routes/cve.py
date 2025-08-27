@@ -501,20 +501,56 @@ async def cancel_cve_download():
 
 @router.get("/api/cve/download-urls")
 async def get_cve_download_urls():
-    """Получить список URL для скачивания CVE данных"""
-    current_year = datetime.now().year
-    urls = []
-    
-    # Добавляем ссылки на CVE 2.0 для всех лет с 2002
-    for year in range(2002, current_year + 1):
-        urls.append({
-            "year": f"{year} (CVE 2.0)",
-            "url": f"https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz",
-            "filename": f"nvdcve-2.0-{year}.json.gz"
-        })
-    
-    return {
-        "success": True,
-        "urls": urls,
-        "note": "Скачайте файлы по ссылкам выше для offline загрузки. CVE 2.0 - новый формат NVD (2002-2025)."
-    }
+    """Получить URL для скачивания CVE данных"""
+    try:
+        current_year = datetime.now().year
+        urls = []
+        
+        # URL для последних 5 лет
+        for year in range(current_year - 4, current_year + 1):
+            urls.append({
+                "year": year,
+                "url": f"https://nvd.nist.gov/vuln/data-feeds/json/1.1/nvdcve-1.1-{year}.json.gz"
+            })
+        
+        return {"success": True, "urls": urls}
+    except Exception as e:
+        print(f"❌ Ошибка получения URL для скачивания CVE: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/api/cve/{cve_id}/description")
+async def get_cve_description(cve_id: str):
+    """Получить описание CVE по ID"""
+    try:
+        db = get_db()
+        
+        # Получаем описание CVE из базы данных
+        query = """
+            SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity, 
+                   cvss_v2_base_score, cvss_v2_base_severity, published_date, last_modified_date
+            FROM vulnanalizer.cve 
+            WHERE cve_id = $1
+        """
+        
+        result = await db.fetch_one(query, cve_id)
+        
+        if not result:
+            return {"success": False, "error": "CVE не найден"}
+        
+        return {
+            "success": True,
+            "cve": {
+                "id": result['cve_id'],
+                "description": result['description'],
+                "cvss_v3_score": result['cvss_v3_base_score'],
+                "cvss_v3_severity": result['cvss_v3_base_severity'],
+                "cvss_v2_score": result['cvss_v2_base_score'],
+                "cvss_v2_severity": result['cvss_v2_base_severity'],
+                "published_date": result['published_date'].isoformat() if result['published_date'] else None,
+                "last_modified_date": result['last_modified_date'].isoformat() if result['last_modified_date'] else None
+            }
+        }
+    except Exception as e:
+        print(f"❌ Ошибка получения описания CVE {cve_id}: {e}")
+        return {"success": False, "error": str(e)}

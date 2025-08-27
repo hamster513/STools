@@ -55,6 +55,10 @@ class VulnAnalizer {
         if (typeof SettingsModule !== 'undefined') {
             this.settingsModule = new SettingsModule(this);
         }
+        
+        if (typeof CVEModalModule !== 'undefined') {
+            this.cveModal = new CVEModalModule(this);
+        }
     }
 
     init() {

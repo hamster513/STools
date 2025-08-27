@@ -367,7 +367,7 @@ class HostsModule {
                 <div class="host-criticality">
                     <span class="${criticalityClass}">${host.criticality}</span>
                 </div>
-                <div class="host-cve">${host.cve}</div>
+                <div class="host-cve">${this.app.cveModal ? this.app.cveModal.createCVELink(host.cve) : host.cve}</div>
                 <div class="host-cvss">
                     ${host.cvss ? 
                         (host.cvss_source && host.cvss_source.includes('v2') ? 
