@@ -60,13 +60,16 @@ class SettingsRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             for key, value in settings.items():
+                # Конвертируем значение в строку, так как в БД поле value имеет тип text
+                value_str = str(value) if value is not None else ""
+                
                 query = """
                     INSERT INTO settings (key, value) 
                     VALUES ($1, $2) 
                     ON CONFLICT (key) 
                     DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
                 """
-                await conn.execute(query, key, value)
+                await conn.execute(query, key, value_str)
             return True
         finally:
             await self.release_connection(conn)
@@ -85,13 +88,16 @@ class SettingsRepository(DatabaseBase):
         """Установить конкретную настройку"""
         conn = await self.get_connection()
         try:
+            # Конвертируем значение в строку, так как в БД поле value имеет тип text
+            value_str = str(value) if value is not None else ""
+            
             query = """
                 INSERT INTO settings (key, value) 
                 VALUES ($1, $2) 
                 ON CONFLICT (key) 
                 DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
             """
-            await conn.execute(query, key, value)
+            await conn.execute(query, key, value_str)
             return True
         finally:
             await self.release_connection(conn)
@@ -132,12 +138,15 @@ class SettingsRepository(DatabaseBase):
         try:
             for key, value in settings.items():
                 if key.startswith('vm_'):
+                    # Конвертируем значение в строку, так как в БД поле value имеет тип text
+                    value_str = str(value) if value is not None else ""
+                    
                     query = """
                         INSERT INTO settings (key, value) 
                         VALUES ($1, $2) 
                         ON CONFLICT (key) 
                         DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
                     """
-                    await conn.execute(query, key, value)
+                    await conn.execute(query, key, value_str)
         finally:
             await self.release_connection(conn)
