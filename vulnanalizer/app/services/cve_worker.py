@@ -67,8 +67,21 @@ def parse_cve_json(data):
                 # Парсим CVSS данные
                 cvss_v3_base_score = None
                 cvss_v3_base_severity = None
+                cvss_v3_attack_vector = None
+                cvss_v3_privileges_required = None
+                cvss_v3_user_interaction = None
+                cvss_v3_confidentiality_impact = None
+                cvss_v3_integrity_impact = None
+                cvss_v3_availability_impact = None
+                
                 cvss_v2_base_score = None
                 cvss_v2_base_severity = None
+                cvss_v2_access_vector = None
+                cvss_v2_access_complexity = None
+                cvss_v2_authentication = None
+                cvss_v2_confidentiality_impact = None
+                cvss_v2_integrity_impact = None
+                cvss_v2_availability_impact = None
                 
                 if format_version == "1.1":
                     # Формат CVE 1.1
@@ -89,21 +102,36 @@ def parse_cve_json(data):
                     # Формат CVE 2.0
                     metrics = cve_info.get('metrics', {})
                     
-                    # CVSS v3.1
-                    if 'cvssMetricV31' in metrics:
-                        cvss_v3 = metrics['cvssMetricV31'][0].get('cvssData', {})
-                        cvss_v3_base_score = cvss_v3.get('baseScore')
-                        cvss_v3_base_severity = cvss_v3.get('baseSeverity')
-                    elif 'cvssMetricV30' in metrics:
-                        cvss_v3 = metrics['cvssMetricV30'][0].get('cvssData', {})
-                        cvss_v3_base_score = cvss_v3.get('baseScore')
-                        cvss_v3_base_severity = cvss_v3.get('baseSeverity')
+                    # CVSS v3.1 (приоритет) или v3.0
+                    cvss_v3_metric = None
+                    if 'cvssMetricV31' in metrics and metrics['cvssMetricV31']:
+                        cvss_v3_metric = metrics['cvssMetricV31'][0]
+                    elif 'cvssMetricV30' in metrics and metrics['cvssMetricV30']:
+                        cvss_v3_metric = metrics['cvssMetricV30'][0]
+                    
+                    if cvss_v3_metric:
+                        cvss_v3_data = cvss_v3_metric.get('cvssData', {})
+                        cvss_v3_base_score = cvss_v3_data.get('baseScore')
+                        cvss_v3_base_severity = cvss_v3_data.get('baseSeverity')  # В cvssData
+                        cvss_v3_attack_vector = cvss_v3_data.get('attackVector')
+                        cvss_v3_privileges_required = cvss_v3_data.get('privilegesRequired')
+                        cvss_v3_user_interaction = cvss_v3_data.get('userInteraction')
+                        cvss_v3_confidentiality_impact = cvss_v3_data.get('confidentialityImpact')
+                        cvss_v3_integrity_impact = cvss_v3_data.get('integrityImpact')
+                        cvss_v3_availability_impact = cvss_v3_data.get('availabilityImpact')
                     
                     # CVSS v2
-                    if 'cvssMetricV2' in metrics:
-                        cvss_v2 = metrics['cvssMetricV2'][0].get('cvssData', {})
-                        cvss_v2_base_score = cvss_v2.get('baseScore')
-                        cvss_v2_base_severity = cvss_v2.get('baseSeverity')
+                    if 'cvssMetricV2' in metrics and metrics['cvssMetricV2']:
+                        cvss_v2_metric = metrics['cvssMetricV2'][0]
+                        cvss_v2_data = cvss_v2_metric.get('cvssData', {})
+                        cvss_v2_base_score = cvss_v2_data.get('baseScore')
+                        cvss_v2_base_severity = cvss_v2_metric.get('baseSeverity')  # На верхнем уровне
+                        cvss_v2_access_vector = cvss_v2_data.get('accessVector')
+                        cvss_v2_access_complexity = cvss_v2_data.get('accessComplexity')
+                        cvss_v2_authentication = cvss_v2_data.get('authentication')
+                        cvss_v2_confidentiality_impact = cvss_v2_data.get('confidentialityImpact')
+                        cvss_v2_integrity_impact = cvss_v2_data.get('integrityImpact')
+                        cvss_v2_availability_impact = cvss_v2_data.get('availabilityImpact')
                 
                 # Создаем запись
                 record = {
@@ -111,8 +139,20 @@ def parse_cve_json(data):
                     'description': description,
                     'cvss_v3_base_score': cvss_v3_base_score,
                     'cvss_v3_base_severity': cvss_v3_base_severity,
+                    'cvss_v3_attack_vector': cvss_v3_attack_vector,
+                    'cvss_v3_privileges_required': cvss_v3_privileges_required,
+                    'cvss_v3_user_interaction': cvss_v3_user_interaction,
+                    'cvss_v3_confidentiality_impact': cvss_v3_confidentiality_impact,
+                    'cvss_v3_integrity_impact': cvss_v3_integrity_impact,
+                    'cvss_v3_availability_impact': cvss_v3_availability_impact,
                     'cvss_v2_base_score': cvss_v2_base_score,
                     'cvss_v2_base_severity': cvss_v2_base_severity,
+                    'cvss_v2_access_vector': cvss_v2_access_vector,
+                    'cvss_v2_access_complexity': cvss_v2_access_complexity,
+                    'cvss_v2_authentication': cvss_v2_authentication,
+                    'cvss_v2_confidentiality_impact': cvss_v2_confidentiality_impact,
+                    'cvss_v2_integrity_impact': cvss_v2_integrity_impact,
+                    'cvss_v2_availability_impact': cvss_v2_availability_impact,
                     'published_date': item.get('publishedDate') or cve_info.get('published'),
                     'last_modified_date': item.get('lastModifiedDate') or cve_info.get('lastModified')
                 }

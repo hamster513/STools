@@ -527,8 +527,12 @@ async def get_cve_preview():
         
         # Получаем первые 20 записей из базы данных
         query = """
-            SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity, 
-                   cvss_v2_base_score, cvss_v2_base_severity, published_date, last_modified_date,
+            SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity,
+                   cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
+                   cvss_v3_confidentiality_impact, cvss_v3_integrity_impact, cvss_v3_availability_impact,
+                   cvss_v2_base_score, cvss_v2_base_severity, cvss_v2_access_vector,
+                   cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
+                   cvss_v2_integrity_impact, cvss_v2_availability_impact, published_date, last_modified_date,
                    created_at
             FROM vulnanalizer.cve 
             ORDER BY created_at DESC 
@@ -549,8 +553,20 @@ async def get_cve_preview():
                 "description": row['description'],
                 "cvss_v3_score": row['cvss_v3_base_score'],
                 "cvss_v3_severity": row['cvss_v3_base_severity'],
+                "cvss_v3_attack_vector": row['cvss_v3_attack_vector'],
+                "cvss_v3_privileges_required": row['cvss_v3_privileges_required'],
+                "cvss_v3_user_interaction": row['cvss_v3_user_interaction'],
+                "cvss_v3_confidentiality_impact": row['cvss_v3_confidentiality_impact'],
+                "cvss_v3_integrity_impact": row['cvss_v3_integrity_impact'],
+                "cvss_v3_availability_impact": row['cvss_v3_availability_impact'],
                 "cvss_v2_score": row['cvss_v2_base_score'],
                 "cvss_v2_severity": row['cvss_v2_base_severity'],
+                "cvss_v2_access_vector": row['cvss_v2_access_vector'],
+                "cvss_v2_access_complexity": row['cvss_v2_access_complexity'],
+                "cvss_v2_authentication": row['cvss_v2_authentication'],
+                "cvss_v2_confidentiality_impact": row['cvss_v2_confidentiality_impact'],
+                "cvss_v2_integrity_impact": row['cvss_v2_integrity_impact'],
+                "cvss_v2_availability_impact": row['cvss_v2_availability_impact'],
                 "published_date": row['published_date'].isoformat() if row['published_date'] else None,
                 "last_modified_date": row['last_modified_date'].isoformat() if row['last_modified_date'] else None,
                 "created_at": row['created_at'].isoformat() if row['created_at'] else None
@@ -571,34 +587,37 @@ async def get_cve_description(cve_id: str):
     try:
         db = get_db()
         
-        # Получаем описание CVE из базы данных
-        query = """
-            SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity, 
-                   cvss_v2_base_score, cvss_v2_base_severity, published_date, last_modified_date
-            FROM vulnanalizer.cve 
-            WHERE cve_id = $1
-        """
+        # Получаем данные CVE через репозиторий
+        cve_data = await db.get_cve_by_id(cve_id)
         
-        conn = await db.get_connection()
-        try:
-            result = await conn.fetchrow(query, cve_id)
-        finally:
-            await db.release_connection(conn)
-        
-        if not result:
+        if not cve_data:
             return {"success": False, "error": "CVE не найден"}
         
         return {
             "success": True,
             "cve": {
-                "id": result['cve_id'],
-                "description": result['description'],
-                "cvss_v3_score": result['cvss_v3_base_score'],
-                "cvss_v3_severity": result['cvss_v3_base_severity'],
-                "cvss_v2_score": result['cvss_v2_base_score'],
-                "cvss_v2_severity": result['cvss_v2_base_severity'],
-                "published_date": result['published_date'].isoformat() if result['published_date'] else None,
-                "last_modified_date": result['last_modified_date'].isoformat() if result['last_modified_date'] else None
+                "id": cve_data['cve_id'],
+                "description": cve_data['description'],
+                "cvss_v3_score": cve_data['cvss_v3_base_score'],
+                "cvss_v3_severity": cve_data['cvss_v3_base_severity'],
+                "cvss_v3_attack_vector": cve_data['cvss_v3_attack_vector'],
+                "cvss_v3_privileges_required": cve_data['cvss_v3_privileges_required'],
+                "cvss_v3_user_interaction": cve_data['cvss_v3_user_interaction'],
+                "cvss_v3_confidentiality_impact": cve_data['cvss_v3_confidentiality_impact'],
+                "cvss_v3_integrity_impact": cve_data['cvss_v3_integrity_impact'],
+                "cvss_v3_availability_impact": cve_data['cvss_v3_availability_impact'],
+                "cvss_v2_score": cve_data['cvss_v2_base_score'],
+                "cvss_v2_severity": cve_data['cvss_v2_base_severity'],
+                "cvss_v2_access_vector": cve_data['cvss_v2_access_vector'],
+                "cvss_v2_access_complexity": cve_data['cvss_v2_access_complexity'],
+                "cvss_v2_authentication": cve_data['cvss_v2_authentication'],
+                "cvss_v2_confidentiality_impact": cve_data['cvss_v2_confidentiality_impact'],
+                "cvss_v2_integrity_impact": cve_data['cvss_v2_integrity_impact'],
+                "cvss_v2_availability_impact": cve_data['cvss_v2_availability_impact'],
+                "exploitability_score": cve_data['exploitability_score'],
+                "impact_score": cve_data['impact_score'],
+                "published_date": cve_data['published_date'],
+                "last_modified_date": cve_data['last_modified_date']
             }
         }
     except Exception as e:

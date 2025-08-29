@@ -89,11 +89,42 @@ class CVERepository(DatabaseBase):
                                 except (ValueError, TypeError):
                                     pass
                         
+                        # Получаем новые поля CVSS
+                        cvss_v3_base_severity = record.get('cvss_v3_base_severity')
+                        cvss_v3_attack_vector = record.get('cvss_v3_attack_vector')
+                        cvss_v3_privileges_required = record.get('cvss_v3_privileges_required')
+                        cvss_v3_user_interaction = record.get('cvss_v3_user_interaction')
+                        cvss_v3_confidentiality_impact = record.get('cvss_v3_confidentiality_impact')
+                        cvss_v3_integrity_impact = record.get('cvss_v3_integrity_impact')
+                        cvss_v3_availability_impact = record.get('cvss_v3_availability_impact')
+                        
+                        cvss_v2_base_severity = record.get('cvss_v2_base_severity')
+                        cvss_v2_access_vector = record.get('cvss_v2_access_vector')
+                        cvss_v2_access_complexity = record.get('cvss_v2_access_complexity')
+                        cvss_v2_authentication = record.get('cvss_v2_authentication')
+                        cvss_v2_confidentiality_impact = record.get('cvss_v2_confidentiality_impact')
+                        cvss_v2_integrity_impact = record.get('cvss_v2_integrity_impact')
+                        cvss_v2_availability_impact = record.get('cvss_v2_availability_impact')
+                        
                         values.append((
                             cve_id.upper(),
                             description[:2000] if description else None,  # Ограничиваем длину
                             cvss_v2,
                             cvss_v3,
+                            cvss_v3_base_severity,
+                            cvss_v3_attack_vector,
+                            cvss_v3_privileges_required,
+                            cvss_v3_user_interaction,
+                            cvss_v3_confidentiality_impact,
+                            cvss_v3_integrity_impact,
+                            cvss_v3_availability_impact,
+                            cvss_v2_base_severity,
+                            cvss_v2_access_vector,
+                            cvss_v2_access_complexity,
+                            cvss_v2_authentication,
+                            cvss_v2_confidentiality_impact,
+                            cvss_v2_integrity_impact,
+                            cvss_v2_availability_impact,
                             published_date,
                             modified_date,
                             datetime.now()
@@ -106,15 +137,36 @@ class CVERepository(DatabaseBase):
                 if values:
                     # Массовая вставка
                     await conn.executemany("""
-                        INSERT INTO cve (cve_id, description, cvss_v2_base_score, cvss_v3_base_score, published_date, modified_date, updated_at) 
-                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                        INSERT INTO cve (
+                            cve_id, description, cvss_v2_base_score, cvss_v3_base_score,
+                            cvss_v3_base_severity, cvss_v3_attack_vector, cvss_v3_privileges_required,
+                            cvss_v3_user_interaction, cvss_v3_confidentiality_impact, cvss_v3_integrity_impact,
+                            cvss_v3_availability_impact, cvss_v2_base_severity, cvss_v2_access_vector,
+                            cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
+                            cvss_v2_integrity_impact, cvss_v2_availability_impact, published_date, last_modified_date, created_at
+                        ) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
                         ON CONFLICT (cve_id) DO UPDATE SET
                             description = EXCLUDED.description,
                             cvss_v2_base_score = EXCLUDED.cvss_v2_base_score,
                             cvss_v3_base_score = EXCLUDED.cvss_v3_base_score,
+                            cvss_v3_base_severity = EXCLUDED.cvss_v3_base_severity,
+                            cvss_v3_attack_vector = EXCLUDED.cvss_v3_attack_vector,
+                            cvss_v3_privileges_required = EXCLUDED.cvss_v3_privileges_required,
+                            cvss_v3_user_interaction = EXCLUDED.cvss_v3_user_interaction,
+                            cvss_v3_confidentiality_impact = EXCLUDED.cvss_v3_confidentiality_impact,
+                            cvss_v3_integrity_impact = EXCLUDED.cvss_v3_integrity_impact,
+                            cvss_v3_availability_impact = EXCLUDED.cvss_v3_availability_impact,
+                            cvss_v2_base_severity = EXCLUDED.cvss_v2_base_severity,
+                            cvss_v2_access_vector = EXCLUDED.cvss_v2_access_vector,
+                            cvss_v2_access_complexity = EXCLUDED.cvss_v2_access_complexity,
+                            cvss_v2_authentication = EXCLUDED.cvss_v2_authentication,
+                            cvss_v2_confidentiality_impact = EXCLUDED.cvss_v2_confidentiality_impact,
+                            cvss_v2_integrity_impact = EXCLUDED.cvss_v2_integrity_impact,
+                            cvss_v2_availability_impact = EXCLUDED.cvss_v2_availability_impact,
                             published_date = EXCLUDED.published_date,
-                            modified_date = EXCLUDED.modified_date,
-                            updated_at = EXCLUDED.updated_at
+                            last_modified_date = EXCLUDED.last_modified_date,
+                            created_at = EXCLUDED.created_at
                     """, values)
                     
                     total_inserted += len(values)
@@ -154,7 +206,13 @@ class CVERepository(DatabaseBase):
             await conn.execute('SET search_path TO vulnanalizer')
             
             row = await conn.fetchrow("""
-                SELECT cve_id, description, cvss_v2_base_score, cvss_v3_base_score, published_date, modified_date, updated_at
+                SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity,
+                       cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
+                       cvss_v3_confidentiality_impact, cvss_v3_integrity_impact, cvss_v3_availability_impact,
+                       cvss_v2_base_score, cvss_v2_base_severity, cvss_v2_access_vector,
+                       cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
+                       cvss_v2_integrity_impact, cvss_v2_availability_impact, exploitability_score,
+                       impact_score, published_date, last_modified_date, created_at
                 FROM cve 
                 WHERE cve_id = $1
             """, cve_id.upper())
@@ -163,11 +221,27 @@ class CVERepository(DatabaseBase):
                 return {
                     'cve_id': row['cve_id'],
                     'description': row['description'],
-                    'cvss_v2_base_score': float(row['cvss_v2_base_score']) if row['cvss_v2_base_score'] else None,
                     'cvss_v3_base_score': float(row['cvss_v3_base_score']) if row['cvss_v3_base_score'] else None,
+                    'cvss_v3_base_severity': row['cvss_v3_base_severity'],
+                    'cvss_v3_attack_vector': row['cvss_v3_attack_vector'],
+                    'cvss_v3_privileges_required': row['cvss_v3_privileges_required'],
+                    'cvss_v3_user_interaction': row['cvss_v3_user_interaction'],
+                    'cvss_v3_confidentiality_impact': row['cvss_v3_confidentiality_impact'],
+                    'cvss_v3_integrity_impact': row['cvss_v3_integrity_impact'],
+                    'cvss_v3_availability_impact': row['cvss_v3_availability_impact'],
+                    'cvss_v2_base_score': float(row['cvss_v2_base_score']) if row['cvss_v2_base_score'] else None,
+                    'cvss_v2_base_severity': row['cvss_v2_base_severity'],
+                    'cvss_v2_access_vector': row['cvss_v2_access_vector'],
+                    'cvss_v2_access_complexity': row['cvss_v2_access_complexity'],
+                    'cvss_v2_authentication': row['cvss_v2_authentication'],
+                    'cvss_v2_confidentiality_impact': row['cvss_v2_confidentiality_impact'],
+                    'cvss_v2_integrity_impact': row['cvss_v2_integrity_impact'],
+                    'cvss_v2_availability_impact': row['cvss_v2_availability_impact'],
+                    'exploitability_score': float(row['exploitability_score']) if row['exploitability_score'] else None,
+                    'impact_score': float(row['impact_score']) if row['impact_score'] else None,
                     'published_date': row['published_date'].isoformat() if row['published_date'] else None,
-                    'modified_date': row['modified_date'].isoformat() if row['modified_date'] else None,
-                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
+                    'last_modified_date': row['last_modified_date'].isoformat() if row['last_modified_date'] else None,
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None
                 }
             return None
         except Exception as e:
@@ -272,14 +346,24 @@ class CVERepository(DatabaseBase):
                     conn = await asyncpg.connect(self.database_url)
                 
                 query = """
-                    INSERT INTO cve (cve_id, description, cvss_v3_base_score, cvss_v3_base_severity, 
-                                    cvss_v2_base_score, cvss_v2_base_severity, exploitability_score, 
-                                    impact_score, published_date, last_modified_date)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    INSERT INTO cve (
+                        cve_id, description, cvss_v3_base_score, cvss_v3_base_severity,
+                        cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
+                        cvss_v3_confidentiality_impact, cvss_v3_integrity_impact, cvss_v3_availability_impact,
+                        cvss_v2_base_score, cvss_v2_base_severity, cvss_v2_access_vector,
+                        cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
+                        cvss_v2_integrity_impact, cvss_v2_availability_impact, exploitability_score,
+                        impact_score, published_date, last_modified_date
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
                     ON CONFLICT (cve_id) DO UPDATE SET 
                         description = $2, cvss_v3_base_score = $3, cvss_v3_base_severity = $4,
-                        cvss_v2_base_score = $5, cvss_v2_base_severity = $6, exploitability_score = $7,
-                        impact_score = $8, published_date = $9, last_modified_date = $10
+                        cvss_v3_attack_vector = $5, cvss_v3_privileges_required = $6, cvss_v3_user_interaction = $7,
+                        cvss_v3_confidentiality_impact = $8, cvss_v3_integrity_impact = $9, cvss_v3_availability_impact = $10,
+                        cvss_v2_base_score = $11, cvss_v2_base_severity = $12, cvss_v2_access_vector = $13,
+                        cvss_v2_access_complexity = $14, cvss_v2_authentication = $15, cvss_v2_confidentiality_impact = $16,
+                        cvss_v2_integrity_impact = $17, cvss_v2_availability_impact = $18, exploitability_score = $19,
+                        impact_score = $20, published_date = $21, last_modified_date = $22
                 """
                 
                 for rec in batch_records:
@@ -317,8 +401,14 @@ class CVERepository(DatabaseBase):
                             
                             await conn.execute(query, 
                                 rec['cve_id'], rec.get('description'), rec.get('cvss_v3_base_score'),
-                                rec.get('cvss_v3_base_severity'), rec.get('cvss_v2_base_score'),
-                                rec.get('cvss_v2_base_severity'), rec.get('exploitability_score'),
+                                rec.get('cvss_v3_base_severity'), rec.get('cvss_v3_attack_vector'),
+                                rec.get('cvss_v3_privileges_required'), rec.get('cvss_v3_user_interaction'),
+                                rec.get('cvss_v3_confidentiality_impact'), rec.get('cvss_v3_integrity_impact'),
+                                rec.get('cvss_v3_availability_impact'), rec.get('cvss_v2_base_score'),
+                                rec.get('cvss_v2_base_severity'), rec.get('cvss_v2_access_vector'),
+                                rec.get('cvss_v2_access_complexity'), rec.get('cvss_v2_authentication'),
+                                rec.get('cvss_v2_confidentiality_impact'), rec.get('cvss_v2_integrity_impact'),
+                                rec.get('cvss_v2_availability_impact'), rec.get('exploitability_score'),
                                 rec.get('impact_score'), published_date, last_modified_date)
                             
                             if existing:
@@ -349,7 +439,11 @@ class CVERepository(DatabaseBase):
         try:
             query = """
                 SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity,
-                       cvss_v2_base_score, cvss_v2_base_severity, exploitability_score,
+                       cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
+                       cvss_v3_confidentiality_impact, cvss_v3_integrity_impact, cvss_v3_availability_impact,
+                       cvss_v2_base_score, cvss_v2_base_severity, cvss_v2_access_vector,
+                       cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
+                       cvss_v2_integrity_impact, cvss_v2_availability_impact, exploitability_score,
                        impact_score, published_date, last_modified_date
                 FROM cve 
                 WHERE cve_id = $1
@@ -362,8 +456,20 @@ class CVERepository(DatabaseBase):
                     'description': row['description'],
                     'cvss_v3_base_score': float(row['cvss_v3_base_score']) if row['cvss_v3_base_score'] else None,
                     'cvss_v3_base_severity': row['cvss_v3_base_severity'],
+                    'cvss_v3_attack_vector': row['cvss_v3_attack_vector'],
+                    'cvss_v3_privileges_required': row['cvss_v3_privileges_required'],
+                    'cvss_v3_user_interaction': row['cvss_v3_user_interaction'],
+                    'cvss_v3_confidentiality_impact': row['cvss_v3_confidentiality_impact'],
+                    'cvss_v3_integrity_impact': row['cvss_v3_integrity_impact'],
+                    'cvss_v3_availability_impact': row['cvss_v3_availability_impact'],
                     'cvss_v2_base_score': float(row['cvss_v2_base_score']) if row['cvss_v2_base_score'] else None,
                     'cvss_v2_base_severity': row['cvss_v2_base_severity'],
+                    'cvss_v2_access_vector': row['cvss_v2_access_vector'],
+                    'cvss_v2_access_complexity': row['cvss_v2_access_complexity'],
+                    'cvss_v2_authentication': row['cvss_v2_authentication'],
+                    'cvss_v2_confidentiality_impact': row['cvss_v2_confidentiality_impact'],
+                    'cvss_v2_integrity_impact': row['cvss_v2_integrity_impact'],
+                    'cvss_v2_availability_impact': row['cvss_v2_availability_impact'],
                     'exploitability_score': float(row['exploitability_score']) if row['exploitability_score'] else None,
                     'impact_score': float(row['impact_score']) if row['impact_score'] else None,
                     'published_date': row['published_date'].isoformat() if row['published_date'] else None,

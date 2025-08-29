@@ -105,9 +105,13 @@ class SettingsModule {
         const formulaModal = document.getElementById('risk-formula-modal');
         
         if (showFormulaBtn) {
+            console.log('showFormulaBtn найден:', showFormulaBtn);
             showFormulaBtn.addEventListener('click', () => {
+                console.log('Клик по кнопке show-risk-formula');
                 this.showRiskFormulaModal();
             });
+        } else {
+            console.log('showFormulaBtn НЕ найден!');
         }
         
         if (closeFormulaBtn) {
@@ -447,8 +451,35 @@ class SettingsModule {
     showRiskFormulaModal() {
         const modal = document.getElementById('risk-formula-modal');
         if (modal) {
+            console.log('showRiskFormulaModal: открываем модальное окно');
+            console.log('До открытия - position:', modal.style.position);
+            console.log('До открытия - top:', modal.style.top);
+            console.log('До открытия - left:', modal.style.left);
+            console.log('До открытия - transform:', modal.style.transform);
+            
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden'; // Блокируем прокрутку страницы
+            
+            // Принудительно устанавливаем стили
+            modal.style.position = 'fixed';
+            modal.style.top = '50%';
+            modal.style.left = '50%';
+            modal.style.transform = 'translate(-50%, -50%)';
+            modal.style.zIndex = '1000';
+            
+            console.log('После открытия - position:', modal.style.position);
+            console.log('После открытия - top:', modal.style.top);
+            console.log('После открытия - left:', modal.style.left);
+            console.log('После открытия - transform:', modal.style.transform);
+            
+            // Проверяем через небольшую задержку
+            setTimeout(() => {
+                console.log('Через 100ms - position:', modal.style.position);
+                console.log('Через 100ms - top:', modal.style.top);
+                console.log('Через 100ms - left:', modal.style.left);
+                console.log('Через 100ms - transform:', modal.style.transform);
+                console.log('Через 100ms - computed styles:', window.getComputedStyle(modal));
+            }, 100);
         }
     }
 

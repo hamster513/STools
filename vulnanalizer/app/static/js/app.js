@@ -3055,7 +3055,9 @@ class VulnAnalizer {
     }
 
     setupCollapsibleBlocks() {
+        console.log('setupCollapsibleBlocks вызван');
         const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+        console.log('Найдено collapsible headers:', collapsibleHeaders.length);
         
         collapsibleHeaders.forEach(header => {
             // Инициализируем стрелки как свернутые по умолчанию
@@ -3065,12 +3067,26 @@ class VulnAnalizer {
             }
             header.classList.add('collapsed');
             
+            // Инициализируем контент как свернутый
+            const targetId = header.getAttribute('data-target');
+            const content = document.getElementById(targetId);
+            if (content) {
+                content.style.display = 'none';
+            }
+            
             header.addEventListener('click', (e) => {
+                console.log('Клик по collapsible header:', e.target);
+                console.log('Клик по форме:', e.target.closest('form'));
+                console.log('Клик по кнопке:', e.target.closest('button'));
+                console.log('Клик по formula-btn:', e.target.closest('.formula-btn'));
+                
                 // Предотвращаем срабатывание при клике на форму внутри
-                if (e.target.closest('form') || e.target.closest('button')) {
+                if (e.target.closest('form') || (e.target.closest('button') && !e.target.closest('.formula-btn'))) {
+                    console.log('Блокируем клик');
                     return;
                 }
                 
+                console.log('Обрабатываем клик');
                 const targetId = header.getAttribute('data-target');
                 const content = document.getElementById(targetId);
                 

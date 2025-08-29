@@ -350,35 +350,88 @@
 
 /* Базовые стили для модальных окон с классом modal-content */
 .modal-content {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: 1000 !important;
-    background-color: var(--surface-color) !important;
-    border-radius: var(--border-radius) !important;
-    box-shadow: var(--shadow-xl) !important;
-    overflow: hidden !important;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    max-width: 90vw;
+    max-height: 90vh;
 }
+
+
 
 /* Специальные стили для модальных окон предварительного просмотра данных */
 #epss-modal,
 #exploitdb-modal,
 #metasploit-modal,
 #cve-preview-modal {
-    width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
-    max-width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
-    min-width: 1000px !important;
-    right: 5vw !important;
-    left: auto !important;
-    transform: translateY(-50%) !important;
+    width: calc(90vw - var(--sidebar-width, 280px) - 10vw);
+    max-width: calc(90vw - var(--sidebar-width, 280px) - 10vw);
+    min-width: 1000px;
+    right: 5vw;
+    left: auto;
+    transform: translateY(-50%);
 }
 
 #epss-modal > div,
 #exploitdb-modal > div,
 #metasploit-modal > div,
 #cve-preview-modal > div {
-    width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
-    max-width: calc(90vw - var(--sidebar-width, 280px) - 10vw) !important;
-    min-width: 1000px !important;
+    width: calc(90vw - var(--sidebar-width, 280px) - 10vw);
+    max-width: calc(90vw - var(--sidebar-width, 280px) - 10vw);
+    min-width: 1000px;
+}
+
+/* Исключение для модального окна с формулой расчета */
+#risk-formula-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    width: auto;
+    max-width: 90vw;
+    min-width: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Специальные стили только для модального окна формулы */
+#risk-formula-modal > div {
+    width: auto;
+    max-width: 80vw;
+    min-width: 20vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+}
+
+/* Восстанавливаем правильные стили для остальных модальных окон */
+#cve-modal,
+#metasploit-modal,
+#epss-modal,
+#exploitdb-modal,
+#cve-preview-modal {
+    position: fixed;
+    top: 50%;
+    left: calc(50% + var(--sidebar-width, 280px) / 2);
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    max-width: calc(90vw - var(--sidebar-width, 280px));
+    max-height: 90vh;
 }
