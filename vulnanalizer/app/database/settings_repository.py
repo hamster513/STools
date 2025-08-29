@@ -24,7 +24,27 @@ class SettingsRepository(DatabaseBase):
                 'max_concurrent_requests': '3',
                 'impact_resource_criticality': 'Medium',
                 'impact_confidential_data': 'Отсутствуют',
-                'impact_internet_access': 'Недоступен'
+                'impact_internet_access': 'Недоступен',
+                # CVSS v3 настройки
+                'cvss_v3_attack_vector_network': '1.10',
+                'cvss_v3_attack_vector_adjacent': '0.90',
+                'cvss_v3_attack_vector_local': '0.60',
+                'cvss_v3_attack_vector_physical': '0.30',
+                'cvss_v3_privileges_required_none': '1.10',
+                'cvss_v3_privileges_required_low': '0.70',
+                'cvss_v3_privileges_required_high': '0.40',
+                'cvss_v3_user_interaction_none': '1.10',
+                'cvss_v3_user_interaction_required': '0.60',
+                # CVSS v2 настройки
+                'cvss_v2_access_vector_network': '1.10',
+                'cvss_v2_access_vector_adjacent_network': '0.90',
+                'cvss_v2_access_vector_local': '0.60',
+                'cvss_v2_access_complexity_low': '1.10',
+                'cvss_v2_access_complexity_medium': '0.80',
+                'cvss_v2_access_complexity_high': '0.40',
+                'cvss_v2_authentication_none': '1.10',
+                'cvss_v2_authentication_single': '0.80',
+                'cvss_v2_authentication_multiple': '0.40'
             }
             
             for key, default_value in defaults.items():

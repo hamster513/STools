@@ -89,6 +89,75 @@
     flex-direction: row;
 }
 
+/* ===== СТИЛИ ДЛЯ CVSS НАСТРОЕК ===== */
+.cvss-section {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-secondary);
+}
+
+.cvss-section h4 {
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.cvss-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.cvss-group h5 {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cvss-group .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.cvss-group .form-group {
+    margin-bottom: var(--spacing-sm);
+}
+
+.cvss-group .form-group label {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    display: block;
+}
+
+.cvss-group .form-group input {
+    width: 100%;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}
+
+/* Адаптивность для CVSS настроек */
+@media (max-width: 768px) {
+    .cvss-group .form-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .cvss-group .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ===== СТИЛИ ДЛЯ ВЫБОРА ЛЕТ CVE ===== */
 .cve-container .year-selector {
     border: 1px solid #ddd;

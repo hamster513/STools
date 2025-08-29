@@ -1,6 +1,6 @@
 /**
  * Модуль для управления настройками
- * v=2.4
+ * v=2.6
  */
 class SettingsModule {
     constructor(app) {
@@ -11,6 +11,7 @@ class SettingsModule {
     init() {
         this.setupEventListeners();
         this.loadAppVersion();
+        this.loadSettings();
     }
 
     setupEventListeners() {
@@ -29,6 +30,23 @@ class SettingsModule {
             impactForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.saveImpactSettings();
+            });
+        }
+
+        // Форма настроек CVSS
+        const cvssForm = document.getElementById('cvss-form');
+        if (cvssForm) {
+            cvssForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveCVSSSettings();
+            });
+        }
+
+        // Кнопка сброса CVSS к значениям по умолчанию
+        const resetCVSSDefaultsBtn = document.getElementById('reset-cvss-defaults');
+        if (resetCVSSDefaultsBtn) {
+            resetCVSSDefaultsBtn.addEventListener('click', () => {
+                this.resetCVSSDefaults();
             });
         }
 
@@ -442,6 +460,121 @@ class SettingsModule {
         } catch (error) {
             console.error('Error loading app version:', error);
         }
+    }
+
+    async loadSettings() {
+        try {
+            const settings = await this.app.api.getSettings();
+            
+            // Загружаем Impact настройки
+            this.loadImpactSettings(settings);
+            
+            // Загружаем CVSS настройки
+            this.loadCVSSSettings(settings);
+            
+        } catch (error) {
+            console.error('Error loading settings:', error);
+        }
+    }
+
+    loadImpactSettings(settings) {
+        // Загружаем Impact настройки в форму
+        const impactForm = document.getElementById('impact-form');
+        if (impactForm) {
+            const fields = ['impact_resource_criticality', 'impact_confidential_data', 'impact_internet_access'];
+            fields.forEach(field => {
+                const input = impactForm.querySelector(`[name="${field}"]`);
+                if (input && settings[field]) {
+                    input.value = settings[field];
+                }
+            });
+        }
+    }
+
+    loadCVSSSettings(settings) {
+        // Загружаем CVSS настройки в форму
+        const cvssForm = document.getElementById('cvss-form');
+        if (cvssForm) {
+            const cvssFields = [
+                'cvss_v3_attack_vector_network', 'cvss_v3_attack_vector_adjacent', 'cvss_v3_attack_vector_local', 'cvss_v3_attack_vector_physical',
+                'cvss_v3_privileges_required_none', 'cvss_v3_privileges_required_low', 'cvss_v3_privileges_required_high',
+                'cvss_v3_user_interaction_none', 'cvss_v3_user_interaction_required',
+                'cvss_v2_access_vector_network', 'cvss_v2_access_vector_adjacent_network', 'cvss_v2_access_vector_local',
+                'cvss_v2_access_complexity_low', 'cvss_v2_access_complexity_medium', 'cvss_v2_access_complexity_high',
+                'cvss_v2_authentication_none', 'cvss_v2_authentication_single', 'cvss_v2_authentication_multiple'
+            ];
+            
+            cvssFields.forEach(field => {
+                const input = cvssForm.querySelector(`[name="${field}"]`);
+                if (input && settings[field]) {
+                    input.value = settings[field];
+                }
+            });
+        }
+    }
+
+    // Методы для работы с CVSS настройками
+    async saveCVSSSettings() {
+        try {
+            const form = document.getElementById('cvss-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Конвертируем строковые значения в числа
+            for (const key in data) {
+                if (data[key] !== '') {
+                    data[key] = parseFloat(data[key]);
+                }
+            }
+
+            const response = await this.app.api.saveSettings(data);
+
+            if (response.success) {
+                window.notifications.show('Настройки CVSS сохранены успешно!', 'success');
+            } else {
+                window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Save CVSS settings error:', error);
+            window.notifications.show('Ошибка сохранения настроек CVSS', 'error');
+        }
+    }
+
+    resetCVSSDefaults() {
+        if (!confirm('Сбросить все CVSS параметры к значениям по умолчанию?')) {
+            return;
+        }
+
+        const defaults = {
+            'cvss_v3_attack_vector_network': 1.10,
+            'cvss_v3_attack_vector_adjacent': 0.90,
+            'cvss_v3_attack_vector_local': 0.60,
+            'cvss_v3_attack_vector_physical': 0.30,
+            'cvss_v3_privileges_required_none': 1.10,
+            'cvss_v3_privileges_required_low': 0.70,
+            'cvss_v3_privileges_required_high': 0.40,
+            'cvss_v3_user_interaction_none': 1.10,
+            'cvss_v3_user_interaction_required': 0.60,
+            'cvss_v2_access_vector_network': 1.10,
+            'cvss_v2_access_vector_adjacent_network': 0.90,
+            'cvss_v2_access_vector_local': 0.60,
+            'cvss_v2_access_complexity_low': 1.10,
+            'cvss_v2_access_complexity_medium': 0.80,
+            'cvss_v2_access_complexity_high': 0.40,
+            'cvss_v2_authentication_none': 1.10,
+            'cvss_v2_authentication_single': 0.80,
+            'cvss_v2_authentication_multiple': 0.40
+        };
+
+        // Устанавливаем значения по умолчанию в форму
+        for (const [key, value] of Object.entries(defaults)) {
+            const input = document.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = value;
+            }
+        }
+
+        window.notifications.show('CVSS параметры сброшены к значениям по умолчанию', 'info');
     }
 
     // Методы для работы с модальным окном формулы

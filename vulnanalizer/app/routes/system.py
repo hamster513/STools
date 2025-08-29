@@ -289,7 +289,27 @@ async def get_settings():
             "database_port": "",
             "database_name": "",
             "database_user": "",
-            "database_password": ""
+            "database_password": "",
+            # CVSS v3 настройки
+            "cvss_v3_attack_vector_network": 1.10,
+            "cvss_v3_attack_vector_adjacent": 0.90,
+            "cvss_v3_attack_vector_local": 0.60,
+            "cvss_v3_attack_vector_physical": 0.30,
+            "cvss_v3_privileges_required_none": 1.10,
+            "cvss_v3_privileges_required_low": 0.70,
+            "cvss_v3_privileges_required_high": 0.40,
+            "cvss_v3_user_interaction_none": 1.10,
+            "cvss_v3_user_interaction_required": 0.60,
+            # CVSS v2 настройки
+            "cvss_v2_access_vector_network": 1.10,
+            "cvss_v2_access_vector_adjacent_network": 0.90,
+            "cvss_v2_access_vector_local": 0.60,
+            "cvss_v2_access_complexity_low": 1.10,
+            "cvss_v2_access_complexity_medium": 0.80,
+            "cvss_v2_access_complexity_high": 0.40,
+            "cvss_v2_authentication_none": 1.10,
+            "cvss_v2_authentication_single": 0.80,
+            "cvss_v2_authentication_multiple": 0.40
         }
 
 

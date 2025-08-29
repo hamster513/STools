@@ -17,14 +17,15 @@ class RiskCalculationService(DatabaseBase):
         self._cve_cache = {}
         self._exploitdb_cache = {}
 
-    def calculate_risk_score_fast(self, epss: float, cvss: float = None, criticality: str = 'Medium', settings: dict = None) -> dict:
-        """Полный расчет риска с учетом всех факторов"""
+    def calculate_risk_score_fast(self, epss: float, cvss: float = None, criticality: str = 'Medium', settings: dict = None, cve_data: dict = None) -> dict:
+        """Полный расчет риска с учетом всех факторов по новой формуле"""
         if epss is None:
             return {
                 'raw_risk': None,
                 'risk_score': None,
                 'calculation_possible': False,
-                'impact': None
+                'impact': None,
+                'cve_param': None
             }
         
         # Конвертируем decimal в float если нужно
@@ -34,15 +35,20 @@ class RiskCalculationService(DatabaseBase):
         # Полный расчет Impact на основе критичности и других факторов
         impact = self._calculate_impact_full(criticality, settings)
         
-        # Полная формула расчета риска
-        raw_risk = epss * impact
+        # Расчет CVE_param
+        cve_param = self._calculate_cve_param(cve_data, settings)
+        
+        # Новая формула: Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param
+        cvss_factor = (cvss / 10) if cvss is not None else 1.0
+        raw_risk = epss * cvss_factor * impact * cve_param
         risk_score = min(1, raw_risk) * 100
         
         return {
             'raw_risk': raw_risk,
             'risk_score': risk_score,
             'calculation_possible': True,
-            'impact': impact
+            'impact': impact,
+            'cve_param': cve_param
         }
 
     def _calculate_impact_full(self, criticality: str, settings: dict = None) -> float:
@@ -89,6 +95,94 @@ class RiskCalculationService(DatabaseBase):
         
         return impact
 
+    def _calculate_cve_param(self, cve_data: dict = None, settings: dict = None) -> float:
+        """Расчет CVE_param на основе CVSS метрик"""
+        if not cve_data:
+            return 1.0
+        
+        # Получаем настройки CVSS параметров
+        cvss_settings = self._get_cvss_settings(settings)
+        
+        # Пытаемся использовать CVSS v3
+        if cve_data.get('cvss_v3_attack_vector') and cve_data.get('cvss_v3_privileges_required') and cve_data.get('cvss_v3_user_interaction'):
+            try:
+                av_factor = cvss_settings['v3']['attack_vector'].get(cve_data['cvss_v3_attack_vector'], 1.0)
+                pr_factor = cvss_settings['v3']['privileges_required'].get(cve_data['cvss_v3_privileges_required'], 1.0)
+                ui_factor = cvss_settings['v3']['user_interaction'].get(cve_data['cvss_v3_user_interaction'], 1.0)
+                
+                cve_param = av_factor * pr_factor * ui_factor
+                return cve_param if cve_param > 0 else 1.0
+            except Exception:
+                pass
+        
+        # Если CVSS v3 недоступен, используем CVSS v2
+        if cve_data.get('cvss_v2_access_vector') and cve_data.get('cvss_v2_access_complexity') and cve_data.get('cvss_v2_authentication'):
+            try:
+                av_factor = cvss_settings['v2']['access_vector'].get(cve_data['cvss_v2_access_vector'], 1.0)
+                ac_factor = cvss_settings['v2']['access_complexity'].get(cve_data['cvss_v2_access_complexity'], 1.0)
+                au_factor = cvss_settings['v2']['authentication'].get(cve_data['cvss_v2_authentication'], 1.0)
+                
+                cve_param = av_factor * ac_factor * au_factor
+                return cve_param if cve_param > 0 else 1.0
+            except Exception:
+                pass
+        
+        # Если не удалось рассчитать, возвращаем 1.0
+        return 1.0
+
+    def _get_cvss_settings(self, settings: dict = None) -> dict:
+        """Получение настроек CVSS параметров"""
+        # Значения по умолчанию
+        default_settings = {
+            'v3': {
+                'attack_vector': {
+                    'NETWORK': 1.10,
+                    'ADJACENT': 0.90,
+                    'LOCAL': 0.60,
+                    'PHYSICAL': 0.30
+                },
+                'privileges_required': {
+                    'NONE': 1.10,
+                    'LOW': 0.70,
+                    'HIGH': 0.40
+                },
+                'user_interaction': {
+                    'NONE': 1.10,
+                    'REQUIRED': 0.60
+                }
+            },
+            'v2': {
+                'access_vector': {
+                    'NETWORK': 1.10,
+                    'ADJACENT_NETWORK': 0.90,
+                    'LOCAL': 0.60
+                },
+                'access_complexity': {
+                    'LOW': 1.10,
+                    'MEDIUM': 0.80,
+                    'HIGH': 0.40
+                },
+                'authentication': {
+                    'NONE': 1.10,
+                    'SINGLE': 0.80,
+                    'MULTIPLE': 0.40
+                }
+            }
+        }
+        
+        if not settings:
+            return default_settings
+        
+        # Обновляем значения из настроек если они есть
+        for version in ['v3', 'v2']:
+            for metric in default_settings[version]:
+                for value in default_settings[version][metric]:
+                    setting_key = f'cvss_{version}_{metric.lower()}_{value.lower()}'
+                    if setting_key in settings:
+                        default_settings[version][metric][value] = float(settings[setting_key])
+        
+        return default_settings
+
     async def process_cve_risk_calculation_optimized(self, cve_rows, conn, settings=None, progress_callback=None):
         """Оптимизированная параллельная обработка CVE для расчета рисков"""
         print(f"🚀 Начинаем оптимизированную обработку {len(cve_rows)} CVE")
@@ -127,6 +221,27 @@ class RiskCalculationService(DatabaseBase):
                             print(f"⚠️ [{index+1}] EPSS ошибка для {cve}: {e}")
                             epss_data = None
                     
+                    # Получаем данные CVE для расчета CVE_param
+                    cve_data = None
+                    try:
+                        cve_query = """
+                            SELECT cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
+                                   cvss_v2_access_vector, cvss_v2_access_complexity, cvss_v2_authentication
+                            FROM cve WHERE cve_id = $1
+                        """
+                        cve_row = await conn.fetchrow(cve_query, cve)
+                        if cve_row:
+                            cve_data = {
+                                'cvss_v3_attack_vector': cve_row['cvss_v3_attack_vector'],
+                                'cvss_v3_privileges_required': cve_row['cvss_v3_privileges_required'],
+                                'cvss_v3_user_interaction': cve_row['cvss_v3_user_interaction'],
+                                'cvss_v2_access_vector': cve_row['cvss_v2_access_vector'],
+                                'cvss_v2_access_complexity': cve_row['cvss_v2_access_complexity'],
+                                'cvss_v2_authentication': cve_row['cvss_v2_authentication']
+                            }
+                    except Exception as e:
+                        print(f"⚠️ Error getting CVE data for {cve}: {e}")
+                    
                     # Получаем хосты для этого CVE
                     hosts_query = "SELECT id, cvss, criticality FROM hosts WHERE cve = $1"
                     hosts_rows = await conn.fetch(hosts_query, cve)
@@ -145,7 +260,8 @@ class RiskCalculationService(DatabaseBase):
                                 epss_data['epss'], 
                                 host_row['cvss'], 
                                 host_row['criticality'],
-                                settings
+                                settings,
+                                cve_data
                             )
                         
                         # Быстрое обновление хоста
@@ -367,8 +483,10 @@ class RiskCalculationService(DatabaseBase):
                             try:
                                 risk_result = self.calculate_risk_score_fast(
                                     epss=epss_data.get('epss'),
+                                    cvss=cvss_score,
                                     criticality=host_row['criticality'],
-                                    settings=settings
+                                    settings=settings,
+                                    cve_data=cve_data
                                 )
                                 
                                 if risk_result['calculation_possible']:
@@ -582,10 +700,24 @@ class RiskCalculationService(DatabaseBase):
                             
                             if epss_row and epss_row['epss']:
                                 try:
+                                    # Подготавливаем данные CVE для расчета CVE_param
+                                    cve_param_data = None
+                                    if cve_data_row:
+                                        cve_param_data = {
+                                            'cvss_v3_attack_vector': cve_data_row.get('cvss_v3_attack_vector'),
+                                            'cvss_v3_privileges_required': cve_data_row.get('cvss_v3_privileges_required'),
+                                            'cvss_v3_user_interaction': cve_data_row.get('cvss_v3_user_interaction'),
+                                            'cvss_v2_access_vector': cve_data_row.get('cvss_v2_access_vector'),
+                                            'cvss_v2_access_complexity': cve_data_row.get('cvss_v2_access_complexity'),
+                                            'cvss_v2_authentication': cve_data_row.get('cvss_v2_authentication')
+                                        }
+                                    
                                     risk_result = self.calculate_risk_score_fast(
                                         epss=epss_row['epss'],
+                                        cvss=cvss_score,
                                         criticality=host_row['criticality'],
-                                        settings=settings
+                                        settings=settings,
+                                        cve_data=cve_param_data
                                     )
                                     
                                     if risk_result['calculation_possible']:

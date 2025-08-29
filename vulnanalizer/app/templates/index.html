@@ -327,6 +327,167 @@
                     </div>
                 </div>
 
+                <!-- Настройки CVSS параметров -->
+                <div class="collapsible-block">
+                    <div class="collapsible-header" data-target="cvss-settings">
+                        <h3>
+                            <i class="fas fa-shield-alt"></i> Настройки CVSS параметров
+                            <button type="button" class="formula-btn" title="Показать формулу расчета риска">
+                                <i class="fas fa-square-root-alt"></i>
+                            </button>
+                        </h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="cvss-settings">
+                        <form id="cvss-form">
+                            <div class="cvss-section">
+                                <h4>CVSS v3 Множители</h4>
+                                
+                                <div class="cvss-group">
+                                    <h5>Attack Vector (AV)</h5>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cvss-v3-av-network">NETWORK:</label>
+                                            <input type="number" id="cvss-v3-av-network" name="cvss_v3_attack_vector_network" 
+                                                   step="0.01" min="0" max="2" value="1.10" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v3-av-adjacent">ADJACENT:</label>
+                                            <input type="number" id="cvss-v3-av-adjacent" name="cvss_v3_attack_vector_adjacent" 
+                                                   step="0.01" min="0" max="2" value="0.90" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v3-av-local">LOCAL:</label>
+                                            <input type="number" id="cvss-v3-av-local" name="cvss_v3_attack_vector_local" 
+                                                   step="0.01" min="0" max="2" value="0.60" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v3-av-physical">PHYSICAL:</label>
+                                            <input type="number" id="cvss-v3-av-physical" name="cvss_v3_attack_vector_physical" 
+                                                   step="0.01" min="0" max="2" value="0.30" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cvss-group">
+                                    <h5>Privileges Required (PR)</h5>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cvss-v3-pr-none">NONE:</label>
+                                            <input type="number" id="cvss-v3-pr-none" name="cvss_v3_privileges_required_none" 
+                                                   step="0.01" min="0" max="2" value="1.10" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v3-pr-low">LOW:</label>
+                                            <input type="number" id="cvss-v3-pr-low" name="cvss_v3_privileges_required_low" 
+                                                   step="0.01" min="0" max="2" value="0.70" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v3-pr-high">HIGH:</label>
+                                            <input type="number" id="cvss-v3-pr-high" name="cvss_v3_privileges_required_high" 
+                                                   step="0.01" min="0" max="2" value="0.40" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cvss-group">
+                                    <h5>User Interaction (UI)</h5>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cvss-v3-ui-none">NONE:</label>
+                                            <input type="number" id="cvss-v3-ui-none" name="cvss_v3_user_interaction_none" 
+                                                   step="0.01" min="0" max="2" value="1.10" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v3-ui-required">REQUIRED:</label>
+                                            <input type="number" id="cvss-v3-ui-required" name="cvss_v3_user_interaction_required" 
+                                                   step="0.01" min="0" max="2" value="0.60" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="cvss-section">
+                                <h4>CVSS v2 Множители (если нет v3)</h4>
+                                
+                                <div class="cvss-group">
+                                    <h5>Access Vector (AV)</h5>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cvss-v2-av-network">NETWORK:</label>
+                                            <input type="number" id="cvss-v2-av-network" name="cvss_v2_access_vector_network" 
+                                                   step="0.01" min="0" max="2" value="1.10" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v2-av-adjacent">ADJACENT_NETWORK:</label>
+                                            <input type="number" id="cvss-v2-av-adjacent" name="cvss_v2_access_vector_adjacent_network" 
+                                                   step="0.01" min="0" max="2" value="0.90" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v2-av-local">LOCAL:</label>
+                                            <input type="number" id="cvss-v2-av-local" name="cvss_v2_access_vector_local" 
+                                                   step="0.01" min="0" max="2" value="0.60" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cvss-group">
+                                    <h5>Access Complexity (AC)</h5>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cvss-v2-ac-low">LOW:</label>
+                                            <input type="number" id="cvss-v2-ac-low" name="cvss_v2_access_complexity_low" 
+                                                   step="0.01" min="0" max="2" value="1.10" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v2-ac-medium">MEDIUM:</label>
+                                            <input type="number" id="cvss-v2-ac-medium" name="cvss_v2_access_complexity_medium" 
+                                                   step="0.01" min="0" max="2" value="0.80" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v2-ac-high">HIGH:</label>
+                                            <input type="number" id="cvss-v2-ac-high" name="cvss_v2_access_complexity_high" 
+                                                   step="0.01" min="0" max="2" value="0.40" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cvss-group">
+                                    <h5>Authentication (Au)</h5>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cvss-v2-au-none">NONE:</label>
+                                            <input type="number" id="cvss-v2-au-none" name="cvss_v2_authentication_none" 
+                                                   step="0.01" min="0" max="2" value="1.10" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v2-au-single">SINGLE:</label>
+                                            <input type="number" id="cvss-v2-au-single" name="cvss_v2_authentication_single" 
+                                                   step="0.01" min="0" max="2" value="0.80" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cvss-v2-au-multiple">MULTIPLE:</label>
+                                            <input type="number" id="cvss-v2-au-multiple" name="cvss_v2_authentication_multiple" 
+                                                   step="0.01" min="0" max="2" value="0.40" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-save"></i> Сохранить CVSS
+                                </button>
+                                <button type="button" id="reset-cvss-defaults" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <!-- Настройки VM MaxPatrol -->
                 <div class="collapsible-block">
                     <div class="collapsible-header" data-target="vm-settings">
@@ -624,10 +785,25 @@
                 <h4>🎯 Основная формула</h4>
                 <div class="formula-box">
                     <div class="formula-main">
-                        <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact</span>
+                        <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param</span>
                     </div>
                     <div class="formula-note">
                         Где: <strong>Risk</strong> - итоговый риск в процентах (0-100%)
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-section">
+                <h4>🔧 Расчет CVE_param</h4>
+                <div class="formula-box">
+                    <div class="formula-main">
+                        <span class="formula-text">CVE_param = F_AV × F_PR × F_UI (CVSS v3)</span>
+                    </div>
+                    <div class="formula-main">
+                        <span class="formula-text">CVE_param = F_AV2 × F_AC2 × F_AU2 (CVSS v2)</span>
+                    </div>
+                    <div class="formula-note">
+                        Если CVE_param не удалось рассчитать или результат равен 0, используется значение 1.0
                     </div>
                 </div>
             </div>
@@ -670,6 +846,70 @@
             </div>
 
             <div class="formula-section">
+                <h4>⚙️ CVSS v3 Множители</h4>
+                <div class="cvss-weights">
+                    <div class="weight-group">
+                        <h5>🎯 Attack Vector (AV):</h5>
+                        <ul>
+                            <li><strong>NETWORK:</strong> 1.10</li>
+                            <li><strong>ADJACENT:</strong> 0.90</li>
+                            <li><strong>LOCAL:</strong> 0.60</li>
+                            <li><strong>PHYSICAL:</strong> 0.30</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="weight-group">
+                        <h5>🔐 Privileges Required (PR):</h5>
+                        <ul>
+                            <li><strong>NONE:</strong> 1.10</li>
+                            <li><strong>LOW:</strong> 0.70</li>
+                            <li><strong>HIGH:</strong> 0.40</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="weight-group">
+                        <h5>👤 User Interaction (UI):</h5>
+                        <ul>
+                            <li><strong>NONE:</strong> 1.10</li>
+                            <li><strong>REQUIRED:</strong> 0.60</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-section">
+                <h4>⚙️ CVSS v2 Множители (если нет v3)</h4>
+                <div class="cvss-weights">
+                    <div class="weight-group">
+                        <h5>🎯 Access Vector (AV):</h5>
+                        <ul>
+                            <li><strong>NETWORK:</strong> 1.10</li>
+                            <li><strong>ADJACENT_NETWORK:</strong> 0.90</li>
+                            <li><strong>LOCAL:</strong> 0.60</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="weight-group">
+                        <h5>🔐 Access Complexity (AC):</h5>
+                        <ul>
+                            <li><strong>LOW:</strong> 1.10</li>
+                            <li><strong>MEDIUM:</strong> 0.80</li>
+                            <li><strong>HIGH:</strong> 0.40</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="weight-group">
+                        <h5>👤 Authentication (Au):</h5>
+                        <ul>
+                            <li><strong>NONE:</strong> 1.10</li>
+                            <li><strong>SINGLE:</strong> 0.80</li>
+                            <li><strong>MULTIPLE:</strong> 0.40</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-section">
                 <h4>📈 Пример расчета</h4>
                 <div class="example-box">
                     <div class="example-data">
@@ -680,6 +920,7 @@
                             <li>Критичность ресурса = Critical (0.33)</li>
                             <li>Конфиденциальные данные = Есть (0.33)</li>
                             <li>Доступ из интернета = Доступен (0.33)</li>
+                            <li>CVSS v3: AV=NETWORK(1.10), PR=NONE(1.10), UI=NONE(1.10)</li>
                         </ul>
                     </div>
                     
@@ -687,8 +928,9 @@
                         <p><strong>Расчет:</strong></p>
                         <div class="calculation-steps">
                             <div class="step">1. Impact = 0.33 + 0.33 + 0.33 = <strong>0.99</strong></div>
-                            <div class="step">2. Risk = 0.5 × (8.0 ÷ 10) × 0.99 = <strong>0.396</strong></div>
-                            <div class="step">3. Risk Score = min(1, 0.396) × 100 = <strong>39.6%</strong></div>
+                            <div class="step">2. CVE_param = 1.10 × 1.10 × 1.10 = <strong>1.331</strong></div>
+                            <div class="step">3. Risk = 0.5 × (8.0 ÷ 10) × 0.99 × 1.331 = <strong>0.527</strong></div>
+                            <div class="step">4. Risk Score = min(1, 0.527) × 100 = <strong>52.7%</strong></div>
                         </div>
                     </div>
                 </div>
@@ -820,7 +1062,7 @@
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
             <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
-            <script src="/vulnanalizer/static/js/modules/settings.js?v=2.4"></script>
+            <script src="/vulnanalizer/static/js/modules/settings.js?v=2.6"></script>
         <script src="/vulnanalizer/static/js/modules/base-modal.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
