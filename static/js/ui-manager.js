@@ -257,17 +257,18 @@ class UIManager {
             
             const data = await response.json();
             
+            // Не перезаписываем версию, если она уже установлена из шаблона
             const versionElement = document.getElementById('app-version');
-            if (versionElement && data.version) {
+            if (versionElement && data.version && !versionElement.textContent.includes('v{{ version }}')) {
                 versionElement.textContent = `v${data.version}`;
             }
         } catch (error) {
             // Тихо обрабатываем ошибку, не засоряя консоль
             console.debug('Version info not available:', error.message);
             
-            // Устанавливаем версию по умолчанию
+            // Не устанавливаем версию по умолчанию, если она уже установлена из шаблона
             const versionElement = document.getElementById('app-version');
-            if (versionElement) {
+            if (versionElement && !versionElement.textContent.includes('v{{ version }}')) {
                 versionElement.textContent = 'v1.0.0';
             }
         }

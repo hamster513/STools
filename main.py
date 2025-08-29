@@ -32,17 +32,17 @@ app.add_middleware(
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Главная страница - перенаправляем на vulnanalizer"""
-    return templates.TemplateResponse("base.html", {"request": request})
+    return templates.TemplateResponse("base.html", {"request": request, "version": get_version()})
 
 @app.get("/users/", response_class=HTMLResponse)
 async def users_page(request: Request):
     """Страница управления пользователями"""
-    return templates.TemplateResponse("users.html", {"request": request})
+    return templates.TemplateResponse("users.html", {"request": request, "version": get_version()})
 
 @app.get("/background-tasks/", response_class=HTMLResponse)
 async def background_tasks_page(request: Request):
     """Страница управления очередями"""
-    return templates.TemplateResponse("background-tasks.html", {"request": request})
+    return templates.TemplateResponse("background-tasks.html", {"request": request, "version": get_version()})
 
 @app.get("/settings/", response_class=HTMLResponse)
 async def settings_page(request: Request):

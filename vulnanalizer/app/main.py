@@ -19,10 +19,10 @@ from routes.metasploit import router as metasploit_router
 
 def get_version():
     try:
-        with open('VERSION', 'r') as f:
+        with open('/app/VERSION', 'r') as f:
             return f.read().strip()
     except:
-        return "0.5.00"
+        return "0.6.00"
 
 # Создаем приложение
 app = FastAPI(
@@ -69,7 +69,7 @@ async def get_style_css():
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Главная страница VulnAnalizer"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "version": get_version()})
 
 # Подключаем роуты
 app.include_router(system_router)

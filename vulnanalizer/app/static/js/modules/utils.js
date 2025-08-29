@@ -1,5 +1,6 @@
 /**
  * Модуль утилит и хелперов
+ * v=2.1
  */
 class UtilsModule {
     constructor(app) {
@@ -340,45 +341,7 @@ class UtilsModule {
      * @param {any} data - Дополнительные данные
      */
     log(level, message, data = null) {
-        const timestamp = new Date().toISOString();
-        const logEntry = {
-            timestamp,
-            level,
-            message,
-            data
-        };
-
-        switch (level.toLowerCase()) {
-            case 'error':
-                console.error(`[${timestamp}] ${message}`, data);
-                break;
-            case 'warn':
-                console.warn(`[${timestamp}] ${message}`, data);
-                break;
-            case 'info':
-                console.info(`[${timestamp}] ${message}`, data);
-                break;
-            case 'debug':
-                console.debug(`[${timestamp}] ${message}`, data);
-                break;
-            default:
-                console.log(`[${timestamp}] ${message}`, data);
-        }
-
-        // Сохраняем в localStorage для отладки
-        try {
-            const logs = JSON.parse(localStorage.getItem('app_logs') || '[]');
-            logs.push(logEntry);
-            
-            // Ограничиваем количество логов
-            if (logs.length > 100) {
-                logs.splice(0, logs.length - 100);
-            }
-            
-            localStorage.setItem('app_logs', JSON.stringify(logs));
-        } catch (err) {
-            console.error('Failed to save log:', err);
-        }
+        // Логирование отключено
     }
 
     /**

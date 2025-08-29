@@ -15,9 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем код приложения
 COPY . .
 
-# Копируем файл версии
-COPY VERSION /app/VERSION
-RUN echo "Version: $(cat /app/VERSION)"
+
 
 # Создаем директорию для данных
 RUN mkdir -p /app/data

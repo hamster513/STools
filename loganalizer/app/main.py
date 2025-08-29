@@ -28,10 +28,10 @@ from log_formats import detect_log_level, log_detector
 
 def get_version():
     try:
-        with open('VERSION', 'r') as f:
+        with open('/app/VERSION', 'r') as f:
             return f.read().strip()
     except:
-        return "0.5.00"
+        return "0.6.00"
 
 app = FastAPI(title="LogAnalizer", version=get_version())
 
@@ -157,7 +157,7 @@ async def shutdown():
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Главная страница с оптимизированной загрузкой"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "version": get_version()})
 
 @app.get("/api/health")
 async def health_check():

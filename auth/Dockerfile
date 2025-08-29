@@ -14,9 +14,7 @@ COPY requirements.txt .
 # Установка Python зависимостей
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем файл версии
-COPY VERSION /app/VERSION
-RUN echo "Version: $(cat /app/VERSION)"
+
 
 # Копирование кода приложения
 COPY . .

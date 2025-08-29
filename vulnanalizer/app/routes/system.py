@@ -330,7 +330,7 @@ async def health_check():
 async def get_version():
     """Получить версию приложения"""
     try:
-        with open("VERSION", "r") as f:
+        with open("/app/VERSION", "r") as f:
             version = f.read().strip()
         return {"version": version}
     except FileNotFoundError:

@@ -1,5 +1,6 @@
 /**
  * Модуль аутентификации
+ * v=2.1
  */
 class AuthModule {
     constructor(app) {
@@ -14,34 +15,26 @@ class AuthModule {
 
     checkAuth() {
         const token = localStorage.getItem('auth_token');
-        console.log('checkAuth: token from localStorage:', token ? 'exists' : 'not found');
         
         if (!token) {
-            console.log('checkAuth: no token, redirecting to login');
             window.location.href = '/auth/';
             return;
         }
 
-        console.log('checkAuth: checking token with auth service');
         fetch('/auth/api/me', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         }).then(response => {
-            console.log('checkAuth: auth service response status:', response.status);
             if (response.ok) {
                 return response.json();
             } else {
-                console.log('checkAuth: auth failed, clearing localStorage and redirecting');
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user_info');
                 window.location.href = '/auth/';
                 throw new Error('Auth failed');
             }
         }).then(userData => {
-            console.log('checkAuth: userData from auth service:', userData);
-            console.log('checkAuth: userData.user:', userData.user);
-            console.log('checkAuth: userData.user.is_admin:', userData.user?.is_admin);
             
             if (userData.user) {
                 localStorage.setItem('user_info', JSON.stringify(userData.user));

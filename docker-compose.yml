@@ -54,6 +54,7 @@ services:
     volumes:
       - auth_data:/app/data
       - ./auth:/app
+      - ./VERSION:/app/VERSION
     environment:
       - AUTH_DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - JWT_SECRET_KEY=your-secret-key-change-in-production
@@ -82,6 +83,7 @@ services:
     volumes:
       - loganalizer_data:/app/data
       - ./loganalizer/app:/app
+      - ./VERSION:/app/VERSION
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
@@ -110,6 +112,7 @@ services:
       - vulnanalizer_data:/app/data
       - ./vulnanalizer/app:/app
       - ./templates:/shared_templates
+      - ./VERSION:/app/VERSION
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
@@ -137,6 +140,7 @@ services:
     volumes:
       - ./templates:/app/templates
       - ./static:/app/static
+      - ./VERSION:/app/VERSION
     networks:
       - stools_network
     healthcheck:

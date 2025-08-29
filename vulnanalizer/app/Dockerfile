@@ -37,9 +37,7 @@ WORKDIR /app
 # Копируем код приложения
 COPY --chown=app:app . .
 
-# Копируем файл версии
-COPY --chown=app:app VERSION /app/VERSION
-RUN echo "Version: $(cat /app/VERSION)"
+
 
 # Порт
 EXPOSE 8000

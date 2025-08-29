@@ -13,10 +13,10 @@ from database import AuthDatabase
 
 def get_version():
     try:
-        with open('VERSION', 'r') as f:
+        with open('/app/VERSION', 'r') as f:
             return f.read().strip()
     except:
-        return "0.5.00"
+        return "0.6.00"
 
 app = FastAPI(title="STools Auth Service", version=get_version())
 

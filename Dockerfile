@@ -16,6 +16,8 @@ COPY main.py .
 COPY templates/ ./templates/
 COPY static/ ./static/
 
+
+
 # Создание пользователя для безопасности
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
 USER app
