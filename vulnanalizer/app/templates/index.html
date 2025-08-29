@@ -318,18 +318,33 @@
                                             <option value="Недоступен">Недоступен (0.1)</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="risk-threshold">Порог риска (красная зона): <span id="threshold-value">75</span>%</label>
-                                        <input type="range" id="risk-threshold" name="risk_threshold" min="0" max="100" value="75" class="threshold-slider">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="max-concurrent-requests">Максимум одновременных запросов к БД:</label>
-                                        <input type="number" id="max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
-                                        <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
-                                    </div>
                                     <div class="form-actions">
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             <i class="fas fa-save"></i> Сохранить Impact
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Подменю Порог риска -->
+                        <div class="submenu-block">
+                            <div class="submenu-header" data-target="threshold-submenu">
+                                <h4><i class="fas fa-exclamation-triangle"></i> Порог риска</h4>
+                                <div class="submenu-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="submenu-content" id="threshold-submenu">
+                                <form id="threshold-form">
+                                    <div class="form-group">
+                                        <label for="risk-threshold">Порог риска (красная зона): <span id="threshold-value">75</span>%</label>
+                                        <input type="range" id="risk-threshold" name="risk_threshold" min="0" max="100" value="75" class="threshold-slider">
+                                        <small>Значения выше этого порога будут отображаться в красной зоне</small>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-save"></i> Сохранить порог
                                         </button>
                                     </div>
                                 </form>
@@ -1068,7 +1083,7 @@
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
             <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
-            <script src="/vulnanalizer/static/js/modules/settings.js?v=2.7"></script>
+            <script src="/vulnanalizer/static/js/modules/settings.js?v=2.8"></script>
         <script src="/vulnanalizer/static/js/modules/base-modal.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>

@@ -1,6 +1,6 @@
 /**
  * Модуль для управления настройками
- * v=2.7
+ * v=2.8
  */
 class SettingsModule {
     constructor(app) {
@@ -39,6 +39,15 @@ class SettingsModule {
             cvssForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.saveCVSSSettings();
+            });
+        }
+
+        // Форма настроек порога риска
+        const thresholdForm = document.getElementById('threshold-form');
+        if (thresholdForm) {
+            thresholdForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveThresholdSettings();
             });
         }
 
@@ -475,6 +484,9 @@ class SettingsModule {
             // Загружаем CVSS настройки
             this.loadCVSSSettings(settings);
             
+            // Загружаем настройки порога риска
+            this.loadThresholdSettings(settings);
+            
         } catch (error) {
             console.error('Error loading settings:', error);
         }
@@ -513,6 +525,22 @@ class SettingsModule {
                     input.value = settings[field];
                 }
             });
+        }
+    }
+
+    loadThresholdSettings(settings) {
+        // Загружаем настройки порога риска в форму
+        const thresholdForm = document.getElementById('threshold-form');
+        if (thresholdForm) {
+            const thresholdSlider = thresholdForm.querySelector('#risk-threshold');
+            const thresholdValue = thresholdForm.querySelector('#threshold-value');
+            
+            if (thresholdSlider && settings.risk_threshold) {
+                thresholdSlider.value = settings.risk_threshold;
+                if (thresholdValue) {
+                    thresholdValue.textContent = settings.risk_threshold;
+                }
+            }
         }
     }
 
@@ -604,6 +632,33 @@ class SettingsModule {
         }
 
         window.notifications.show('CVSS параметры сброшены к значениям по умолчанию', 'info');
+    }
+
+    // Методы для работы с настройками порога риска
+    async saveThresholdSettings() {
+        try {
+            const form = document.getElementById('threshold-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Конвертируем строковые значения в числа
+            for (const key in data) {
+                if (data[key] !== '') {
+                    data[key] = parseFloat(data[key]);
+                }
+            }
+
+            const response = await this.app.api.saveSettings(data);
+
+            if (response.success) {
+                window.notifications.show('Настройки порога риска сохранены успешно!', 'success');
+            } else {
+                window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Save threshold settings error:', error);
+            window.notifications.show('Ошибка сохранения настроек порога риска', 'error');
+        }
     }
 
     // Методы для работы с модальным окном формулы
