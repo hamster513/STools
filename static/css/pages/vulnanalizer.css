@@ -158,6 +158,97 @@
     }
 }
 
+/* ===== СТИЛИ ДЛЯ ПОДМЕНЮ ===== */
+.submenu-block {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-primary);
+}
+
+.submenu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--background-secondary);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color var(--transition-speed);
+}
+
+.submenu-header:hover {
+    background-color: var(--background-hover);
+}
+
+.submenu-header h4 {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.submenu-arrow {
+    transition: transform var(--transition-speed);
+    color: var(--text-secondary);
+}
+
+.submenu-header.active .submenu-arrow {
+    transform: rotate(90deg);
+}
+
+.submenu-content {
+    display: none;
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.submenu-content.active {
+    display: block;
+}
+
+/* Уменьшаем размеры заголовков в подменю */
+.submenu-content .cvss-section h5 {
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--spacing-xs);
+}
+
+.submenu-content .cvss-group h6 {
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Компактные стили для форм в подменю */
+.submenu-content .form-group {
+    margin-bottom: var(--spacing-sm);
+}
+
+.submenu-content .form-group label {
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.submenu-content .form-group input,
+.submenu-content .form-group select {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+}
+
+.submenu-content .form-actions {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-color);
+}
+
 /* ===== СТИЛИ ДЛЯ ВЫБОРА ЛЕТ CVE ===== */
 .cve-container .year-selector {
     border: 1px solid #ddd;

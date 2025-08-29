@@ -1,6 +1,6 @@
 /**
  * Модуль для управления настройками
- * v=2.6
+ * v=2.7
  */
 class SettingsModule {
     constructor(app) {
@@ -49,6 +49,9 @@ class SettingsModule {
                 this.resetCVSSDefaults();
             });
         }
+
+        // Обработчики для подменю
+        this.setupSubmenuHandlers();
 
         // Обработка ползунка порога риска
         const thresholdSlider = document.getElementById('risk-threshold');
@@ -511,6 +514,32 @@ class SettingsModule {
                 }
             });
         }
+    }
+
+    setupSubmenuHandlers() {
+        // Обработчики для подменю
+        const submenuHeaders = document.querySelectorAll('.submenu-header');
+        
+        submenuHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const target = header.getAttribute('data-target');
+                const content = document.getElementById(target);
+                const arrow = header.querySelector('.submenu-arrow');
+                
+                if (content) {
+                    // Переключаем состояние
+                    const isActive = content.classList.contains('active');
+                    
+                    if (isActive) {
+                        content.classList.remove('active');
+                        header.classList.remove('active');
+                    } else {
+                        content.classList.add('active');
+                        header.classList.add('active');
+                    }
+                }
+            });
+        });
     }
 
     // Методы для работы с CVSS настройками
