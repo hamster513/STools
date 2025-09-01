@@ -1,308 +1,195 @@
-/* ===== COLLAPSIBLE BLOCKS ===== */
+/* ===== COLLAPSIBLE COMPONENTS ===== */
 
-/* Основной контейнер сворачиваемого блока */
+/* Основные стили для сворачиваемых блоков */
 .collapsible-block {
-    background: var(--surface-color);
+    margin-bottom: var(--spacing-md);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    margin-bottom: var(--spacing-lg);
+    background: var(--surface-color);
     overflow: hidden;
-    transition: all var(--transition-speed);
-    box-shadow: var(--shadow-sm);
 }
 
-.collapsible-block:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--primary-color);
-}
-
-/* Заголовок блока с стрелкой */
 .collapsible-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--spacing-lg);
-    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-md);
+    background: var(--surface-color-light);
     cursor: pointer;
-    transition: all var(--transition-speed);
-    user-select: none;
+    transition: background-color var(--transition-speed);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .collapsible-header:hover {
-    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.05) 100%);
-}
-
-.collapsible-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-/* Крупная круглая стрелка */
-.collapsible-arrow {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-speed);
-    box-shadow: var(--shadow-sm);
-}
-
-.collapsible-arrow i {
-    color: white;
-    font-size: 12px;
-    transition: transform var(--transition-speed);
-    transform: rotate(0deg);
-}
-
-.collapsible-header:hover .collapsible-arrow {
-    transform: scale(1.1);
-    box-shadow: var(--shadow-md);
-}
-
-.collapsible-header.collapsed .collapsible-arrow i {
-    transform: rotate(-90deg);
-}
-
-/* Контентная область */
-.collapsible-content {
-    padding: var(--spacing-lg);
-    background: var(--surface-color);
-    transition: all var(--transition-speed);
-    display: none; /* По умолчанию скрыто */
-}
-
-/* Анимация при сворачивании */
-.collapsible-content {
-    max-height: 2000px;
-    opacity: 1;
-    transition: max-height var(--transition-speed), opacity var(--transition-speed), padding var(--transition-speed);
-}
-
-.collapsible-content[style*="display: none"] {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
-/* Темная тема */
-[data-theme="dark"] .collapsible-header {
-    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.01) 100%);
-}
-
-[data-theme="dark"] .collapsible-header:hover {
-    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 255, 255, 0.03) 100%);
-}
-
-/* Адаптивность для мобильных устройств */
-@media (max-width: 768px) {
-    .collapsible-header {
-        padding: var(--spacing-md);
-    }
-    
-    .collapsible-header h3 {
-        font-size: 1rem;
-    }
-    
-    .collapsible-arrow {
-        width: 24px;
-        height: 24px;
-    }
-    
-    .collapsible-arrow i {
-        font-size: 10px;
-    }
-    
-    .collapsible-content {
-        padding: var(--spacing-md);
-    }
-}
-
-/* Анимация для кнопок внутри заголовка */
-.collapsible-header .btn {
-    transition: all var(--transition-speed);
-}
-
-.collapsible-header:hover .btn {
-    transform: scale(1.05);
-}
-
-/* Специальные стили для контейнеров с дополнительными классами */
-.epss-container.collapsible-block,
-.exploitdb-container.collapsible-block,
-.cve-container.collapsible-block,
-.metasploit-container.collapsible-block,
-.clear-container.collapsible-block {
-    border-left: 4px solid var(--primary-color);
-}
-
-.epss-container.collapsible-block {
-    border-left-color: var(--success-color);
-}
-
-.exploitdb-container.collapsible-block {
-    border-left-color: var(--warning-color);
-}
-
-.cve-container.collapsible-block {
-    border-left-color: var(--danger-color);
-}
-
-.metasploit-container.collapsible-block {
-    border-left-color: var(--warning-color);
-}
-
-.clear-container.collapsible-block {
-    border-left-color: var(--info-color);
-}
-
-/* Стили для прогресс-бара */
-.progress-info {
-    width: 100%;
-    margin: var(--spacing-sm) 0;
-}
-
-.progress-step {
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: var(--spacing-xs);
-    color: var(--text-color);
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: var(--border-color);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--primary-color-light));
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: var(--spacing-xs);
-    text-align: right;
-}
-
-.progress-details {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: var(--spacing-xs);
-    font-style: italic;
-}
-
-/* Стили для статуса */
-.status-info {
-    margin-top: var(--spacing-md);
-}
-
-.status-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-}
-
-.status-item i {
-    font-size: 1rem;
-    min-width: 16px;
-}
-
-.status-item span {
-    flex: 1;
-    font-size: 0.875rem;
-}
-
-.status-item .text-success {
-    color: var(--success-color);
-}
-
-.status-item .text-warning {
-    color: var(--warning-color);
-}
-
-.status-item .text-primary {
-    color: var(--primary-color);
-}
-
-/* Стили для таблицы Metasploit */
-.metasploit-table-container {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-}
-
-.metasploit-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-}
-
-.metasploit-table th,
-.metasploit-table td {
-    padding: var(--spacing-sm);
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.metasploit-table th {
-    background: var(--surface-color);
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.metasploit-table tr:hover {
     background: var(--hover-color);
 }
 
-.rank-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
+.collapsible-header.active {
+    background: var(--primary-color);
+    color: white;
 }
 
-.rank-manual { background: #fef3c7; color: #92400e; }
-.rank-low { background: #dbeafe; color: #1e40af; }
-.rank-average { background: #fef3c7; color: #92400e; }
-.rank-normal { background: #d1fae5; color: #065f46; }
-.rank-good { background: #dbeafe; color: #1e40af; }
-.rank-excellent { background: #fef3c7; color: #92400e; }
-.rank-unknown { background: #f3f4f6; color: #374151; }
-
-.type-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
+.collapsible-header h3,
+.collapsible-header h4 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
 }
 
+.collapsible-arrow {
+    transition: transform var(--transition-speed);
+}
+
+.collapsible-header.active .collapsible-arrow {
+    transform: rotate(90deg);
+}
+
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-speed);
+}
+
+.collapsible-content.active {
+    max-height: 2000px;
+}
+
+.collapsible-content > div {
+    padding: var(--spacing-md);
+}
+
+/* Стили для форм внутри сворачиваемых блоков */
+.collapsible-content .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.collapsible-content .form-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.collapsible-content .form-group input,
+.collapsible-content .form-group select,
+.collapsible-content .form-group textarea {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    transition: border-color var(--transition-speed);
+}
+
+.collapsible-content .form-group input:focus,
+.collapsible-content .form-group select:focus,
+.collapsible-content .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--focus-ring-color);
+}
+
+/* Стили для кнопок действий */
+.form-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Стили для подменю */
+.submenu-block {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--surface-color);
+    overflow: hidden;
+}
+
+.submenu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--surface-color-light);
+    cursor: pointer;
+    transition: background-color var(--transition-speed);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.submenu-header:hover {
+    background: var(--hover-color);
+}
+
+.submenu-header.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.submenu-header h4 {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.submenu-arrow {
+    transition: transform var(--transition-speed);
+}
+
+.submenu-header.active .submenu-arrow {
+    transform: rotate(90deg);
+}
+
+.submenu-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-speed);
+}
+
+.submenu-content.active {
+    max-height: 2000px;
+}
+
+.submenu-content > div {
+    padding: var(--spacing-md);
+}
+
+/* Стили для CVSS групп */
+.cvss-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.cvss-section h5 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--primary-color);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.cvss-group {
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--surface-color-light);
+    border-radius: var(--border-radius);
+}
+
+.cvss-group h6 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Стили для типов эксплойтов */
 .type-exploit { background: #fee2e2; color: #991b1b; }
 .type-payload { background: #dbeafe; color: #1e40af; }
 .type-auxiliary { background: #fef3c7; color: #92400e; }
@@ -331,9 +218,10 @@
     background: var(--surface-color);
 }
 
-.epss-table,
-.exploitdb-table,
-.cve-table {
+/* Более специфичные селекторы для таблиц в модальных окнах */
+.modal-content .epss-table,
+.modal-content .exploitdb-table,
+.modal-content .cve-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
@@ -341,59 +229,60 @@
     border-radius: var(--border-radius);
 }
 
-.epss-table th,
-.epss-table td,
-.exploitdb-table th,
-.exploitdb-table td,
-.cve-table th,
-.cve-table td {
+.modal-content .epss-table th,
+.modal-content .exploitdb-table th,
+.modal-content .cve-table th,
+.modal-content .epss-table td,
+.modal-content .exploitdb-table td,
+.modal-content .cve-table td {
     padding: var(--spacing-sm);
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
 
-.epss-table th,
-.exploitdb-table th,
-.cve-table th {
+/* Более специфичные селекторы для заголовков таблиц */
+.modal-content .epss-table th,
+.modal-content .exploitdb-table th,
+.modal-content .cve-table th {
     background: var(--surface-color);
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
-    border-right: 1px solid var(--border-color) !important;
-    border-bottom: 2px solid var(--border-color) !important;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
 }
 
 /* Улучшенные границы для строк */
-.epss-table tr,
-.exploitdb-table tr,
-.cve-table tr {
+.modal-content .epss-table tr,
+.modal-content .exploitdb-table tr,
+.modal-content .cve-table tr {
     border-bottom: 1px solid var(--border-color);
 }
 
-.epss-table th:last-child,
-.exploitdb-table th:last-child,
-.cve-table th:last-child {
-    border-right: none !important;
+.modal-content .epss-table th:last-child,
+.modal-content .exploitdb-table th:last-child,
+.modal-content .cve-table th:last-child {
+    border-right: none;
 }
 
-.epss-table tr:hover,
-.exploitdb-table tr:hover,
-.cve-table tr:hover {
+.modal-content .epss-table tr:hover,
+.modal-content .exploitdb-table tr:hover,
+.modal-content .cve-table tr:hover {
     background: var(--hover-color);
 }
 
 /* Разделители столбцов для ячеек данных */
-.epss-table td,
-.exploitdb-table td,
-.cve-table td {
-    border-right: 1px solid var(--border-color) !important;
+.modal-content .epss-table td,
+.modal-content .exploitdb-table td,
+.modal-content .cve-table td {
+    border-right: 1px solid var(--border-color);
 }
 
-.epss-table td:last-child,
-.exploitdb-table td:last-child,
-.cve-table td:last-child {
-    border-right: none !important;
+.modal-content .epss-table td:last-child,
+.modal-content .exploitdb-table td:last-child,
+.modal-content .cve-table td:last-child {
+    border-right: none;
 }
 
 /* Стили для EPSS */
@@ -461,374 +350,134 @@
 .cvss-low { background: #d1fae5; color: #065f46; }
 .cvss-none { background: #f3f4f6; color: #374151; }
 
-/* Стили для severity badges */
-.severity-badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    font-weight: 500;
-    text-transform: uppercase;
+/* Стили для модальных окон */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: var(--z-modal);
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
-.severity-critical {
-    background-color: #dc3545;
-    color: white;
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.severity-high {
-    background-color: #fd7e14;
-    color: white;
-}
-
-.severity-medium {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.severity-low {
-    background-color: #28a745;
-    color: white;
-}
-
-.severity-unknown {
-    background-color: #6c757d;
-    color: white;
-}
-
-/* Стили для базового модального окна - переопределяем общие стили */
 .modal-content {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    display: none !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 1000 !important;
-}
-
-
-
-#epss-modal.modal-content,
-#exploitdb-modal.modal-content,
-#metasploit-modal.modal-content,
-#cve-preview-modal.modal-content {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    display: none !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 1000 !important;
-}
-
-.modal-content.show {
-    display: flex !important;
-}
-
-#epss-modal.modal-content.show,
-#exploitdb-modal.modal-content.show,
-#metasploit-modal.modal-content.show,
-#cve-preview-modal.modal-content.show {
-    display: flex !important;
-}
-
-/* Внутренний контейнер модального окна - специфичные селекторы */
-#epss-modal.modal-content > div,
-#exploitdb-modal.modal-content > div,
-#metasploit-modal.modal-content > div,
-#cve-preview-modal.modal-content > div {
-    background: var(--bg-color) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
-    width: 95vw !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-    position: relative !important;
-}
-
-/* Принудительно вертикальная структура */
-#epss-modal.modal-content > div,
-#exploitdb-modal.modal-content > div,
-#metasploit-modal.modal-content > div,
-#cve-preview-modal.modal-content > div {
-    flex-direction: column !important;
-}
-
-#epss-modal .modal-header,
-#exploitdb-modal .modal-header,
-#metasploit-modal .modal-header,
-#cve-preview-modal .modal-header {
-    order: 1 !important;
-}
-
-#epss-modal .modal-body,
-#exploitdb-modal .modal-body,
-#metasploit-modal .modal-body,
-#cve-preview-modal .modal-body {
-    order: 2 !important;
-}
-
-/* Исправляем заголовок модального окна - специфичные селекторы */
-#epss-modal .modal-header,
-#exploitdb-modal .modal-header,
-#metasploit-modal .modal-header,
-#cve-preview-modal .modal-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 1rem 1.5rem !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    background: var(--card-bg) !important;
-    flex-shrink: 0 !important;
-    width: 100% !important;
-}
-
-#epss-modal .modal-header h3,
-#exploitdb-modal .modal-header h3,
-#metasploit-modal .modal-header h3,
-#cve-preview-modal .modal-header h3 {
-    margin: 0 !important;
-    color: var(--text-color) !important;
-    font-size: 1.2rem !important;
-    flex: 1 !important;
-    text-align: center !important;
-}
-
-#epss-modal .close,
-#exploitdb-modal .close,
-#metasploit-modal .close,
-#cve-preview-modal .close {
-    color: var(--text-muted) !important;
-    font-size: 1.5rem !important;
-    font-weight: bold !important;
-    cursor: pointer !important;
-    transition: color 0.2s !important;
-    flex-shrink: 0 !important;
-    margin-left: 1rem !important;
-}
-
-#epss-modal .close:hover,
-#exploitdb-modal .close:hover,
-#metasploit-modal .close:hover,
-#cve-preview-modal .close:hover {
-    color: var(--text-color) !important;
-}
-
-#epss-modal .modal-body,
-#exploitdb-modal .modal-body,
-#metasploit-modal .modal-body,
-#cve-preview-modal .modal-body {
-    padding: 1.5rem !important;
-    overflow-y: auto !important;
-    flex: 1 !important;
-    width: 100% !important;
-}
-
-/* Исправляем таблицу */
-.modal-table-container {
-    overflow-x: auto !important;
-    margin-top: 1rem !important;
-    width: 100% !important;
-}
-
-.data-table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    font-size: 0.9rem !important;
-    table-layout: fixed !important;
-}
-
-.data-table th,
-.data-table td {
-    padding: 0.75rem !important;
-    text-align: left !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    word-wrap: break-word !important;
-    overflow: hidden !important;
-}
-
-.data-table th {
-    background: var(--card-bg) !important;
-    font-weight: 600 !important;
-    color: var(--text-color) !important;
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 1 !important;
-    white-space: nowrap !important;
-}
-
-.data-table td {
-    color: var(--text-color) !important;
-}
-
-.data-table tbody tr:hover {
-    background: var(--hover-bg) !important;
+    background-color: var(--surface-color);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
-    background: var(--card-bg);
+    background: var(--surface-color-light);
 }
 
 .modal-header h3 {
     margin: 0;
-    color: var(--text-color);
-    font-size: 1.2rem;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
 }
 
 .close {
-    color: var(--text-muted);
-    font-size: 1.5rem;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xl);
     font-weight: bold;
     cursor: pointer;
-    transition: color 0.2s;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    transition: all var(--transition-speed);
 }
 
-.close:hover {
-    color: var(--text-color);
+.close:hover,
+.close:focus {
+    color: var(--text-primary);
+    background: var(--surface-color);
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: var(--spacing-md);
     overflow-y: auto;
-    flex: 1;
+    max-height: calc(90vh - 120px);
 }
 
 /* Стили для таблиц в модальных окнах */
-.modal-table-container {
-    overflow-x: auto;
-    margin-top: 1rem;
-}
-
-.data-table {
+.modal-content table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    margin-bottom: var(--spacing-md);
 }
 
-.data-table th,
-.data-table td {
-    padding: 0.75rem;
+.modal-content table th,
+.modal-content table td {
+    padding: var(--spacing-sm);
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
 
-.data-table th {
-    background: var(--card-bg);
+.modal-content table th {
+    background: var(--surface-color-light);
     font-weight: 600;
-    color: var(--text-color);
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 10;
 }
 
-.data-table td {
-    color: var(--text-color);
+.modal-content table tr:hover {
+    background: var(--hover-color);
 }
 
-.data-table tbody tr:hover {
-    background: var(--hover-bg);
+/* Стили для кнопок в модальных окнах */
+.modal-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    background: var(--surface-color-light);
 }
 
-/* Стили для загрузки и ошибок */
-.modal-loading,
-.modal-error {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-color);
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
 }
-
-.modal-loading .spinner {
-    border: 3px solid var(--border-color);
-    border-top: 3px solid var(--primary-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.modal-error i {
-    font-size: 2rem;
-    color: var(--error-color);
-    margin-bottom: 1rem;
-}
-
-.no-data {
-    text-align: center;
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-/* ПРИНУДИТЕЛЬНОЕ ИСПРАВЛЕНИЕ ЛАЙАУТА МОДАЛЬНЫХ ОКОН */
-#epss-modal,
-#exploitdb-modal,
-#metasploit-modal,
-#cve-preview-modal {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-#epss-modal > div,
-#exploitdb-modal > div,
-#metasploit-modal > div,
-#cve-preview-modal > div {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
-    background: var(--bg-color) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-    overflow: hidden !important;
-}
-
-#epss-modal .modal-header,
-#exploitdb-modal .modal-header,
-#metasploit-modal .modal-header,
-#cve-preview-modal .modal-header {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 1rem 1.5rem !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    background: var(--card-bg) !important;
-    width: 100% !important;
-    flex-shrink: 0 !important;
-}
-
-#epss-modal .modal-body,
-#exploitdb-modal .modal-body,
-#metasploit-modal .modal-body,
-#cve-preview-modal .modal-body {
-    display: flex !important;
-    flex-direction: column !important;
-    padding: 1.5rem !important;
-    overflow-y: auto !important;
-    flex: 1 !important;
-    width: 100% !important;
-}
-
-
