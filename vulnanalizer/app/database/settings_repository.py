@@ -22,9 +22,16 @@ class SettingsRepository(DatabaseBase):
             # Устанавливаем значения по умолчанию
             defaults = {
                 'max_concurrent_requests': '3',
-                'impact_resource_criticality': 'Medium',
-                'impact_confidential_data': 'Отсутствуют',
-                'impact_internet_access': 'Недоступен',
+                'risk_threshold': '75',
+                # Impact настройки
+                'impact_resource_criticality_critical': '0.33',
+                'impact_resource_criticality_high': '0.25',
+                'impact_resource_criticality_medium': '0.15',
+                'impact_resource_criticality_none': '0.10',
+                'impact_confidential_data_yes': '0.33',
+                'impact_confidential_data_no': '0.10',
+                'impact_internet_access_yes': '0.33',
+                'impact_internet_access_no': '0.10',
                 # CVSS v3 настройки
                 'cvss_v3_attack_vector_network': '1.10',
                 'cvss_v3_attack_vector_adjacent': '0.90',

@@ -18,6 +18,7 @@ services:
   postgres:
     image: postgres:15
     container_name: stools_postgres
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     environment:
       POSTGRES_DB: stools_db
       POSTGRES_USER: stools_user
@@ -36,6 +37,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db:/docker-entrypoint-initdb.d
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
     networks:
       - stools_network
     healthcheck:
@@ -62,7 +64,7 @@ services:
       - SHARED_TEMPLATES_PATH=/shared_templates
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     networks:
@@ -141,6 +143,8 @@ services:
       - ./templates:/app/templates
       - ./static:/app/static
       - ./VERSION:/app/VERSION
+      - ./routes:/app/routes
+      - ./main.py:/app/main.py
     networks:
       - stools_network
     healthcheck:

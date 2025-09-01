@@ -282,9 +282,17 @@ async def get_settings():
         print(f"Error loading settings: {e}")
         # Возвращаем настройки по умолчанию
         return {
-            "impact_resource_criticality": "Medium",
-            "impact_confidential_data": "Отсутствуют",
-            "impact_internet_access": "Недоступен",
+            "risk_threshold": 75,
+            "max_concurrent_requests": 3,
+            # Impact настройки
+            "impact_resource_criticality_critical": 0.33,
+            "impact_resource_criticality_high": 0.25,
+            "impact_resource_criticality_medium": 0.15,
+            "impact_resource_criticality_none": 0.10,
+            "impact_confidential_data_yes": 0.33,
+            "impact_confidential_data_no": 0.10,
+            "impact_internet_access_yes": 0.33,
+            "impact_internet_access_no": 0.10,
             "database_host": "",
             "database_port": "",
             "database_name": "",

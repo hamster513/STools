@@ -16,7 +16,7 @@ class MetasploitRepository(DatabaseBase):
             conn = await self.get_connection()
             try:
                 await conn.execute("""
-                    CREATE TABLE IF NOT EXISTS metasploit_modules (
+                    CREATE TABLE IF NOT EXISTS vulnanalizer.metasploit_modules (
                         id SERIAL PRIMARY KEY,
                         module_name VARCHAR(500) NOT NULL UNIQUE,
                         name TEXT NOT NULL,
@@ -45,19 +45,19 @@ class MetasploitRepository(DatabaseBase):
                 # Создание индексов
                 await conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_metasploit_module_name 
-                    ON metasploit_modules(module_name)
+                    ON vulnanalizer.metasploit_modules(module_name)
                 """)
                 await conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_metasploit_rank 
-                    ON metasploit_modules(rank)
+                    ON vulnanalizer.metasploit_modules(rank)
                 """)
                 await conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_metasploit_type 
-                    ON metasploit_modules(type)
+                    CREATE INDEX IF NOT EXISTS idx_metasploit_modules_type 
+                    ON vulnanalizer.metasploit_modules(type)
                 """)
                 await conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_metasploit_disclosure_date 
-                    ON metasploit_modules(disclosure_date)
+                    ON vulnanalizer.metasploit_modules(disclosure_date)
                 """)
                 
                 logger.info("Metasploit table created successfully")
@@ -72,7 +72,7 @@ class MetasploitRepository(DatabaseBase):
         try:
             conn = await self.get_connection()
             try:
-                await conn.execute("DELETE FROM metasploit_modules")
+                await conn.execute("DELETE FROM vulnanalizer.metasploit_modules")
                 logger.info("Metasploit data cleared successfully")
             finally:
                 await self.release_connection(conn)
@@ -109,9 +109,15 @@ class MetasploitRepository(DatabaseBase):
                     elif not isinstance(references, str):
                         references = str(references) if references else ''
                     
+                    # Обработка fullname - если отсутствует, используем module_name
+                    fullname = module_info.get('fullname')
+                    if not fullname or fullname.strip() == '':
+                        fullname = module_info.get('module_name', '')
+                    
                     modules_to_insert.append((
                         module_info.get('module_name', ''),
                         module_info.get('name', ''),
+                        fullname,
                         module_info.get('rank', 0),
                         disclosure_date,
                         module_info.get('type', ''),
@@ -121,12 +127,13 @@ class MetasploitRepository(DatabaseBase):
                 
                 # Вставка данных
                 await conn.executemany("""
-                    INSERT INTO metasploit_modules 
-                    (module_name, name, rank, disclosure_date, type, description, "references")
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    INSERT INTO vulnanalizer.metasploit_modules 
+                    (module_name, name, fullname, rank, disclosure_date, type, description, "references")
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                     ON CONFLICT (module_name) 
                     DO UPDATE SET
                         name = EXCLUDED.name,
+                        fullname = EXCLUDED.fullname,
                         rank = EXCLUDED.rank,
                         disclosure_date = EXCLUDED.disclosure_date,
                         type = EXCLUDED.type,
@@ -148,7 +155,7 @@ class MetasploitRepository(DatabaseBase):
         try:
             conn = await self.get_connection()
             try:
-                result = await conn.fetchval("SELECT COUNT(*) FROM metasploit_modules")
+                result = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.metasploit_modules")
                 return result or 0
             finally:
                 await self.release_connection(conn)
@@ -171,7 +178,7 @@ class MetasploitRepository(DatabaseBase):
                         module_name, name, fullname, rank, rank_text,
                         disclosure_date, type, description, references,
                         created_at, updated_at
-                    FROM metasploit_modules
+                    FROM vulnanalizer.metasploit_modules
                     WHERE 1=1
                 """
                 params = []
@@ -214,7 +221,7 @@ class MetasploitRepository(DatabaseBase):
                         module_name, name, fullname, rank, rank_text,
                         disclosure_date, type, description, references,
                         created_at, updated_at
-                    FROM metasploit_modules
+                    FROM vulnanalizer.metasploit_modules
                     WHERE module_name = $1
                 """, module_name)
                 
@@ -231,12 +238,12 @@ class MetasploitRepository(DatabaseBase):
             conn = await self.get_connection()
             try:
                 # Общее количество
-                total_count = await conn.fetchval("SELECT COUNT(*) FROM metasploit_modules")
+                total_count = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.metasploit_modules")
                 
                 # По типам
                 type_stats = await conn.fetch("""
                     SELECT type, COUNT(*) as count
-                    FROM metasploit_modules
+                    FROM vulnanalizer.metasploit_modules
                     GROUP BY type
                     ORDER BY count DESC
                 """)
@@ -244,14 +251,14 @@ class MetasploitRepository(DatabaseBase):
                 # По рангам
                 rank_stats = await conn.fetch("""
                     SELECT rank_text, COUNT(*) as count
-                    FROM metasploit_modules
+                    FROM vulnanalizer.metasploit_modules
                     GROUP BY rank_text
                     ORDER BY count DESC
                 """)
                 
                 # Последнее обновление
                 last_update = await conn.fetchval("""
-                    SELECT MAX(updated_at) FROM metasploit_modules
+                    SELECT MAX(updated_at) FROM vulnanalizer.metasploit_modules
                 """)
                 
                 return {

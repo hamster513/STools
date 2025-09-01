@@ -1,6 +1,6 @@
 /**
  * Модуль для управления настройками
- * v=2.8
+ * v=3.0
  */
 class SettingsModule {
     constructor(app) {
@@ -56,6 +56,14 @@ class SettingsModule {
         if (resetCVSSDefaultsBtn) {
             resetCVSSDefaultsBtn.addEventListener('click', () => {
                 this.resetCVSSDefaults();
+            });
+        }
+
+        // Кнопка сброса Impact к значениям по умолчанию
+        const resetImpactDefaultsBtn = document.getElementById('reset-impact-defaults');
+        if (resetImpactDefaultsBtn) {
+            resetImpactDefaultsBtn.addEventListener('click', () => {
+                this.resetImpactDefaults();
             });
         }
 
@@ -257,13 +265,13 @@ class SettingsModule {
             const data = await this.app.api.saveSettings(settings);
             
             if (data.success) {
-                this.app.notifications.show('Настройки успешно сохранены', 'success');
+                window.notifications.show('Настройки успешно сохранены', 'success');
             } else {
-                this.app.notifications.show('Ошибка сохранения настроек', 'error');
+                window.notifications.show('Ошибка сохранения настроек', 'error');
             }
         } catch (error) {
             console.error('Error saving settings:', error);
-            this.app.notifications.show('Ошибка сохранения настроек', 'error');
+            window.notifications.show('Ошибка сохранения настроек', 'error');
         }
     }
 
@@ -272,29 +280,25 @@ class SettingsModule {
         const formData = new FormData(form);
         const settings = {};
 
+        // Собираем данные формы и конвертируем в float
         for (let [key, value] of formData.entries()) {
-            settings[key] = value;
+            settings[key] = parseFloat(value) || 0;
         }
 
-        console.log('DEBUG: Form data entries:', Array.from(formData.entries()));
-        console.log('DEBUG: Settings object:', settings);
+        console.log('DEBUG: Impact form data entries:', Array.from(formData.entries()));
+        console.log('DEBUG: Impact settings object:', settings);
 
         try {
             const data = await this.app.api.saveSettings(settings);
             
             if (data.success) {
-                // Сохраняем порог риска в localStorage для быстрого доступа
-                const threshold = formData.get('risk_threshold');
-                if (threshold) {
-                    localStorage.setItem('risk_threshold', threshold);
-                }
-                this.app.notifications.show('Настройки Impact успешно сохранены', 'success');
+                window.notifications.show('Настройки Impact успешно сохранены', 'success');
             } else {
-                this.app.notifications.show('Ошибка сохранения настроек Impact', 'error');
+                window.notifications.show('Ошибка сохранения настроек Impact', 'error');
             }
         } catch (error) {
             console.error('Error saving impact settings:', error);
-            this.app.notifications.show('Ошибка сохранения настроек Impact', 'error');
+            window.notifications.show('Ошибка сохранения настроек Impact', 'error');
         }
     }
 
@@ -310,7 +314,7 @@ class SettingsModule {
         try {
             const btn = document.getElementById('test-connection');
             if (!btn) {
-                this.app.notifications.show('❌ Кнопка проверки подключения не найдена', 'error');
+                window.notifications.show('❌ Кнопка проверки подключения не найдена', 'error');
                 return;
             }
             
@@ -321,13 +325,13 @@ class SettingsModule {
             const data = await this.app.api.testConnection();
             
             if (data.status === 'healthy' && data.database === 'connected') {
-                this.app.notifications.show('Подключение к базе данных успешно', 'success');
+                window.notifications.show('Подключение к базе данных успешно', 'success');
             } else {
-                this.app.notifications.show('Ошибка подключения к базе данных', 'error');
+                window.notifications.show('Ошибка подключения к базе данных', 'error');
             }
         } catch (error) {
             console.error('Connection test error:', error);
-            this.app.notifications.show('❌ Ошибка подключения к базе данных', 'error');
+            window.notifications.show('❌ Ошибка подключения к базе данных', 'error');
         } finally {
             const btn = document.getElementById('test-connection');
             if (btn) {
@@ -496,8 +500,13 @@ class SettingsModule {
         // Загружаем Impact настройки в форму
         const impactForm = document.getElementById('impact-form');
         if (impactForm) {
-            const fields = ['impact_resource_criticality', 'impact_confidential_data', 'impact_internet_access'];
-            fields.forEach(field => {
+            const impactFields = [
+                'impact_resource_criticality_critical', 'impact_resource_criticality_high', 'impact_resource_criticality_medium', 'impact_resource_criticality_none',
+                'impact_confidential_data_yes', 'impact_confidential_data_no',
+                'impact_internet_access_yes', 'impact_internet_access_no'
+            ];
+            
+            impactFields.forEach(field => {
                 const input = impactForm.querySelector(`[name="${field}"]`);
                 if (input && settings[field]) {
                     input.value = settings[field];
@@ -632,6 +641,33 @@ class SettingsModule {
         }
 
         window.notifications.show('CVSS параметры сброшены к значениям по умолчанию', 'info');
+    }
+
+    resetImpactDefaults() {
+        if (!confirm('Сбросить все Impact параметры к значениям по умолчанию?')) {
+            return;
+        }
+
+        const defaults = {
+            'impact_resource_criticality_critical': 0.33,
+            'impact_resource_criticality_high': 0.25,
+            'impact_resource_criticality_medium': 0.15,
+            'impact_resource_criticality_none': 0.10,
+            'impact_confidential_data_yes': 0.33,
+            'impact_confidential_data_no': 0.10,
+            'impact_internet_access_yes': 0.33,
+            'impact_internet_access_no': 0.10
+        };
+
+        // Устанавливаем значения по умолчанию в форму
+        for (const [key, value] of Object.entries(defaults)) {
+            const input = document.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = value;
+            }
+        }
+
+        window.notifications.show('Impact параметры сброшены к значениям по умолчанию', 'info');
     }
 
     // Методы для работы с настройками порога риска

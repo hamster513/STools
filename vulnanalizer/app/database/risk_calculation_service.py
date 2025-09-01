@@ -53,26 +53,8 @@ class RiskCalculationService(DatabaseBase):
 
     def _calculate_impact_full(self, criticality: str, settings: dict = None) -> float:
         """Полный расчет Impact с учетом всех факторов"""
-        # Веса для критичности ресурса
-        resource_weights = {
-            'Critical': 0.33,
-            'High': 0.25,
-            'Medium': 0.15,
-            'Low': 0.1,
-            'None': 0.05
-        }
-        
-        # Веса для конфиденциальных данных
-        data_weights = {
-            'Есть': 0.33,
-            'Отсутствуют': 0.1
-        }
-        
-        # Веса для доступа к интернету
-        internet_weights = {
-            'Доступен': 0.33,
-            'Недоступен': 0.1
-        }
+        # Получаем настройки Impact параметров
+        impact_settings = self._get_impact_settings(settings)
         
         # Получаем значения из настроек или используем значения по умолчанию
         if settings:
@@ -84,9 +66,9 @@ class RiskCalculationService(DatabaseBase):
         
         # Рассчитываем Impact с учетом всех факторов
         impact = (
-            resource_weights.get(criticality, 0.15) +
-            data_weights.get(confidential_data, 0.1) +
-            internet_weights.get(internet_access, 0.1)
+            impact_settings['resource_criticality'].get(criticality, 0.15) +
+            impact_settings['confidential_data'].get(confidential_data, 0.1) +
+            impact_settings['internet_access'].get(internet_access, 0.1)
         )
         
         # Конвертируем в float если это decimal
@@ -180,6 +162,48 @@ class RiskCalculationService(DatabaseBase):
                     setting_key = f'cvss_{version}_{metric.lower()}_{value.lower()}'
                     if setting_key in settings:
                         default_settings[version][metric][value] = float(settings[setting_key])
+        
+        return default_settings
+
+    def _get_impact_settings(self, settings: dict = None) -> dict:
+        """Получение настроек Impact параметров"""
+        # Значения по умолчанию
+        default_settings = {
+            'resource_criticality': {
+                'Critical': 0.33,
+                'High': 0.25,
+                'Medium': 0.15,
+                'Low': 0.1,
+                'None': 0.05
+            },
+            'confidential_data': {
+                'Есть': 0.33,
+                'Отсутствуют': 0.1
+            },
+            'internet_access': {
+                'Доступен': 0.33,
+                'Недоступен': 0.1
+            }
+        }
+        
+        if not settings:
+            return default_settings
+        
+        # Обновляем значения из настроек если они есть
+        impact_mappings = {
+            'impact_resource_criticality_critical': ('resource_criticality', 'Critical'),
+            'impact_resource_criticality_high': ('resource_criticality', 'High'),
+            'impact_resource_criticality_medium': ('resource_criticality', 'Medium'),
+            'impact_resource_criticality_none': ('resource_criticality', 'None'),
+            'impact_confidential_data_yes': ('confidential_data', 'Есть'),
+            'impact_confidential_data_no': ('confidential_data', 'Отсутствуют'),
+            'impact_internet_access_yes': ('internet_access', 'Доступен'),
+            'impact_internet_access_no': ('internet_access', 'Недоступен')
+        }
+        
+        for setting_key, (category, value) in impact_mappings.items():
+            if setting_key in settings:
+                default_settings[category][value] = float(settings[setting_key])
         
         return default_settings
 

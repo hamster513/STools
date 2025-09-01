@@ -319,32 +319,73 @@
                             </div>
                             <div class="submenu-content" id="impact-submenu">
                                 <form id="impact-form">
-                                    <div class="form-group">
-                                        <label for="impact-resource-criticality">Критичность ресурса:</label>
-                                        <select id="impact-resource-criticality" name="impact_resource_criticality" required>
-                                            <option value="Critical">Critical (0.33)</option>
-                                            <option value="High">High (0.25)</option>
-                                            <option value="Medium">Medium (0.15)</option>
-                                            <option value="None">None (0.1)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="impact-confidential-data">Наличие конфиденциальных данных:</label>
-                                        <select id="impact-confidential-data" name="impact_confidential_data" required>
-                                            <option value="Есть">Есть (0.33)</option>
-                                            <option value="Отсутствуют">Отсутствуют (0.1)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="impact-internet-access">Доступен из сети интернет:</label>
-                                        <select id="impact-internet-access" name="impact_internet_access" required>
-                                            <option value="Доступен">Доступен (0.33)</option>
-                                            <option value="Недоступен">Недоступен (0.1)</option>
-                                        </select>
+                                    <div class="cvss-section">
+                                        <h5>Impact Множители</h5>
+                                        
+                                        <div class="cvss-group">
+                                            <h6>Критичность ресурса</h6>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="impact-resource-criticality-critical">Critical:</label>
+                                                    <input type="number" id="impact-resource-criticality-critical" name="impact_resource_criticality_critical" 
+                                                           step="0.01" min="0" max="1" value="0.33" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="impact-resource-criticality-high">High:</label>
+                                                    <input type="number" id="impact-resource-criticality-high" name="impact_resource_criticality_high" 
+                                                           step="0.01" min="0" max="1" value="0.25" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="impact-resource-criticality-medium">Medium:</label>
+                                                    <input type="number" id="impact-resource-criticality-medium" name="impact_resource_criticality_medium" 
+                                                           step="0.01" min="0" max="1" value="0.15" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="impact-resource-criticality-none">None:</label>
+                                                    <input type="number" id="impact-resource-criticality-none" name="impact_resource_criticality_none" 
+                                                           step="0.01" min="0" max="1" value="0.10" required>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="cvss-group">
+                                            <h6>Наличие конфиденциальных данных</h6>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="impact-confidential-data-yes">Есть:</label>
+                                                    <input type="number" id="impact-confidential-data-yes" name="impact_confidential_data_yes" 
+                                                           step="0.01" min="0" max="1" value="0.33" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="impact-confidential-data-no">Отсутствуют:</label>
+                                                    <input type="number" id="impact-confidential-data-no" name="impact_confidential_data_no" 
+                                                           step="0.01" min="0" max="1" value="0.10" required>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="cvss-group">
+                                            <h6>Доступ из сети интернет</h6>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="impact-internet-access-yes">Доступен:</label>
+                                                    <input type="number" id="impact-internet-access-yes" name="impact_internet_access_yes" 
+                                                           step="0.01" min="0" max="1" value="0.33" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="impact-internet-access-no">Недоступен:</label>
+                                                    <input type="number" id="impact-internet-access-no" name="impact_internet_access_no" 
+                                                           step="0.01" min="0" max="1" value="0.10" required>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="form-actions">
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             <i class="fas fa-save"></i> Сохранить Impact
+                                        </button>
+                                        <button type="button" id="reset-impact-defaults" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
                                         </button>
                                     </div>
                                 </form>
@@ -1083,7 +1124,7 @@
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
             <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
-            <script src="/vulnanalizer/static/js/modules/settings.js?v=2.8"></script>
+            <script src="/vulnanalizer/static/js/modules/settings.js?v=3.0"></script>
         <script src="/vulnanalizer/static/js/modules/base-modal.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
