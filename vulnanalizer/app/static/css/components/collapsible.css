@@ -395,6 +395,26 @@
     color: #991b1b;
 }
 
+/* Стили для типов эксплойтов */
+.exploit-type {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.exploit-type.dos { background: #fee2e2; color: #991b1b; }
+.exploit-type.exploit { background: #dbeafe; color: #1e40af; }
+.exploit-type.shellcode { background: #fef3c7; color: #92400e; }
+.exploit-type.webapps { background: #d1fae5; color: #065f46; }
+.exploit-type.local { background: #e0e7ff; color: #3730a3; }
+.exploit-type.remote { background: #f3f4f6; color: #374151; }
+.exploit-type.overflow { background: #fce7f3; color: #be185d; }
+.exploit-type.race { background: #fef3c7; color: #92400e; }
+.exploit-type.n/a { background: #f3f4f6; color: #6b7280; }
+
 /* Стили для CVE */
 .cvss-score {
     display: inline-block;
