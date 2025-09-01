@@ -65,6 +65,32 @@ async def get_style_css():
         }
     )
 
+# Кастомный роут для collapsible.css с заголовками для предотвращения кэширования
+@app.get("/static/css/components/collapsible.css")
+async def get_collapsible_css():
+    return FileResponse(
+        "static/css/components/collapsible.css",
+        media_type="text/css",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+# Новый роут для CSS файлов через API
+@app.get("/api/css/collapsible.css")
+async def get_collapsible_css_api():
+    return FileResponse(
+        "static/css/components/collapsible.css",
+        media_type="text/css",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
 # Главная страница
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):

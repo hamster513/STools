@@ -22,6 +22,20 @@
     --z-modal: 1200;
 }
 
+/* DEBUG: Проверяем, что CSS загружается */
+body::before {
+    content: "DEBUG: collapsible.css загружен v3.7" !important;
+    position: fixed !important;
+    top: 10px !important;
+    right: 10px !important;
+    background: red !important;
+    color: white !important;
+    padding: 10px !important;
+    z-index: 9999 !important;
+    font-family: monospace !important;
+    font-size: 12px !important;
+}
+
 /* Основные стили для сворачиваемых блоков */
 .collapsible-block {
     margin-bottom: var(--spacing-md);
@@ -266,13 +280,15 @@
 .modal-content .epss-table th,
 .modal-content .exploitdb-table th,
 .modal-content .cve-table th {
-    background: var(--surface-color);
+    background: var(--surface-color) !important;
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
-    border-right: 1px solid var(--border-color);
-    border-bottom: 2px solid var(--border-color);
+    border-right: 1px solid var(--border-color) !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    /* DEBUG: Принудительно применяем стили */
+    color: red !important;
 }
 
 /* Улучшенные границы для строк */
@@ -298,7 +314,9 @@
 .modal-content .epss-table td,
 .modal-content .exploitdb-table td,
 .modal-content .cve-table td {
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color) !important;
+    /* DEBUG: Принудительно применяем разделители */
+    background: rgba(255, 0, 0, 0.1) !important;
 }
 
 .modal-content .epss-table td:last-child,
@@ -503,3 +521,4 @@
         width: 100%;
     }
 }
+/* DEBUG: Файл обновлен в Mon Sep  1 22:04:37 UTC 2025 */
