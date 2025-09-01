@@ -2,9 +2,15 @@
 
 {% block title %}VulnAnalizer - Анализ уязвимостей{% endblock %}
 
+{% block extra_head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+{% endblock %}
+
 {% block extra_css %}
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
-            <link rel="stylesheet" href="/static/css/components/collapsible.css?v=3.4">
+            <link rel="stylesheet" href="/static/css/components/collapsible.css?v=3.6">
 {% endblock %}
 
 {% block ui_manager_js %}
