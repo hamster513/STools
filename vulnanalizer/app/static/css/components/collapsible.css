@@ -328,6 +328,7 @@
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
+    background: var(--surface-color);
 }
 
 .epss-table,
@@ -336,6 +337,8 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
 }
 
 .epss-table th,
@@ -357,12 +360,40 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
+}
+
+/* Улучшенные границы для строк */
+.epss-table tr,
+.exploitdb-table tr,
+.cve-table tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.epss-table th:last-child,
+.exploitdb-table th:last-child,
+.cve-table th:last-child {
+    border-right: none;
 }
 
 .epss-table tr:hover,
 .exploitdb-table tr:hover,
 .cve-table tr:hover {
     background: var(--hover-color);
+}
+
+/* Разделители столбцов для ячеек данных */
+.epss-table td,
+.exploitdb-table td,
+.cve-table td {
+    border-right: 1px solid var(--border-color);
+}
+
+.epss-table td:last-child,
+.exploitdb-table td:last-child,
+.cve-table td:last-child {
+    border-right: none;
 }
 
 /* Стили для EPSS */
