@@ -91,6 +91,20 @@ async def get_collapsible_css_api():
         }
     )
 
+# Новый роут для CSS файлов через специальный путь
+@app.get("/css-debug/collapsible.css")
+@app.head("/css-debug/collapsible.css")
+async def get_collapsible_css_debug():
+    return FileResponse(
+        "static/css/components/collapsible.css",
+        media_type="text/css",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
 # Главная страница
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
