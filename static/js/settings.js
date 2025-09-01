@@ -206,8 +206,16 @@ class SettingsManager {
 
     async updateSystemInfo() {
         try {
-            // В реальной реализации здесь должны быть API вызовы к различным сервисам
-            document.getElementById('system-version').textContent = '1.0.0';
+            // Получаем версию системы из API
+            const versionResponse = await fetch('/api/version');
+            if (versionResponse.ok) {
+                const versionData = await versionResponse.json();
+                document.getElementById('system-version').textContent = versionData.version;
+            } else {
+                // Fallback если API недоступен
+                document.getElementById('system-version').textContent = 'Неизвестно';
+            }
+            
             document.getElementById('active-users').textContent = '1';
             document.getElementById('system-uptime').textContent = 'Менее часа';
             

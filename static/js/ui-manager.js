@@ -266,10 +266,20 @@ class UIManager {
             // Тихо обрабатываем ошибку, не засоряя консоль
             console.debug('Version info not available:', error.message);
             
-            // Не устанавливаем версию по умолчанию, если она уже установлена из шаблона
+            // Пытаемся получить версию из API если не удалось из шаблона
             const versionElement = document.getElementById('app-version');
             if (versionElement && !versionElement.textContent.includes('v{{ version }}')) {
-                versionElement.textContent = 'v1.0.0';
+                try {
+                    const versionResponse = await fetch('/api/version');
+                    if (versionResponse.ok) {
+                        const versionData = await versionResponse.json();
+                        versionElement.textContent = `v${versionData.version}`;
+                    } else {
+                        versionElement.textContent = 'vНеизвестно';
+                    }
+                } catch (apiError) {
+                    versionElement.textContent = 'vНеизвестно';
+                }
             }
         }
     }
