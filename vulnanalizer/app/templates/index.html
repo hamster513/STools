@@ -1291,16 +1291,16 @@
                     console.log('Клик по подменю:', targetId, content, arrow);
                     
                     if (content) {
-                        if (content.style.display === 'none' || content.style.display === '') {
-                            // Разворачиваем
-                            content.style.display = 'block';
-                            if (arrow) arrow.className = 'fas fa-chevron-down';
-                            console.log('Подменю развернуто:', targetId);
-                        } else {
+                        if (content.classList.contains('active')) {
                             // Сворачиваем
-                            content.style.display = 'none';
+                            content.classList.remove('active');
                             if (arrow) arrow.className = 'fas fa-chevron-right';
                             console.log('Подменю свернуто:', targetId);
+                        } else {
+                            // Разворачиваем
+                            content.classList.add('active');
+                            if (arrow) arrow.className = 'fas fa-chevron-down';
+                            console.log('Подменю развернуто:', targetId);
                         }
                     }
                 });

@@ -12,7 +12,7 @@ class SettingsRepository(DatabaseBase):
         """Получить все настройки"""
         conn = await self.get_connection()
         try:
-            query = "SELECT key, value FROM settings"
+            query = "SELECT key, value FROM vulnanalizer.settings"
             rows = await conn.fetch(query)
             
             settings = {}
@@ -71,7 +71,7 @@ class SettingsRepository(DatabaseBase):
                 value_str = str(value) if value is not None else ""
                 
                 query = """
-                    INSERT INTO settings (key, value) 
+                    INSERT INTO vulnanalizer.settings (key, value) 
                     VALUES ($1, $2) 
                     ON CONFLICT (key) 
                     DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
@@ -85,7 +85,7 @@ class SettingsRepository(DatabaseBase):
         """Получить конкретную настройку"""
         conn = await self.get_connection()
         try:
-            query = "SELECT value FROM settings WHERE key = $1"
+            query = "SELECT value FROM vulnanalizer.settings WHERE key = $1"
             value = await conn.fetchval(query, key)
             return value if value is not None else default
         finally:
@@ -99,7 +99,7 @@ class SettingsRepository(DatabaseBase):
             value_str = str(value) if value is not None else ""
             
             query = """
-                INSERT INTO settings (key, value) 
+                INSERT INTO vulnanalizer.settings (key, value) 
                 VALUES ($1, $2) 
                 ON CONFLICT (key) 
                 DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
@@ -113,7 +113,7 @@ class SettingsRepository(DatabaseBase):
         """Получить настройки VM MaxPatrol"""
         conn = await self.get_connection()
         try:
-            query = "SELECT key, value FROM settings WHERE key LIKE 'vm_%'"
+            query = "SELECT key, value FROM vulnanalizer.settings WHERE key LIKE 'vm_%'"
             rows = await conn.fetch(query)
             
             settings = {}
@@ -149,7 +149,7 @@ class SettingsRepository(DatabaseBase):
                     value_str = str(value) if value is not None else ""
                     
                     query = """
-                        INSERT INTO settings (key, value) 
+                        INSERT INTO vulnanalizer.settings (key, value) 
                         VALUES ($1, $2) 
                         ON CONFLICT (key) 
                         DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP

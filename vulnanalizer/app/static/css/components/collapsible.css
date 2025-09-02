@@ -168,17 +168,17 @@
 }
 
 .submenu-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height var(--transition-speed);
+    display: none;
+    padding: var(--spacing-md);
+    transition: all var(--transition-speed);
 }
 
 .submenu-content.active {
-    max-height: 2000px;
+    display: block;
 }
 
 .submenu-content > div {
-    padding: var(--spacing-md);
+    /* padding уже установлен в .submenu-content */
 }
 
 /* Стили для CVSS групп */

@@ -701,7 +701,7 @@ class HostsRepository(DatabaseBase):
             # Получаем последнюю запись о импорте
             query = """
                 SELECT key, value, updated_at 
-                FROM settings 
+                FROM vulnanalizer.settings 
                 WHERE key IN ('vm_last_import', 'vm_last_import_count', 'vm_last_import_error')
                 ORDER BY updated_at DESC
                 LIMIT 1
@@ -724,7 +724,7 @@ class HostsRepository(DatabaseBase):
                     status['last_import_error'] = row['value']
             
             # Проверяем, включен ли VM импорт
-            vm_enabled = await conn.fetchval("SELECT value FROM settings WHERE key = 'vm_enabled'")
+            vm_enabled = await conn.fetchval("SELECT value FROM vulnanalizer.settings WHERE key = 'vm_enabled'")
             status['vm_enabled'] = vm_enabled == 'true' if vm_enabled else False
             
             return status
@@ -737,24 +737,24 @@ class HostsRepository(DatabaseBase):
         try:
             # Обновляем количество импортированных записей
             await conn.execute(
-                "INSERT INTO settings (key, value) VALUES ('vm_last_import_count', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP",
+                "INSERT INTO vulnanalizer.settings (key, value) VALUES ('vm_last_import_count', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP",
                 str(count)
             )
             
             # Обновляем время последнего импорта
             await conn.execute(
-                "INSERT INTO settings (key, value) VALUES ('vm_last_import', CURRENT_TIMESTAMP::text) ON CONFLICT (key) DO UPDATE SET value = CURRENT_TIMESTAMP::text, updated_at = CURRENT_TIMESTAMP"
+                "INSERT INTO vulnanalizer.settings (key, value) VALUES ('vm_last_import', CURRENT_TIMESTAMP::text) ON CONFLICT (key) DO UPDATE SET value = CURRENT_TIMESTAMP::text, updated_at = CURRENT_TIMESTAMP"
             )
             
             # Обновляем ошибку, если есть
             if error:
                 await conn.execute(
-                    "INSERT INTO settings (key, value) VALUES ('vm_last_import_error', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP",
+                    "INSERT INTO vulnanalizer.settings (key, value) VALUES ('vm_last_import_error', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP",
                     error
                 )
             else:
                 # Очищаем ошибку, если импорт успешен
-                await conn.execute("DELETE FROM settings WHERE key = 'vm_last_import_error'")
+                await conn.execute("DELETE FROM vulnanalizer.settings WHERE key = 'vm_last_import_error'")
                 
         finally:
             await self.release_connection(conn)

@@ -684,7 +684,7 @@ class SchedulerService:
             })
             
             # Получаем настройки
-            settings_query = "SELECT key, value FROM settings"
+            settings_query = "SELECT key, value FROM vulnanalizer.settings"
             settings_rows = await conn.fetch(settings_query)
             settings = {row['key']: row['value'] for row in settings_rows}
             
