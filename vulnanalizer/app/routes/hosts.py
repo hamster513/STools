@@ -78,7 +78,7 @@ async def upload_hosts(file: UploadFile = File(...)):
         # Проверяем, что задача действительно создана
         conn = await db.get_connection()
         try:
-            check_query = "SELECT id, task_type, status FROM background_tasks WHERE id = $1"
+            check_query = "SELECT id, task_type, status FROM vulnanalizer.background_tasks WHERE id = $1"
             task_check = await conn.fetchrow(check_query, task_id)
             if task_check:
                 print(f"✅ Задача {task_id} подтверждена в БД: {dict(task_check)}")
@@ -129,7 +129,7 @@ async def get_import_progress():
             SELECT id, task_type, status, current_step, total_items, processed_items,
                    total_records, processed_records, updated_records, start_time, end_time, error_message, 
                    cancelled, parameters, description, created_at, updated_at
-            FROM background_tasks 
+            FROM vulnanalizer.background_tasks 
             WHERE task_type = 'hosts_import' 
             AND status IN ('running', 'processing', 'initializing')
             ORDER BY created_at DESC

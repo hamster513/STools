@@ -501,7 +501,7 @@ class SchedulerService:
             # Ищем задачи в статусе processing, которые не обновлялись более 10 минут
             query = """
                 SELECT id, task_type, status, current_step, created_at, updated_at, start_time
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE status IN ('processing', 'initializing')
                 AND updated_at < NOW() - INTERVAL '10 minutes'
                 ORDER BY updated_at ASC
@@ -559,7 +559,7 @@ class SchedulerService:
             
             # Удаляем старые записи фоновых задач (старше 30 дней)
             deleted_tasks = await conn.execute("""
-                DELETE FROM background_tasks 
+                DELETE FROM vulnanalizer.background_tasks 
                 WHERE created_at < NOW() - INTERVAL '30 days'
             """)
             

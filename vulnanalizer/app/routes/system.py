@@ -32,7 +32,7 @@ async def get_background_tasks_status():
             SELECT id, task_type, status, current_step, total_items, processed_items,
                    total_records, processed_records, updated_records, progress_percent, start_time, end_time, error_message, 
                    cancelled, parameters, description, created_at, updated_at
-            FROM background_tasks 
+            FROM vulnanalizer.background_tasks 
             WHERE status IN ('processing', 'running', 'initializing', 'idle')
             ORDER BY created_at DESC
         """
@@ -43,7 +43,7 @@ async def get_background_tasks_status():
             SELECT id, task_type, status, current_step, total_items, processed_items,
                    total_records, processed_records, updated_records, progress_percent, start_time, end_time, error_message, 
                    cancelled, parameters, description, created_at, updated_at
-            FROM background_tasks 
+            FROM vulnanalizer.background_tasks 
             WHERE status IN ('completed', 'error', 'cancelled')
             ORDER BY created_at DESC
             LIMIT 10
@@ -207,13 +207,11 @@ async def get_background_task(task_id: int):
         conn = await db.get_connection()
         
         # Устанавливаем схему
-        await conn.execute('SET search_path TO vulnanalizer')
-        
         query = """
             SELECT id, task_type, status, current_step, total_items, processed_items,
                    total_records, processed_records, updated_records, start_time, end_time, error_message, 
                    cancelled, parameters, description, created_at, updated_at
-            FROM background_tasks 
+            FROM vulnanalizer.background_tasks 
             WHERE id = $1
         """
         task = await conn.fetchrow(query, task_id)

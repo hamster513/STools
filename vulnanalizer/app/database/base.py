@@ -34,8 +34,6 @@ class DatabaseBase:
         """Получить соединение с базой данных"""
         pool = await self.get_pool()
         conn = await pool.acquire()
-        # Устанавливаем схему vulnanalizer
-        await conn.execute('SET search_path TO vulnanalizer')
         return conn
 
     async def release_connection(self, conn):
@@ -59,10 +57,7 @@ class DatabaseBase:
         """Получить настройки из базы данных"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            rows = await conn.fetch("SELECT key, value FROM settings")
+            rows = await conn.fetch("SELECT key, value FROM vulnanalizer.settings")
             settings = {row['key']: row['value'] for row in rows}
             
             # Добавляем значения по умолчанию, если они не установлены
@@ -89,12 +84,9 @@ class DatabaseBase:
         """Обновить настройки в базе данных"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             for key, value in settings.items():
                 await conn.execute("""
-                    INSERT INTO settings (key, value) 
+                    INSERT INTO vulnanalizer.settings (key, value) 
                     VALUES ($1, $2) 
                     ON CONFLICT (key) 
                     DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP

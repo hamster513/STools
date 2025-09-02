@@ -16,7 +16,7 @@ class BackgroundTasksRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                INSERT INTO background_tasks (task_type, status, current_step, description, parameters)
+                INSERT INTO vulnanalizer.background_tasks (task_type, status, current_step, description, parameters)
                 VALUES ($1, 'idle', 'Инициализация...', $2, $3)
                 RETURNING id
             """
@@ -33,7 +33,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE id = $1
             """
             row = await conn.fetchrow(query, task_id)
@@ -51,7 +51,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE status = 'idle'
                 ORDER BY created_at ASC
             """
@@ -97,7 +97,7 @@ class BackgroundTasksRepository(DatabaseBase):
             fields.append("updated_at = CURRENT_TIMESTAMP")
             values.append(task_id)
             
-            query = f"UPDATE background_tasks SET {', '.join(fields)} WHERE id = ${param_count}"
+            query = f"UPDATE vulnanalizer.background_tasks SET {', '.join(fields)} WHERE id = ${param_count}"
             await conn.execute(query, *values)
             return True
         finally:
@@ -111,7 +111,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 ORDER BY created_at DESC
                 LIMIT $1
             """
@@ -128,7 +128,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE status IN ('processing', 'running', 'initializing')
                 ORDER BY created_at DESC
             """
@@ -145,7 +145,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE status = 'completed'
                 ORDER BY created_at DESC
                 LIMIT $1
@@ -160,7 +160,7 @@ class BackgroundTasksRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                UPDATE background_tasks 
+                UPDATE vulnanalizer.background_tasks 
                 SET status = 'cancelled', cancelled = true, end_time = CURRENT_TIMESTAMP,
                     current_step = 'Задача отменена', updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1 AND status IN ('idle', 'processing', 'running', 'initializing')
@@ -175,7 +175,7 @@ class BackgroundTasksRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                DELETE FROM background_tasks 
+                DELETE FROM vulnanalizer.background_tasks 
                 WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '$1 days'
                 AND status IN ('completed', 'cancelled', 'error')
             """
@@ -192,7 +192,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE task_type = $1
                 ORDER BY created_at DESC
                 LIMIT 1
@@ -209,7 +209,7 @@ class BackgroundTasksRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                UPDATE background_tasks 
+                UPDATE vulnanalizer.background_tasks 
                 SET status = 'cancelled', current_step = 'Отменено пользователем', 
                     cancelled = TRUE, end_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                 WHERE task_type = $1 AND status IN ('running', 'processing')
@@ -227,7 +227,7 @@ class BackgroundTasksRepository(DatabaseBase):
                 SELECT id, task_type, status, current_step, total_items, processed_items,
                        total_records, processed_records, updated_records, progress_percent, start_time, end_time, 
                        error_message, cancelled, parameters, description, created_at, updated_at
-                FROM background_tasks 
+                FROM vulnanalizer.background_tasks 
                 WHERE status = $1
                 ORDER BY created_at ASC
             """

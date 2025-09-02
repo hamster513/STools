@@ -15,7 +15,7 @@ class HostsRepository(DatabaseBase):
         """Получить количество хостов"""
         conn = await self.get_connection()
         try:
-            count = await conn.fetchval("SELECT COUNT(*) FROM hosts")
+            count = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.hosts")
             return count
         finally:
             await self.release_connection(conn)
@@ -27,7 +27,7 @@ class HostsRepository(DatabaseBase):
             query = """
                 SELECT id, hostname, ip_address, cve, cvss, criticality, status, 
                        os_name, zone, epss_score, risk_score, created_at, updated_at
-                FROM hosts 
+                FROM vulnanalizer.hosts 
                 ORDER BY created_at DESC 
                 LIMIT $1 OFFSET $2
             """
@@ -43,7 +43,7 @@ class HostsRepository(DatabaseBase):
             query = """
                 SELECT id, hostname, ip_address, cve, cvss, criticality, status, 
                        os_name, zone, epss_score, risk_score, created_at, updated_at
-                FROM hosts 
+                FROM vulnanalizer.hosts 
                 WHERE cve = $1
                 ORDER BY hostname
             """
@@ -56,8 +56,8 @@ class HostsRepository(DatabaseBase):
         """Удалить все хосты"""
         conn = await self.get_connection()
         try:
-            count = await conn.fetchval("SELECT COUNT(*) FROM hosts")
-            await conn.execute("DELETE FROM hosts")
+            count = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.hosts")
+            await conn.execute("DELETE FROM vulnanalizer.hosts")
             return count
         finally:
             await self.release_connection(conn)
@@ -67,7 +67,6 @@ class HostsRepository(DatabaseBase):
         conn = None
         try:
             conn = await asyncpg.connect(self.database_url)
-            await conn.execute('SET search_path TO vulnanalizer')
             await conn.execute("SELECT 1")
             
             # Подсчитываем только записи с CVE
@@ -81,7 +80,7 @@ class HostsRepository(DatabaseBase):
             if progress_callback:
                 await progress_callback('cleaning', 'Очистка старых записей...', 5)
             
-            await conn.execute("DELETE FROM hosts")
+            await conn.execute("DELETE FROM vulnanalizer.hosts")
             print("🗑️ Старые записи очищены")
             
             # Этап 2: Вставка записей (70%)
@@ -89,7 +88,7 @@ class HostsRepository(DatabaseBase):
             inserted_count = 0
             
             query = """
-                INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
+                INSERT INTO vulnanalizer.hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             """
             
@@ -101,7 +100,6 @@ class HostsRepository(DatabaseBase):
                     print(f"Connection lost, reconnecting... Error: {e}")
                     await conn.close()
                     conn = await asyncpg.connect(self.database_url)
-                    await conn.execute('SET search_path TO vulnanalizer')
                 
                 async with conn.transaction():
                     for rec in batch_records:
@@ -142,7 +140,7 @@ class HostsRepository(DatabaseBase):
             print("🔍 Начинаем анализ эксплойтов и расчет рисков для загруженных хостов...")
             
             try:
-                settings_query = "SELECT key, value FROM settings"
+                settings_query = "SELECT key, value FROM vulnanalizer.settings"
                 settings_rows = await conn.fetch(settings_query)
                 settings = {row['key']: row['value'] for row in settings_rows}
                 print(f"📋 Загружено настроек: {len(settings)}")
@@ -151,7 +149,7 @@ class HostsRepository(DatabaseBase):
                 settings = {}
             
             cve_query = """
-                SELECT DISTINCT cve FROM hosts 
+                SELECT DISTINCT cve FROM vulnanalizer.hosts 
                 WHERE cve IS NOT NULL AND cve != '' 
                 ORDER BY cve
             """
@@ -204,19 +202,19 @@ class HostsRepository(DatabaseBase):
         
         # Получаем все EPSS данные одним запросом для оптимизации
         cve_list = [cve_row['cve'] for cve_row in cve_rows]
-        epss_query = "SELECT cve, epss, percentile FROM epss WHERE cve = ANY($1::text[])"
+        epss_query = "SELECT cve, epss, percentile FROM vulnanalizer.epss WHERE cve = ANY($1::text[])"
         epss_rows = await conn.fetch(epss_query, cve_list)
         epss_data = {row['cve']: row for row in epss_rows}
         
         # Получаем все CVSS данные одним запросом
-        cve_query = "SELECT cve_id as cve, cvss_v3_base_score, cvss_v2_base_score FROM cve WHERE cve_id = ANY($1::text[])"
+        cve_query = "SELECT cve_id as cve, cvss_v3_base_score, cvss_v2_base_score FROM vulnanalizer.cve WHERE cve_id = ANY($1::text[])"
         cve_rows_data = await conn.fetch(cve_query, cve_list)
         cve_data = {row['cve']: row for row in cve_rows_data}
         
         # Получаем все ExploitDB данные одним запросом (оптимизированно)
         exploitdb_query = """
             SELECT DISTINCT split_part(codes, ';', 1) as cve_id, COUNT(*) as exploit_count
-            FROM exploitdb 
+            FROM vulnanalizer.exploitdb 
             WHERE codes IS NOT NULL AND codes LIKE 'CVE-%'
             GROUP BY split_part(codes, ';', 1)
             LIMIT 10000
@@ -263,7 +261,7 @@ class HostsRepository(DatabaseBase):
                     # Продолжаем обработку даже без EPSS для обновления информации об эксплойтах
                 
                 # Получаем хосты для этого CVE
-                hosts_query = "SELECT id, cvss, criticality FROM hosts WHERE cve = $1"
+                hosts_query = "SELECT id, cvss, criticality FROM vulnanalizer.hosts WHERE cve = $1"
                 hosts_rows = await conn.fetch(hosts_query, cve)
                 
                 if not hosts_rows:
@@ -333,7 +331,7 @@ class HostsRepository(DatabaseBase):
                         
                         # Обновляем хост с информацией об эксплойтах
                         update_query = """
-                            UPDATE hosts SET
+                            UPDATE vulnanalizer.hosts SET
                                 cvss = $1,
                                 cvss_source = $2,
                                 epss_score = $3,
@@ -396,20 +394,20 @@ class HostsRepository(DatabaseBase):
             stats = {}
             
             # Общее количество
-            stats['total'] = await conn.fetchval("SELECT COUNT(*) FROM hosts")
+            stats['total'] = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.hosts")
             
             # По статусам
-            status_query = "SELECT status, COUNT(*) as count FROM hosts GROUP BY status"
+            status_query = "SELECT status, COUNT(*) as count FROM vulnanalizer.hosts GROUP BY status"
             status_rows = await conn.fetch(status_query)
             stats['by_status'] = {row['status']: row['count'] for row in status_rows}
             
             # По критичности
-            criticality_query = "SELECT criticality, COUNT(*) as count FROM hosts GROUP BY criticality"
+            criticality_query = "SELECT criticality, COUNT(*) as count FROM vulnanalizer.hosts GROUP BY criticality"
             criticality_rows = await conn.fetch(criticality_query)
             stats['by_criticality'] = {row['criticality']: row['count'] for row in criticality_rows}
             
             # По зонам
-            zone_query = "SELECT zone, COUNT(*) as count FROM hosts WHERE zone IS NOT NULL AND zone != '' GROUP BY zone"
+            zone_query = "SELECT zone, COUNT(*) as count FROM vulnanalizer.hosts WHERE zone IS NOT NULL AND zone != '' GROUP BY zone"
             zone_rows = await conn.fetch(zone_query)
             stats['by_zone'] = {row['zone']: row['count'] for row in zone_rows}
             
@@ -493,7 +491,7 @@ class HostsRepository(DatabaseBase):
                     order_clause = "ORDER BY exploits_count ASC NULLS LAST, hostname, cve"
             
             # Сначала получаем общее количество записей
-            count_query = f"SELECT COUNT(*) FROM hosts WHERE {where_clause}"
+            count_query = f"SELECT COUNT(*) FROM vulnanalizer.hosts WHERE {where_clause}"
             total_count = await conn.fetchval(count_query, *params)
             
             # Затем получаем данные с пагинацией
@@ -503,7 +501,7 @@ class HostsRepository(DatabaseBase):
                        os_name, zone, epss_score, epss_percentile, risk_score, risk_raw, impact_score,
                        exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
                        epss_updated_at, exploits_updated_at, risk_updated_at, created_at
-                FROM hosts 
+                FROM vulnanalizer.hosts 
                 WHERE {where_clause}
                 {order_clause}
                 LIMIT {limit} OFFSET {offset}
@@ -555,7 +553,7 @@ class HostsRepository(DatabaseBase):
                        os_name, zone, epss_score, epss_percentile, risk_score, risk_raw, impact_score,
                        exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
                        epss_updated_at, exploits_updated_at, risk_updated_at, created_at
-                FROM hosts 
+                FROM vulnanalizer.hosts 
                 WHERE id = $1
             """
             row = await conn.fetchrow(query, host_id)
@@ -596,7 +594,7 @@ class HostsRepository(DatabaseBase):
         """Очистка таблицы хостов"""
         conn = await self.get_connection()
         try:
-            query = "DELETE FROM hosts"
+            query = "DELETE FROM vulnanalizer.hosts"
             await conn.execute(query)
             print("Hosts table cleared successfully")
         except Exception as e:
@@ -610,7 +608,7 @@ class HostsRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             # Получаем количество записей до импорта
-            count_before = await conn.fetchval("SELECT COUNT(*) FROM hosts")
+            count_before = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.hosts")
             print(f"Hosts records in database before VM import: {count_before}")
             
             async with conn.transaction():
@@ -651,14 +649,14 @@ class HostsRepository(DatabaseBase):
                     
                     # Проверяем, существует ли запись для этого хоста и CVE
                     existing = await conn.fetchval(
-                        "SELECT id FROM hosts WHERE hostname = $1 AND cve = $2", 
+                        "SELECT id FROM vulnanalizer.hosts WHERE hostname = $1 AND cve = $2", 
                         hostname, cve
                     )
                     
                     if existing:
                         # Обновляем существующую запись
                         query = """
-                            UPDATE hosts 
+                            UPDATE vulnanalizer.hosts 
                             SET ip_address = $2, os_name = $3, criticality = $4, 
                                 zone = $5, status = $6, updated_at = CURRENT_TIMESTAMP
                             WHERE hostname = $1 AND cve = $7
@@ -670,7 +668,7 @@ class HostsRepository(DatabaseBase):
                     else:
                         # Вставляем новую запись
                         query = """
-                            INSERT INTO hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
+                            INSERT INTO vulnanalizer.hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                         """
                         await conn.execute(query, 
@@ -679,7 +677,7 @@ class HostsRepository(DatabaseBase):
                         inserted_count += 1
                 
                 # Получаем количество записей после импорта
-                count_after = await conn.fetchval("SELECT COUNT(*) FROM hosts")
+                count_after = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.hosts")
                 print(f"Hosts records in database after VM import: {count_after}")
                 print(f"New hosts records inserted: {inserted_count}")
                 print(f"Existing hosts records updated: {updated_count}")

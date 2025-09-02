@@ -22,19 +22,7 @@
     --z-modal: 1200;
 }
 
-/* DEBUG: Проверяем, что CSS загружается */
-body::before {
-    content: "DEBUG: collapsible.css загружен v3.7" !important;
-    position: fixed !important;
-    top: 10px !important;
-    right: 10px !important;
-    background: red !important;
-    color: white !important;
-    padding: 10px !important;
-    z-index: 9999 !important;
-    font-family: monospace !important;
-    font-size: 12px !important;
-}
+
 
 /* Основные стили для сворачиваемых блоков */
 .collapsible-block {
@@ -81,13 +69,14 @@ body::before {
 }
 
 .collapsible-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height var(--transition-speed);
+    display: none;
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    background: var(--surface-color);
 }
 
 .collapsible-content.active {
-    max-height: 2000px;
+    display: block;
 }
 
 .collapsible-content > div {
@@ -280,15 +269,14 @@ body::before {
 .modal-content .epss-table th,
 .modal-content .exploitdb-table th,
 .modal-content .cve-table th {
-    background: var(--surface-color) !important;
+    background: var(--surface-color);
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
-    border-right: 1px solid var(--border-color) !important;
-    border-bottom: 2px solid var(--border-color) !important;
-    /* DEBUG: Принудительно применяем стили */
-    color: red !important;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
 }
 
 /* Улучшенные границы для строк */
@@ -314,9 +302,7 @@ body::before {
 .modal-content .epss-table td,
 .modal-content .exploitdb-table td,
 .modal-content .cve-table td {
-    border-right: 1px solid var(--border-color) !important;
-    /* DEBUG: Принудительно применяем разделители */
-    background: rgba(255, 0, 0, 0.1) !important;
+    border-right: 1px solid var(--border-color);
 }
 
 .modal-content .epss-table td:last-child,

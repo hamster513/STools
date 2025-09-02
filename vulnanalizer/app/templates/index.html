@@ -1,556 +1,643 @@
-{% extends "base.html" %}
-
-{% block title %}VulnAnalizer - Анализ уязвимостей{% endblock %}
-
-{% block extra_head %}
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-{% endblock %}
-
-{% block extra_css %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VulnAnalizer - Анализ уязвимостей</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    
+    <!-- Основные CSS файлы -->
+    <link rel="stylesheet" href="/static/css/main.css?v=6.25">
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
-            <link rel="stylesheet" href="/vulnanalizer/css-debug/collapsible.css?v=3.8">
-{% endblock %}
-
-{% block ui_manager_js %}
-    <script src="/static/js/ui-manager.js?v=6.1"></script>
-{% endblock %}
-
-<!-- Используем обработчики из base.html -->
-
-{% block sidebar_tabs %}
-<a href="#" class="sidebar-tab active" data-page="analysis">
-    <div class="sidebar-tab-icon">
-        <i class="fas fa-search-plus"></i>
-    </div>
-    <span class="sidebar-tab-title">Поиск</span>
-</a>
-<a href="#" class="sidebar-tab" data-page="hosts">
-    <div class="sidebar-tab-icon">
-        <i class="fas fa-database"></i>
-    </div>
-    <span class="sidebar-tab-title">Импорт</span>
-</a>
-<a href="#" class="sidebar-tab" data-page="settings">
-    <div class="sidebar-tab-icon">
-        <i class="fas fa-sliders-h"></i>
-    </div>
-    <span class="sidebar-tab-title">Настройки</span>
-</a>
-{% endblock %}
-
-{% block content %}
-<!-- Основной контент -->
-<main class="main-content">
-    <div class="page-container">
-        <!-- Страница анализа -->
-        <div id="analysis-page" class="page-content active">
-            <div class="analysis-container content-block">
-                <div class="hosts-search-form">
-                    <h3>Критерии поиска</h3>
-                    <form id="hosts-search-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="hostname-search">Имя хоста:</label>
-                                <input type="text" id="hostname-search" name="hostname" placeholder="server.example.com">
-                            </div>
-                            <div class="form-group">
-                                <label for="ip-search">IP адрес:</label>
-                                <input type="text" id="ip-search" name="ip_address" placeholder="192.168.1.1">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="cve-host-search">CVE:</label>
-                                <input type="text" id="cve-host-search" name="cve" placeholder="CVE-2021-44228">
-                            </div>
-                            <div class="form-group">
-                                <label for="criticality-search">Критичность:</label>
-                                <select id="criticality-search" name="criticality">
-                                    <option value="">Все</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="exploits-only" name="exploits_only">
-                                <label for="exploits-only">Только с эксплойтами</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="epss-only" name="epss_only">
-                                <label for="epss-only">Только с EPSS</label>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="results-per-page">Записей на странице:</label>
-                                <select id="results-per-page" name="limit">
-                                    <option value="20">20</option>
-                                    <option value="50">50</option>
-                                    <option value="100" selected>100</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="sort-by">Сортировка:</label>
-                                <select id="sort-by" name="sort_by">
-                                    <option value="">По умолчанию</option>
-                                    <option value="risk_score_desc">По риску (убывание)</option>
-                                    <option value="risk_score_asc">По риску (возрастание)</option>
-                                    <option value="cvss_desc">По CVSS (убывание)</option>
-                                    <option value="cvss_asc">По CVSS (возрастание)</option>
-                                    <option value="epss_score_desc">По EPSS (убывание)</option>
-                                    <option value="epss_score_asc">По EPSS (возрастание)</option>
-                                    <option value="exploits_count_desc">По количеству эксплойтов (убывание)</option>
-                                    <option value="exploits_count_asc">По количеству эксплойтов (возрастание)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-search"></i> Найти
-                            </button>
-                            <button type="button" id="clear-hosts-results" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-times"></i> Очистить
-                            </button>
-                            <button type="button" id="export-hosts" class="btn btn-success btn-sm">
-                                <i class="fas fa-file-excel"></i> Экспорт в Excel
-                            </button>
-                        </div>
-                    </form>
+            <link rel="stylesheet" href="/vulnanalizer/css-debug/collapsible.css?v=4.4&nocache={{ range(1, 999999) | random }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Мета-теги для кэширования -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body class="light-theme">
+    <!-- Верхняя панель -->
+    <div class="top-panel">
+        <div class="system-tabs">
+            <a href="/vulnanalizer/" class="system-tab active" id="vulnanalizer-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">VulnAnalizer</span>
+                    <span class="system-tab-desc">Анализ безопасности</span>
+                </div>
+            </a>
+            <a href="/loganalizer/" class="system-tab" id="loganalizer-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">LogAnalizer</span>
+                    <span class="system-tab-desc">Анализ логов</span>
+                </div>
+            </a>
+        </div>
+        
+        <div class="top-panel-right">
+            <!-- Меню настроек -->
+            <div class="dropdown-container">
+                <button id="settings-toggle" class="dropdown-button">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div id="settings-dropdown" class="dropdown-menu">
+                    <a href="#" id="users-link" class="dropdown-item">
+                        <i class="fas fa-users"></i>
+                        <span>Пользователи</span>
+                    </a>
+                    <a href="#" id="background-tasks-link" class="dropdown-item">
+                        <i class="fas fa-tasks"></i>
+                        <span>Управление очередями</span>
+                    </a>
+                    <a href="#" id="settings-link" class="dropdown-item">
+                        <i class="fas fa-cogs"></i>
+                        <span>Настройки системы</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <div class="version-info">
+                        <i class="fas fa-code-branch"></i>
+                        <span id="app-version">v{{ version }}</span>
+                    </div>
                 </div>
             </div>
             
-            <!-- Отдельный контейнер для результатов поиска -->
-            <div class="hosts-search-results-container content-block content-block-no-margin">
-                <!-- Заголовок таблицы с подписями колонок -->
-                <div class="hosts-table-header">
-                    <div class="host-item single-line">
-                        <div class="host-name">Host</div>
-                        <div class="host-ip">IP</div>
-                        <div class="host-criticality">Severity</div>
-                        <div class="host-cve">CVE</div>
-                        <div class="host-cvss">CVSS</div>
-                        <div class="host-status">EPSS</div>
-                        <div class="host-exploits">PoC</div>
-                        <div class="host-risk">Risk</div>
+            <!-- Меню пользователя -->
+            <div class="dropdown-container">
+                <button id="user-toggle" class="dropdown-button">
+                    <i class="fas fa-user"></i>
+                </button>
+                <div id="user-dropdown" class="dropdown-menu">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-details">
+                            <span id="user-name" class="user-name">Пользователь</span>
+                            <span class="user-role">Администратор</span>
+                        </div>
                     </div>
-                </div>
-                <div id="hosts-search-results" class="hosts-results">
-                    <!-- Результаты поиска хостов будут загружены динамически -->
-                </div>
-                <!-- Пагинация -->
-                <div id="hosts-pagination" class="pagination-container" style="display: none;">
-                    <div class="pagination-info">
-                        <span id="pagination-info">Показано 0 из 0 записей</span>
-                    </div>
-                    <div class="pagination-controls">
-                        <button id="prev-page" class="btn btn-secondary btn-sm" disabled>
-                            <i class="fas fa-chevron-left"></i> Предыдущая
-                        </button>
-                        <span id="page-numbers" class="page-numbers"></span>
-                        <button id="next-page" class="btn btn-secondary btn-sm" disabled>
-                            Следующая <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="theme-link" class="dropdown-item">
+                        <i class="fas fa-moon"></i>
+                        <span id="theme-text">Темная</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" id="logout-link" class="dropdown-item">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Выйти</span>
+                    </a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Страница импорта хостов -->
-        <div id="hosts-page" class="page-content">
-            <div class="content-header">
-                <h2>Импорт хостов</h2>
-                <p>Загрузка и обработка данных о хостах</p>
-            </div>
-            
-            <div class="hosts-container content-block">
-                <h3><i class="fas fa-server"></i> Импорт хостов из MP VM</h3>
-                <form id="hosts-upload-form" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="hosts-file">Загрузить файл хостов:</label>
-                        <input type="file" id="hosts-file" name="file" accept=".csv,.zip,.gz,.gzip" required>
-                        <small>Поддерживаемые форматы: CSV, ZIP, GZIP</small>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary btn-sm" id="hosts-upload-btn">
-                            <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
-                            <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                        </button>
-
-                        <button type="button" id="update-hosts-parallel-btn" class="btn btn-primary btn-sm">
-                            <i class="fas fa-sync-alt"></i> <span class="btn-text">Полное обновление</span>
-                            <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                        </button>
-                        <button type="button" id="cancel-update-btn" class="btn btn-danger btn-sm" style="display:none;">
-                            <i class="fas fa-stop"></i> <span class="btn-text">Остановить обновление</span>
-                        </button>
-                    </div>
-                </form>
-                <div id="hosts-status" style="margin-top:2rem;"></div>
-                
-                <!-- Прогресс-бар импорта -->
-                <div id="import-progress-container" style="display:none; margin-top:2rem;">
-                    <h4>Прогресс импорта</h4>
-                    <div class="operation-status">
-                        <div class="operation-step">
-                            <span id="current-step-text">Подготовка...</span>
-                        </div>
-                        <div class="operation-progress-bar">
-                            <div id="progress-bar-fill" class="operation-progress-fill" style="width: 0%"></div>
-                            <div class="operation-progress-text" id="overall-progress-text">0%</div>
-                        </div>
-                        <div class="operation-details">
-                            <div class="operation-item">
-                                <span class="operation-label">Всего записей:</span>
-                                <span id="total-records-text">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Прогресс фонового обновления -->
-                <div id="background-update-progress-container" style="display:none; margin-top:2rem;">
-                    <h4>Прогресс обновления данных</h4>
-                    <div class="operation-status">
-                        <div class="operation-step">
-                            <span id="background-current-step-text">Инициализация...</span>
-                        </div>
-                        <div class="operation-progress-bar">
-                            <div id="background-progress-bar-fill" class="operation-progress-fill" style="width: 0%"></div>
-                            <div class="operation-progress-text" id="background-overall-progress-text">0%</div>
-                        </div>
-                        <div class="operation-details">
-                            <div class="operation-item">
-                                <span class="operation-label">Обработано CVE:</span>
-                                <span id="background-processed-cves-text">0</span>
-                            </div>
-                            <div class="operation-item">
-                                <span class="operation-label">Всего CVE:</span>
-                                <span id="background-total-cves-text">0</span>
-                            </div>
-                            <div class="operation-item">
-                                <span class="operation-label">Обновлено хостов:</span>
-                                <span id="background-updated-hosts-text">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Боковая панель -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-toggle" id="sidebar-toggle">
+            <i class="fas fa-chevron-left"></i>
         </div>
-
-
-
-        <!-- Страница настроек -->
-        <div id="settings-page" class="page-content">
-            <div class="content-header">
-                <h2>Настройки</h2>
-                <p>Конфигурация системы</p>
+        <nav class="sidebar-nav">
+            <div class="sidebar-tabs">
+                <a href="#" class="sidebar-tab active" data-page="analysis">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Поиск</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="hosts">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Импорт</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="settings">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Настройки</span>
+                </a>
             </div>
-            
-            <div class="settings-container">
-                <!-- Настройки производительности -->
-                <div class="collapsible-block">
-                    <div class="collapsible-header" data-target="performance-settings">
-                        <h3><i class="fas fa-tachometer-alt"></i> Настройки производительности</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
+        </nav>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="page-container">
+            <!-- Страница анализа -->
+            <div id="analysis-page" class="page-content active">
+                <div class="analysis-container content-block">
+                    <div class="hosts-search-form">
+                        <h3>Критерии поиска</h3>
+                        <form id="hosts-search-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="hostname-search">Имя хоста:</label>
+                                    <input type="text" id="hostname-search" name="hostname" placeholder="server.example.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="ip-search">IP адрес:</label>
+                                    <input type="text" id="ip-search" name="ip_address" placeholder="192.168.1.1">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cve-host-search">CVE:</label>
+                                    <input type="text" id="cve-host-search" name="cve" placeholder="CVE-2021-44228">
+                                </div>
+                                <div class="form-group">
+                                    <label for="criticality-search">Критичность:</label>
+                                    <select id="criticality-search" name="criticality">
+                                        <option value="">Все</option>
+                                        <option value="Critical">Critical</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="exploits-only" name="exploits_only">
+                                    <label for="exploits-only">Только с эксплойтами</label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="epss-only" name="epss_only">
+                                    <label for="epss-only">Только с EPSS</label>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="results-per-page">Записей на странице:</label>
+                                    <select id="results-per-page" name="limit">
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100" selected>100</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sort-by">Сортировка:</label>
+                                    <select id="sort-by" name="sort_by">
+                                        <option value="">По умолчанию</option>
+                                        <option value="risk_score_desc">По риску (убывание)</option>
+                                        <option value="risk_score_asc">По риску (возрастание)</option>
+                                        <option value="cvss_desc">По CVSS (убывание)</option>
+                                        <option value="cvss_asc">По CVSS (возрастание)</option>
+                                        <option value="epss_score_desc">По EPSS (убывание)</option>
+                                        <option value="epss_score_asc">По EPSS (возрастание)</option>
+                                        <option value="exploits_count_desc">По количеству эксплойтов (убывание)</option>
+                                        <option value="exploits_count_asc">По количеству эксплойтов (возрастание)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search"></i> Найти
+                                </button>
+                                <button type="button" id="clear-hosts-results" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times"></i> Очистить
+                                </button>
+                                <button type="button" id="export-hosts" class="btn btn-success btn-sm">
+                                    <i class="fas fa-file-excel"></i> Экспорт в Excel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Отдельный контейнер для результатов поиска -->
+                <div class="hosts-search-results-container content-block content-block-no-margin">
+                    <!-- Заголовок таблицы с подписями колонок -->
+                    <div class="hosts-table-header">
+                        <div class="host-item single-line">
+                            <div class="host-name">Host</div>
+                            <div class="host-ip">IP</div>
+                            <div class="host-criticality">Severity</div>
+                            <div class="host-cve">CVE</div>
+                            <div class="host-cvss">CVSS</div>
+                            <div class="host-status">EPSS</div>
+                            <div class="host-exploits">PoC</div>
+                            <div class="host-risk">Risk</div>
                         </div>
                     </div>
-                    <div class="collapsible-content" id="performance-settings">
-                        <form id="performance-form">
+                    <div id="hosts-search-results" class="hosts-results">
+                        <!-- Результаты поиска хостов будут загружены динамически -->
+                    </div>
+                    <!-- Пагинация -->
+                    <div id="hosts-pagination" class="pagination-container" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="pagination-info">Показано 0 из 0 записей</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="prev-page" class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-chevron-left"></i> Предыдущая
+                            </button>
+                            <span id="page-numbers" class="page-numbers"></span>
+                            <button id="next-page" class="btn btn-secondary btn-sm" disabled>
+                                Следующая <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Страница импорта хостов -->
+            <div id="hosts-page" class="page-content">
+                <div class="content-header">
+                    <h2>Импорт хостов</h2>
+                    <p>Загрузка и обработка данных о хостах</p>
+                </div>
+                
+                <div class="hosts-container content-block">
+                    <h3><i class="fas fa-server"></i> Импорт хостов из MP VM</h3>
+                    <form id="hosts-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
-                            <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
-                            <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
-                            <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
+                            <label for="hosts-file">Загрузить файл хостов:</label>
+                            <input type="file" id="hosts-file" name="file" accept=".csv,.zip,.gz,.gzip" required>
+                            <small>Поддерживаемые форматы: CSV, ZIP, GZIP</small>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-save"></i> Сохранить
+                            <button type="submit" class="btn btn-primary btn-sm" id="hosts-upload-btn">
+                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+
+                            <button type="button" id="update-hosts-parallel-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-sync-alt"></i> <span class="btn-text">Полное обновление</span>
+                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                            </button>
+                            <button type="button" id="cancel-update-btn" class="btn btn-danger btn-sm" style="display:none;">
+                                <i class="fas fa-stop"></i> <span class="btn-text">Остановить обновление</span>
                             </button>
                         </div>
                     </form>
+                    <div id="hosts-status" style="margin-top:2rem;"></div>
+                    
+                    <!-- Прогресс-бар импорта -->
+                    <div id="import-progress-container" style="display:none; margin-top:2rem;">
+                        <h4>Прогресс импорта</h4>
+                        <div class="operation-status">
+                            <div class="operation-step">
+                                <span id="current-step-text">Подготовка...</span>
+                            </div>
+                            <div class="operation-progress-bar">
+                                <div id="progress-bar-fill" class="operation-progress-fill" style="width: 0%"></div>
+                                <div class="operation-progress-text" id="overall-progress-text">0%</div>
+                            </div>
+                            <div class="operation-details">
+                                <div class="operation-item">
+                                    <span class="operation-label">Всего записей:</span>
+                                    <span id="total-records-text">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Прогресс фонового обновления -->
+                    <div id="background-update-progress-container" style="display:none; margin-top:2rem;">
+                        <h4>Прогресс обновления данных</h4>
+                        <div class="operation-status">
+                            <div class="operation-step">
+                                <span id="background-current-step-text">Инициализация...</span>
+                            </div>
+                            <div class="operation-progress-bar">
+                                <div id="background-progress-bar-fill" class="operation-progress-fill" style="width: 0%"></div>
+                                <div class="operation-progress-text" id="background-overall-progress-text">0%</div>
+                            </div>
+                            <div class="operation-details">
+                                <div class="operation-item">
+                                    <span class="operation-label">Обработано CVE:</span>
+                                    <span id="background-processed-cves-text">0</span>
+                                </div>
+                                <div class="operation-item">
+                                    <span class="operation-label">Всего CVE:</span>
+                                    <span id="background-total-cves-text">0</span>
+                                </div>
+                                <div class="operation-item">
+                                    <span class="operation-label">Обновлено хостов:</span>
+                                    <span id="background-updated-hosts-text">0</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Настройки расчета риска -->
-                <div class="collapsible-block">
-                    <div class="collapsible-header" data-target="risk-settings">
-                        <h3>
-                            <i class="fas fa-calculator"></i> Расчет риска
-                            <button type="button" class="btn btn-link btn-sm formula-btn" id="show-risk-formula" title="Показать формулу расчета">
-                                <i class="fas fa-square-root-alt"></i>
-                            </button>
-                        </h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
+
+
+            <!-- Страница настроек -->
+            <div id="settings-page" class="page-content">
+                <div class="content-header">
+                    <h2>Настройки</h2>
+                    <p>Конфигурация системы</p>
+                </div>
+                
+                <div class="settings-container">
+                    <!-- Настройки производительности -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="performance-settings">
+                            <h3><i class="fas fa-tachometer-alt"></i> Настройки производительности</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="performance-settings">
+                            <form id="performance-form">
+                            <div class="form-group">
+                                <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
+                                <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
+                                <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-save"></i> Сохранить
+                                </button>
+                            </div>
+                        </form>
                         </div>
                     </div>
-                    <div class="collapsible-content" id="risk-settings">
-                        <!-- Подменю Порог риска -->
-                        <div class="submenu-block">
-                            <div class="submenu-header" data-target="threshold-submenu">
-                                <h4><i class="fas fa-exclamation-triangle"></i> Порог риска</h4>
-                                <div class="submenu-arrow">
-                                    <i class="fas fa-chevron-right"></i>
-                                </div>
-                            </div>
-                            <div class="submenu-content" id="threshold-submenu">
-                                <form id="threshold-form">
-                                    <div class="form-group">
-                                        <label for="risk-threshold">Порог риска (красная зона): <span id="threshold-value">75</span>%</label>
-                                        <input type="range" id="risk-threshold" name="risk_threshold" min="0" max="100" value="75" class="threshold-slider">
-                                        <small>Значения выше этого порога будут отображаться в красной зоне</small>
-                                    </div>
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-save"></i> Сохранить порог
-                                        </button>
-                                    </div>
-                                </form>
+
+                    <!-- Настройки расчета риска -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="risk-settings">
+                            <h3>
+                                <i class="fas fa-calculator"></i> Расчет риска
+                                <button type="button" class="btn btn-link btn-sm formula-btn" id="show-risk-formula" title="Показать формулу расчета">
+                                    <i class="fas fa-square-root-alt"></i>
+                                </button>
+                            </h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
-
-                        <!-- Подменю Impact -->
-                        <div class="submenu-block">
-                            <div class="submenu-header" data-target="impact-submenu">
-                                <h4><i class="fas fa-chart-line"></i> Impact настройки</h4>
-                                <div class="submenu-arrow">
-                                    <i class="fas fa-chevron-right"></i>
+                        <div class="collapsible-content" id="risk-settings">
+                            <!-- Подменю Порог риска -->
+                            <div class="submenu-block">
+                                <div class="submenu-header" data-target="threshold-submenu">
+                                    <h4><i class="fas fa-exclamation-triangle"></i> Порог риска</h4>
+                                    <div class="submenu-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                                <div class="submenu-content" id="threshold-submenu">
+                                    <form id="threshold-form">
+                                        <div class="form-group">
+                                            <label for="risk-threshold">Порог риска (красная зона): <span id="threshold-value">75</span>%</label>
+                                            <input type="range" id="risk-threshold" name="risk_threshold" min="0" max="100" value="75" class="threshold-slider">
+                                            <small>Значения выше этого порога будут отображаться в красной зоне</small>
+                                        </div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-save"></i> Сохранить порог
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
-                            <div class="submenu-content" id="impact-submenu">
-                                <form id="impact-form">
-                                    <div class="cvss-section">
-                                        <h5>Impact Множители</h5>
-                                        
-                                        <div class="cvss-group">
-                                            <h6>Критичность ресурса</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="impact-resource-criticality-critical">Critical:</label>
-                                                    <input type="number" id="impact-resource-criticality-critical" name="impact_resource_criticality_critical" 
-                                                           step="0.01" min="0" max="1" value="0.33" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="impact-resource-criticality-high">High:</label>
-                                                    <input type="number" id="impact-resource-criticality-high" name="impact_resource_criticality_high" 
-                                                           step="0.01" min="0" max="1" value="0.25" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="impact-resource-criticality-medium">Medium:</label>
-                                                    <input type="number" id="impact-resource-criticality-medium" name="impact_resource_criticality_medium" 
-                                                           step="0.01" min="0" max="1" value="0.15" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="impact-resource-criticality-none">None:</label>
-                                                    <input type="number" id="impact-resource-criticality-none" name="impact_resource_criticality_none" 
-                                                           step="0.01" min="0" max="1" value="0.10" required>
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        <div class="cvss-group">
-                                            <h6>Наличие конфиденциальных данных</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="impact-confidential-data-yes">Есть:</label>
-                                                    <input type="number" id="impact-confidential-data-yes" name="impact_confidential_data_yes" 
-                                                           step="0.01" min="0" max="1" value="0.33" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="impact-confidential-data-no">Отсутствуют:</label>
-                                                    <input type="number" id="impact-confidential-data-no" name="impact_confidential_data_no" 
-                                                           step="0.01" min="0" max="1" value="0.10" required>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="cvss-group">
-                                            <h6>Доступ из сети интернет</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="impact-internet-access-yes">Доступен:</label>
-                                                    <input type="number" id="impact-internet-access-yes" name="impact_internet_access_yes" 
-                                                           step="0.01" min="0" max="1" value="0.33" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="impact-internet-access-no">Недоступен:</label>
-                                                    <input type="number" id="impact-internet-access-no" name="impact_internet_access_no" 
-                                                           step="0.01" min="0" max="1" value="0.10" required>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <!-- Подменю Impact -->
+                            <div class="submenu-block">
+                                <div class="submenu-header" data-target="impact-submenu">
+                                    <h4><i class="fas fa-chart-line"></i> Impact настройки</h4>
+                                    <div class="submenu-arrow">
+                                        <i class="fas fa-chevron-right"></i>
                                     </div>
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-save"></i> Сохранить Impact
-                                        </button>
-                                        <button type="button" id="reset-impact-defaults" class="btn btn-secondary btn-sm">
-                                            <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+                                </div>
+                                <div class="submenu-content" id="impact-submenu">
+                                    <form id="impact-form">
+                                        <div class="cvss-section">
+                                            <h5>Impact Множители</h5>
+                                            
+                                            <div class="cvss-group">
+                                                <h6>Критичность ресурса</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="impact-resource-criticality-critical">Critical:</label>
+                                                        <input type="number" id="impact-resource-criticality-critical" name="impact_resource_criticality_critical" 
+                                                               step="0.01" min="0" max="1" value="0.33" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="impact-resource-criticality-high">High:</label>
+                                                        <input type="number" id="impact-resource-criticality-high" name="impact_resource_criticality_high" 
+                                                               step="0.01" min="0" max="1" value="0.25" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="impact-resource-criticality-medium">Medium:</label>
+                                                        <input type="number" id="impact-resource-criticality-medium" name="impact_resource_criticality_medium" 
+                                                               step="0.01" min="0" max="1" value="0.15" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="impact-resource-criticality-none">None:</label>
+                                                        <input type="number" id="impact-resource-criticality-none" name="impact_resource_criticality_none" 
+                                                               step="0.01" min="0" max="1" value="0.10" required>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                        <!-- Подменю CVSS -->
-                        <div class="submenu-block">
-                            <div class="submenu-header" data-target="cvss-submenu">
-                                <h4><i class="fas fa-shield-alt"></i> CVSS параметры</h4>
-                                <div class="submenu-arrow">
-                                    <i class="fas fa-chevron-right"></i>
+                                            <div class="cvss-group">
+                                                <h6>Наличие конфиденциальных данных</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="impact-confidential-data-yes">Есть:</label>
+                                                        <input type="number" id="impact-confidential-data-yes" name="impact_confidential_data_yes" 
+                                                               step="0.01" min="0" max="1" value="0.33" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="impact-confidential-data-no">Отсутствуют:</label>
+                                                        <input type="number" id="impact-confidential-data-no" name="impact_confidential_data_no" 
+                                                               step="0.01" min="0" max="1" value="0.10" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="cvss-group">
+                                                <h6>Доступ из сети интернет</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="impact-internet-access-yes">Доступен:</label>
+                                                        <input type="number" id="impact-internet-access-yes" name="impact_internet_access_yes" 
+                                                               step="0.01" min="0" max="1" value="0.33" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="impact-internet-access-no">Недоступен:</label>
+                                                        <input type="number" id="impact-internet-access-no" name="impact_internet_access_no" 
+                                                               step="0.01" min="0" max="1" value="0.10" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-save"></i> Сохранить Impact
+                                            </button>
+                                            <button type="button" id="reset-impact-defaults" class="btn btn-secondary btn-sm">
+                                                <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
-                            <div class="submenu-content" id="cvss-submenu">
-                                <form id="cvss-form">
-                                    <div class="cvss-section">
-                                        <h5>CVSS v3 Множители</h5>
-                                        
-                                        <div class="cvss-group">
-                                            <h6>Attack Vector (AV)</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-av-network">NETWORK:</label>
-                                                    <input type="number" id="cvss-v3-av-network" name="cvss_v3_attack_vector_network" 
-                                                           step="0.01" min="0" max="2" value="1.10" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-av-adjacent">ADJACENT:</label>
-                                                    <input type="number" id="cvss-v3-av-adjacent" name="cvss_v3_attack_vector_adjacent" 
-                                                           step="0.01" min="0" max="2" value="0.90" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-av-local">LOCAL:</label>
-                                                    <input type="number" id="cvss-v3-av-local" name="cvss_v3_attack_vector_local" 
-                                                           step="0.01" min="0" max="2" value="0.60" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-av-physical">PHYSICAL:</label>
-                                                    <input type="number" id="cvss-v3-av-physical" name="cvss_v3_attack_vector_physical" 
-                                                           step="0.01" min="0" max="2" value="0.30" required>
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        <div class="cvss-group">
-                                            <h6>Privileges Required (PR)</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-pr-none">NONE:</label>
-                                                    <input type="number" id="cvss-v3-pr-none" name="cvss_v3_privileges_required_none" 
-                                                           step="0.01" min="0" max="2" value="1.10" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-pr-low">LOW:</label>
-                                                    <input type="number" id="cvss-v3-pr-low" name="cvss_v3_privileges_required_low" 
-                                                           step="0.01" min="0" max="2" value="0.70" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-pr-high">HIGH:</label>
-                                                    <input type="number" id="cvss-v3-pr-high" name="cvss_v3_privileges_required_high" 
-                                                           step="0.01" min="0" max="2" value="0.40" required>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="cvss-group">
-                                            <h6>User Interaction (UI)</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-ui-none">NONE:</label>
-                                                    <input type="number" id="cvss-v3-ui-none" name="cvss_v3_user_interaction_none" 
-                                                           step="0.01" min="0" max="2" value="1.10" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v3-ui-required">REQUIRED:</label>
-                                                    <input type="number" id="cvss-v3-ui-required" name="cvss_v3_user_interaction_required" 
-                                                           step="0.01" min="0" max="2" value="0.60" required>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <!-- Подменю CVSS -->
+                            <div class="submenu-block">
+                                <div class="submenu-header" data-target="cvss-submenu">
+                                    <h4><i class="fas fa-shield-alt"></i> CVSS параметры</h4>
+                                    <div class="submenu-arrow">
+                                        <i class="fas fa-chevron-right"></i>
                                     </div>
+                                </div>
+                                <div class="submenu-content" id="cvss-submenu">
+                                    <form id="cvss-form">
+                                        <div class="cvss-section">
+                                            <h5>CVSS v3 Множители</h5>
+                                            
+                                            <div class="cvss-group">
+                                                <h6>Attack Vector (AV)</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-av-network">NETWORK:</label>
+                                                        <input type="number" id="cvss-v3-av-network" name="cvss_v3_attack_vector_network" 
+                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-av-adjacent">ADJACENT:</label>
+                                                        <input type="number" id="cvss-v3-av-adjacent" name="cvss_v3_attack_vector_adjacent" 
+                                                               step="0.01" min="0" max="2" value="0.90" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-av-local">LOCAL:</label>
+                                                        <input type="number" id="cvss-v3-av-local" name="cvss_v3_attack_vector_local" 
+                                                               step="0.01" min="0" max="2" value="0.60" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-av-physical">PHYSICAL:</label>
+                                                        <input type="number" id="cvss-v3-av-physical" name="cvss_v3_attack_vector_physical" 
+                                                               step="0.01" min="0" max="2" value="0.30" required>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                    <div class="cvss-section">
-                                        <h5>CVSS v2 Множители (если нет v3)</h5>
-                                        
-                                        <div class="cvss-group">
-                                            <h6>Access Vector (AV)</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-av-network">NETWORK:</label>
-                                                    <input type="number" id="cvss-v2-av-network" name="cvss_v2_access_vector_network" 
-                                                           step="0.01" min="0" max="2" value="1.10" required>
+                                            <div class="cvss-group">
+                                                <h6>Privileges Required (PR)</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-pr-none">NONE:</label>
+                                                        <input type="number" id="cvss-v3-pr-none" name="cvss_v3_privileges_required_none" 
+                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-pr-low">LOW:</label>
+                                                        <input type="number" id="cvss-v3-pr-low" name="cvss_v3_privileges_required_low" 
+                                                               step="0.01" min="0" max="2" value="0.70" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-pr-high">HIGH:</label>
+                                                        <input type="number" id="cvss-v3-pr-high" name="cvss_v3_privileges_required_high" 
+                                                               step="0.01" min="0" max="2" value="0.40" required>
+                                                    </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-av-adjacent">ADJACENT_NETWORK:</label>
-                                                    <input type="number" id="cvss-v2-av-adjacent" name="cvss_v2_access_vector_adjacent_network" 
-                                                           step="0.01" min="0" max="2" value="0.90" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-av-local">LOCAL:</label>
-                                                    <input type="number" id="cvss-v2-av-local" name="cvss_v2_access_vector_local" 
-                                                           step="0.01" min="0" max="2" value="0.60" required>
+                                            </div>
+
+                                            <div class="cvss-group">
+                                                <h6>User Interaction (UI)</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-ui-none">NONE:</label>
+                                                        <input type="number" id="cvss-v3-ui-none" name="cvss_v3_user_interaction_none" 
+                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v3-ui-required">REQUIRED:</label>
+                                                        <input type="number" id="cvss-v3-ui-required" name="cvss_v3_user_interaction_required" 
+                                                               step="0.01" min="0" max="2" value="0.60" required>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="cvss-group">
-                                            <h6>Access Complexity (AC)</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-ac-low">LOW:</label>
-                                                    <input type="number" id="cvss-v2-ac-low" name="cvss_v2_access_complexity_low" 
-                                                           step="0.01" min="0" max="2" value="1.10" required>
+                                        <div class="cvss-section">
+                                            <h5>CVSS v2 Множители (если нет v3)</h5>
+                                            
+                                            <div class="cvss-group">
+                                                <h6>Access Vector (AV)</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-av-network">NETWORK:</label>
+                                                        <input type="number" id="cvss-v2-av-network" name="cvss_v2_access_vector_network" 
+                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-av-adjacent">ADJACENT_NETWORK:</label>
+                                                        <input type="number" id="cvss-v2-av-adjacent" name="cvss_v2_access_vector_adjacent_network" 
+                                                               step="0.01" min="0" max="2" value="0.90" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-av-local">LOCAL:</label>
+                                                        <input type="number" id="cvss-v2-av-local" name="cvss_v2_access_vector_local" 
+                                                               step="0.01" min="0" max="2" value="0.60" required>
+                                                    </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-ac-medium">MEDIUM:</label>
-                                                    <input type="number" id="cvss-v2-ac-medium" name="cvss_v2_access_complexity_medium" 
-                                                           step="0.01" min="0" max="2" value="0.80" required>
+                                            </div>
+
+                                            <div class="cvss-group">
+                                                <h6>Access Complexity (AC)</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-ac-low">LOW:</label>
+                                                        <input type="number" id="cvss-v2-ac-low" name="cvss_v2_access_complexity_low" 
+                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-ac-medium">MEDIUM:</label>
+                                                        <input type="number" id="cvss-v2-ac-medium" name="cvss_v2_access_complexity_medium" 
+                                                               step="0.01" min="0" max="2" value="0.80" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-ac-high">HIGH:</label>
+                                                        <input type="number" id="cvss-v2-ac-high" name="cvss_v2_access_complexity_high" 
+                                                               step="0.01" min="0" max="2" value="0.40" required>
+                                                    </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-ac-high">HIGH:</label>
-                                                    <input type="number" id="cvss-v2-ac-high" name="cvss_v2_access_complexity_high" 
-                                                           step="0.01" min="0" max="2" value="0.40" required>
+                                            </div>
+
+                                            <div class="cvss-group">
+                                                <h6>Authentication (Au)</h6>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-au-none">NONE:</label>
+                                                        <input type="number" id="cvss-v2-au-none" name="cvss_v2_authentication_none" 
+                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-au-single">SINGLE:</label>
+                                                        <input type="number" id="cvss-v2-au-single" name="cvss_v2_authentication_single" 
+                                                               step="0.01" min="0" max="2" value="0.80" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="cvss-v2-au-multiple">MULTIPLE:</label>
+                                                        <input type="number" id="cvss-v2-au-multiple" name="cvss_v2_authentication_multiple" 
+                                                               step="0.01" min="0" max="2" value="0.40" required>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="cvss-group">
-                                            <h6>Authentication (Au)</h6>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-au-none">NONE:</label>
-                                                    <input type="number" id="cvss-v2-au-none" name="cvss_v2_authentication_none" 
-                                                           step="0.01" min="0" max="2" value="1.10" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-au-single">SINGLE:</label>
-                                                    <input type="number" id="cvss-v2-au-single" name="cvss_v2_authentication_single" 
-                                                           step="0.01" min="0" max="2" value="0.80" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="cvss-v2-au-multiple">MULTIPLE:</label>
-                                                    <input type="number" id="cvss-v2-au-multiple" name="cvss_v2_authentication_multiple" 
-                                                           step="0.01" min="0" max="2" value="0.40" required>
-                                                </div>
-                                            </div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-save"></i> Сохранить CVSS
+                                            </button>
+                                            <button type="button" id="reset-cvss-defaults" class="btn btn-secondary btn-sm">
+                                                <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
+                                            </button>
                                         </div>
-                                    </div>
-
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-save"></i> Сохранить CVSS
-                                        </button>
-                                        <button type="button" id="reset-cvss-defaults" class="btn btn-secondary btn-sm">
-                                            <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
-                                        </button>
-                                    </div>
-                                </form>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -838,292 +925,292 @@
                 </div>
             </div>
         </div>
-    </div>
-</main>
+    </main>
 
-<!-- Модальное окно с формулой расчета риска -->
-<div id="risk-formula-modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-square-root-alt"></i> Формула расчета риска</h3>
-            <button type="button" class="modal-close" id="close-risk-formula">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="formula-section">
-                <h4>🎯 Основная формула</h4>
-                <div class="formula-box">
-                    <div class="formula-main">
-                        <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param</span>
-                    </div>
-                    <div class="formula-note">
-                        Где: <strong>Risk</strong> - итоговый риск в процентах (0-100%)
-                    </div>
-                </div>
+    <!-- Модальное окно с формулой расчета риска -->
+    <div id="risk-formula-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-square-root-alt"></i> Формула расчета риска</h3>
+                <button type="button" class="modal-close" id="close-risk-formula">&times;</button>
             </div>
-
-            <div class="formula-section">
-                <h4>🔧 Расчет CVE_param</h4>
-                <div class="formula-box">
-                    <div class="formula-main">
-                        <span class="formula-text">CVE_param = F_AV × F_PR × F_UI (CVSS v3)</span>
-                    </div>
-                    <div class="formula-main">
-                        <span class="formula-text">CVE_param = F_AV2 × F_AC2 × F_AU2 (CVSS v2)</span>
-                    </div>
-                    <div class="formula-note">
-                        Если CVE_param не удалось рассчитать или результат равен 0, используется значение 1.0
+            <div class="modal-body">
+                <div class="formula-section">
+                    <h4>🎯 Основная формула</h4>
+                    <div class="formula-box">
+                        <div class="formula-main">
+                            <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param</span>
+                        </div>
+                        <div class="formula-note">
+                            Где: <strong>Risk</strong> - итоговый риск в процентах (0-100%)
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="formula-section">
-                <h4>📊 Расчет Impact</h4>
-                <div class="formula-box">
-                    <div class="formula-main">
-                        <span class="formula-text">Impact = Resource_Criticality + Confidential_Data + Internet_Access</span>
+                <div class="formula-section">
+                    <h4>🔧 Расчет CVE_param</h4>
+                    <div class="formula-box">
+                        <div class="formula-main">
+                            <span class="formula-text">CVE_param = F_AV × F_PR × F_UI (CVSS v3)</span>
+                        </div>
+                        <div class="formula-main">
+                            <span class="formula-text">CVE_param = F_AV2 × F_AC2 × F_AU2 (CVSS v2)</span>
+                        </div>
+                        <div class="formula-note">
+                            Если CVE_param не удалось рассчитать или результат равен 0, используется значение 1.0
+                        </div>
                     </div>
                 </div>
-                
-                <div class="impact-weights">
-                    <div class="weight-group">
-                        <h5>⚖️ Критичность ресурса:</h5>
-                        <ul>
-                            <li><strong>Critical:</strong> 0.33</li>
-                            <li><strong>High:</strong> 0.25</li>
-                            <li><strong>Medium:</strong> 0.15</li>
-                            <li><strong>None:</strong> 0.1</li>
-                        </ul>
+
+                <div class="formula-section">
+                    <h4>📊 Расчет Impact</h4>
+                    <div class="formula-box">
+                        <div class="formula-main">
+                            <span class="formula-text">Impact = Resource_Criticality + Confidential_Data + Internet_Access</span>
+                        </div>
                     </div>
                     
-                    <div class="weight-group">
-                        <h5>🔒 Конфиденциальные данные:</h5>
-                        <ul>
-                            <li><strong>Есть:</strong> 0.33</li>
-                            <li><strong>Отсутствуют:</strong> 0.1</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="weight-group">
-                        <h5>🌐 Доступ из интернета:</h5>
-                        <ul>
-                            <li><strong>Доступен:</strong> 0.33</li>
-                            <li><strong>Недоступен:</strong> 0.1</li>
-                        </ul>
+                    <div class="impact-weights">
+                        <div class="weight-group">
+                            <h5>⚖️ Критичность ресурса:</h5>
+                            <ul>
+                                <li><strong>Critical:</strong> 0.33</li>
+                                <li><strong>High:</strong> 0.25</li>
+                                <li><strong>Medium:</strong> 0.15</li>
+                                <li><strong>None:</strong> 0.1</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="weight-group">
+                            <h5>🔒 Конфиденциальные данные:</h5>
+                            <ul>
+                                <li><strong>Есть:</strong> 0.33</li>
+                                <li><strong>Отсутствуют:</strong> 0.1</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="weight-group">
+                            <h5>🌐 Доступ из интернета:</h5>
+                            <ul>
+                                <li><strong>Доступен:</strong> 0.33</li>
+                                <li><strong>Недоступен:</strong> 0.1</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="formula-section">
-                <h4>⚙️ CVSS v3 Множители</h4>
-                <div class="cvss-weights">
-                    <div class="weight-group">
-                        <h5>🎯 Attack Vector (AV):</h5>
-                        <ul>
-                            <li><strong>NETWORK:</strong> 1.10</li>
-                            <li><strong>ADJACENT:</strong> 0.90</li>
-                            <li><strong>LOCAL:</strong> 0.60</li>
-                            <li><strong>PHYSICAL:</strong> 0.30</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="weight-group">
-                        <h5>🔐 Privileges Required (PR):</h5>
-                        <ul>
-                            <li><strong>NONE:</strong> 1.10</li>
-                            <li><strong>LOW:</strong> 0.70</li>
-                            <li><strong>HIGH:</strong> 0.40</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="weight-group">
-                        <h5>👤 User Interaction (UI):</h5>
-                        <ul>
-                            <li><strong>NONE:</strong> 1.10</li>
-                            <li><strong>REQUIRED:</strong> 0.60</li>
-                        </ul>
+                <div class="formula-section">
+                    <h4>⚙️ CVSS v3 Множители</h4>
+                    <div class="cvss-weights">
+                        <div class="weight-group">
+                            <h5>🎯 Attack Vector (AV):</h5>
+                            <ul>
+                                <li><strong>NETWORK:</strong> 1.10</li>
+                                <li><strong>ADJACENT:</strong> 0.90</li>
+                                <li><strong>LOCAL:</strong> 0.60</li>
+                                <li><strong>PHYSICAL:</strong> 0.30</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="weight-group">
+                            <h5>🔐 Privileges Required (PR):</h5>
+                            <ul>
+                                <li><strong>NONE:</strong> 1.10</li>
+                                <li><strong>LOW:</strong> 0.70</li>
+                                <li><strong>HIGH:</strong> 0.40</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="weight-group">
+                            <h5>👤 User Interaction (UI):</h5>
+                            <ul>
+                                <li><strong>NONE:</strong> 1.10</li>
+                                <li><strong>REQUIRED:</strong> 0.60</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="formula-section">
-                <h4>⚙️ CVSS v2 Множители (если нет v3)</h4>
-                <div class="cvss-weights">
-                    <div class="weight-group">
-                        <h5>🎯 Access Vector (AV):</h5>
-                        <ul>
-                            <li><strong>NETWORK:</strong> 1.10</li>
-                            <li><strong>ADJACENT_NETWORK:</strong> 0.90</li>
-                            <li><strong>LOCAL:</strong> 0.60</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="weight-group">
-                        <h5>🔐 Access Complexity (AC):</h5>
-                        <ul>
-                            <li><strong>LOW:</strong> 1.10</li>
-                            <li><strong>MEDIUM:</strong> 0.80</li>
-                            <li><strong>HIGH:</strong> 0.40</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="weight-group">
-                        <h5>👤 Authentication (Au):</h5>
-                        <ul>
-                            <li><strong>NONE:</strong> 1.10</li>
-                            <li><strong>SINGLE:</strong> 0.80</li>
-                            <li><strong>MULTIPLE:</strong> 0.40</li>
-                        </ul>
+                <div class="formula-section">
+                    <h4>⚙️ CVSS v2 Множители (если нет v3)</h4>
+                    <div class="cvss-weights">
+                        <div class="weight-group">
+                            <h5>🎯 Access Vector (AV):</h5>
+                            <ul>
+                                <li><strong>NETWORK:</strong> 1.10</li>
+                                <li><strong>ADJACENT_NETWORK:</strong> 0.90</li>
+                                <li><strong>LOCAL:</strong> 0.60</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="weight-group">
+                            <h5>🔐 Access Complexity (AC):</h5>
+                            <ul>
+                                <li><strong>LOW:</strong> 1.10</li>
+                                <li><strong>MEDIUM:</strong> 0.80</li>
+                                <li><strong>HIGH:</strong> 0.40</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="weight-group">
+                            <h5>👤 Authentication (Au):</h5>
+                            <ul>
+                                <li><strong>NONE:</strong> 1.10</li>
+                                <li><strong>SINGLE:</strong> 0.80</li>
+                                <li><strong>MULTIPLE:</strong> 0.40</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="formula-section">
-                <h4>📈 Пример расчета</h4>
-                <div class="example-box">
-                    <div class="example-data">
-                        <p><strong>Исходные данные:</strong></p>
-                        <ul>
-                            <li>EPSS = 0.5 (50% вероятность эксплуатации)</li>
-                            <li>CVSS = 8.0 (высокая критичность)</li>
-                            <li>Критичность ресурса = Critical (0.33)</li>
-                            <li>Конфиденциальные данные = Есть (0.33)</li>
-                            <li>Доступ из интернета = Доступен (0.33)</li>
-                            <li>CVSS v3: AV=NETWORK(1.10), PR=NONE(1.10), UI=NONE(1.10)</li>
-                        </ul>
+                <div class="formula-section">
+                    <h4>📈 Пример расчета</h4>
+                    <div class="example-box">
+                        <div class="example-data">
+                            <p><strong>Исходные данные:</strong></p>
+                            <ul>
+                                <li>EPSS = 0.5 (50% вероятность эксплуатации)</li>
+                                <li>CVSS = 8.0 (высокая критичность)</li>
+                                <li>Критичность ресурса = Critical (0.33)</li>
+                                <li>Конфиденциальные данные = Есть (0.33)</li>
+                                <li>Доступ из интернета = Доступен (0.33)</li>
+                                <li>CVSS v3: AV=NETWORK(1.10), PR=NONE(1.10), UI=NONE(1.10)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="example-calculation">
+                            <p><strong>Расчет:</strong></p>
+                            <div class="calculation-steps">
+                                <div class="step">1. Impact = 0.33 + 0.33 + 0.33 = <strong>0.99</strong></div>
+                                <div class="step">2. CVE_param = 1.10 × 1.10 × 1.10 = <strong>1.331</strong></div>
+                                <div class="step">3. Risk = 0.5 × (8.0 ÷ 10) × 0.99 × 1.331 = <strong>0.527</strong></div>
+                                <div class="step">4. Risk Score = min(1, 0.527) × 100 = <strong>52.7%</strong></div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="example-calculation">
-                        <p><strong>Расчет:</strong></p>
-                        <div class="calculation-steps">
-                            <div class="step">1. Impact = 0.33 + 0.33 + 0.33 = <strong>0.99</strong></div>
-                            <div class="step">2. CVE_param = 1.10 × 1.10 × 1.10 = <strong>1.331</strong></div>
-                            <div class="step">3. Risk = 0.5 × (8.0 ÷ 10) × 0.99 × 1.331 = <strong>0.527</strong></div>
-                            <div class="step">4. Risk Score = min(1, 0.527) × 100 = <strong>52.7%</strong></div>
+                </div>
+
+                <div class="formula-section">
+                    <h4>🎚️ Шкала риска</h4>
+                    <div class="risk-scale">
+                        <div class="risk-level low">
+                            <span class="level-name">Низкий риск</span>
+                            <span class="level-range">0-20%</span>
+                        </div>
+                        <div class="risk-level medium">
+                            <span class="level-name">Средний риск</span>
+                            <span class="level-range">20-40%</span>
+                        </div>
+                        <div class="risk-level high">
+                            <span class="level-name">Высокий риск</span>
+                            <span class="level-range">40-70%</span>
+                        </div>
+                        <div class="risk-level critical">
+                            <span class="level-name">Критический риск</span>
+                            <span class="level-range">70-100%</span>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="formula-section">
-                <h4>🎚️ Шкала риска</h4>
-                <div class="risk-scale">
-                    <div class="risk-level low">
-                        <span class="level-name">Низкий риск</span>
-                        <span class="level-range">0-20%</span>
+    <!-- Уведомления -->
+    <div id="notifications" class="notifications"></div>
+
+    <!-- Модальное окно для описания CVE -->
+    <div id="cve-modal" class="modal-content" style="display: none;">
+        <div class="modal-header">
+            <h3 id="cve-modal-title">Описание CVE</h3>
+            <span class="close" id="cve-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="cve-modal-loading" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin"></i> Загрузка...
+            </div>
+            <div id="cve-modal-content" style="display: none;">
+                <div class="cve-info">
+                    <div class="cve-header">
+                        <h4 id="cve-id"></h4>
+                        <div class="cve-scores">
+                            <div id="cvss-v3-info" class="cvss-info"></div>
+                            <div id="cvss-v2-info" class="cvss-info"></div>
+                        </div>
                     </div>
-                    <div class="risk-level medium">
-                        <span class="level-name">Средний риск</span>
-                        <span class="level-range">20-40%</span>
+                    <div class="cve-dates">
+                        <div id="published-date" class="cve-date"></div>
+                        <div id="modified-date" class="cve-date"></div>
                     </div>
-                    <div class="risk-level high">
-                        <span class="level-name">Высокий риск</span>
-                        <span class="level-range">40-70%</span>
-                    </div>
-                    <div class="risk-level critical">
-                        <span class="level-name">Критический риск</span>
-                        <span class="level-range">70-100%</span>
+                    <div class="cve-description">
+                        <h5>Описание:</h5>
+                        <p id="cve-description-text"></p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Уведомления -->
-<div id="notifications" class="notifications"></div>
-
-<!-- Модальное окно для описания CVE -->
-<div id="cve-modal" class="modal-content" style="display: none;">
-    <div class="modal-header">
-        <h3 id="cve-modal-title">Описание CVE</h3>
-        <span class="close" id="cve-modal-close">&times;</span>
-    </div>
-    <div class="modal-body">
-        <div id="cve-modal-loading" style="text-align: center; padding: 2rem;">
-            <i class="fas fa-spinner fa-spin"></i> Загрузка...
-        </div>
-        <div id="cve-modal-content" style="display: none;">
-            <div class="cve-info">
-                <div class="cve-header">
-                    <h4 id="cve-id"></h4>
-                    <div class="cve-scores">
-                        <div id="cvss-v3-info" class="cvss-info"></div>
-                        <div id="cvss-v2-info" class="cvss-info"></div>
-                    </div>
-                </div>
-                <div class="cve-dates">
-                    <div id="published-date" class="cve-date"></div>
-                    <div id="modified-date" class="cve-date"></div>
-                </div>
-                <div class="cve-description">
-                    <h5>Описание:</h5>
-                    <p id="cve-description-text"></p>
-                </div>
+            <div id="cve-modal-error" style="display: none; text-align: center; color: var(--error-color);">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p id="cve-error-message"></p>
             </div>
         </div>
-        <div id="cve-modal-error" style="display: none; text-align: center; color: var(--error-color);">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p id="cve-error-message"></p>
+    </div>
+
+    <!-- Модальное окно для просмотра Metasploit -->
+    <div id="metasploit-modal" class="modal-content" style="display: none;">
+        <div class="modal-header">
+            <h3 id="metasploit-modal-title">Просмотр данных Metasploit (первые 20 записей)</h3>
+            <span class="close" id="metasploit-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="metasploit-modal-content">
+                <!-- Контент будет загружен динамически -->
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Модальное окно для просмотра Metasploit -->
-<div id="metasploit-modal" class="modal-content" style="display: none;">
-    <div class="modal-header">
-        <h3 id="metasploit-modal-title">Просмотр данных Metasploit (первые 20 записей)</h3>
-        <span class="close" id="metasploit-modal-close">&times;</span>
-    </div>
-    <div class="modal-body">
-        <div id="metasploit-modal-content">
-            <!-- Контент будет загружен динамически -->
+    <!-- Модальное окно для просмотра EPSS -->
+    <div id="epss-modal" class="modal-content" style="display: none;">
+        <div class="modal-header">
+            <h3 id="epss-modal-title">Просмотр данных EPSS (первые 20 записей)</h3>
+            <span class="close" id="epss-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="epss-modal-content">
+                <!-- Контент будет загружен динамически -->
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Модальное окно для просмотра EPSS -->
-<div id="epss-modal" class="modal-content" style="display: none;">
-    <div class="modal-header">
-        <h3 id="epss-modal-title">Просмотр данных EPSS (первые 20 записей)</h3>
-        <span class="close" id="epss-modal-close">&times;</span>
-    </div>
-    <div class="modal-body">
-        <div id="epss-modal-content">
-            <!-- Контент будет загружен динамически -->
+    <!-- Модальное окно для просмотра ExploitDB -->
+    <div id="exploitdb-modal" class="modal-content" style="display: none;">
+        <div class="modal-header">
+            <h3 id="exploitdb-modal-title">Просмотр данных ExploitDB (первые 20 записей)</h3>
+            <span class="close" id="exploitdb-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="exploitdb-modal-content">
+                <!-- Контент будет загружен динамически -->
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Модальное окно для просмотра ExploitDB -->
-<div id="exploitdb-modal" class="modal-content" style="display: none;">
-    <div class="modal-header">
-        <h3 id="exploitdb-modal-title">Просмотр данных ExploitDB (первые 20 записей)</h3>
-        <span class="close" id="exploitdb-modal-close">&times;</span>
-    </div>
-    <div class="modal-body">
-        <div id="exploitdb-modal-content">
-            <!-- Контент будет загружен динамически -->
+    <!-- Модальное окно для просмотра CVE -->
+    <div id="cve-preview-modal" class="modal-content" style="display: none;">
+        <div class="modal-header">
+            <h3 id="cve-preview-modal-title">Просмотр данных CVE (первые 20 записей)</h3>
+            <span class="close" id="cve-preview-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="cve-preview-modal-content">
+                <!-- Контент будет загружен динамически -->
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Модальное окно для просмотра CVE -->
-<div id="cve-preview-modal" class="modal-content" style="display: none;">
-    <div class="modal-header">
-        <h3 id="cve-preview-modal-title">Просмотр данных CVE (первые 20 записей)</h3>
-        <span class="close" id="cve-preview-modal-close">&times;</span>
-    </div>
-    <div class="modal-body">
-        <div id="cve-preview-modal-content">
-            <!-- Контент будет загружен динамически -->
-        </div>
-    </div>
-</div>
-
-<!-- Скрипты -->
-    <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
-<script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
-<script src="/vulnanalizer/static/js/modules/auth.js?v=2.1"></script>
+    <!-- Скрипты -->
+    <script src="/static/js/ui-manager.js?v=6.3"></script>
+        <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
+    <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
+    <script src="/vulnanalizer/static/js/modules/auth.js?v=2.1"></script>
             <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.0"></script>
         <script src="/vulnanalizer/static/js/modules/epss.js?v=2.3"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb.js?v=2.1"></script>
@@ -1135,12 +1222,164 @@
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
         <script src="/vulnanalizer/static/js/modules/epss-modal.js?v=1.3"></script>
-        <script src="/vulnanalizer/static/js/modules/exploitdb-modal.js?v=1.4"></script>
+        <script src="/vulnanalizer/static/js/modules/exploitdb-modal.js?v=1.5"></script>
         <script src="/vulnanalizer/static/js/modules/cve-preview-modal.js?v=1.3"></script>
 <script src="/vulnanalizer/static/js/modules/vm.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/navigation.js?v=2.0"></script>
 <script src="/vulnanalizer/static/js/modules/utils.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/app.js?v=6.2"></script>
 
+    <!-- Инициализация UI -->
+    <script>
+        // Функция для инициализации accordion и подменю
+        function initializeAccordion() {
+            console.log('Инициализация accordion...');
+            
+            // Обработчики для accordion-секций
+            const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+            console.log('Найдено accordion-секций:', collapsibleHeaders.length);
+            
+            collapsibleHeaders.forEach((header, index) => {
+                console.log(`Обработчик ${index}:`, header);
+                
+                // Убираем класс collapsed при инициализации
+                header.classList.remove('collapsed');
+                
+                header.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const targetId = header.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    const arrow = header.querySelector('.collapsible-arrow i');
+                    
+                    console.log('Клик по accordion:', targetId, content, arrow);
+                    
+                    if (content) {
+                        if (content.style.display === 'none' || content.style.display === '') {
+                            // Разворачиваем
+                            content.style.display = 'block';
+                            header.classList.remove('collapsed');
+                            if (arrow) arrow.className = 'fas fa-chevron-down';
+                            console.log('Развернуто:', targetId);
+                        } else {
+                            // Сворачиваем
+                            content.style.display = 'none';
+                            header.classList.add('collapsed');
+                            if (arrow) arrow.className = 'fas fa-chevron-right';
+                            console.log('Свернуто:', targetId);
+                        }
+                    }
+                });
+            });
 
-{% endblock %}
+            // Обработчики для подменю
+            const submenuHeaders = document.querySelectorAll('.submenu-header');
+            console.log('Найдено подменю:', submenuHeaders.length);
+            
+            submenuHeaders.forEach((header, index) => {
+                console.log(`Подменю ${index}:`, header);
+                
+                header.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const targetId = header.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    const arrow = header.querySelector('.submenu-arrow i');
+                    
+                    console.log('Клик по подменю:', targetId, content, arrow);
+                    
+                    if (content) {
+                        if (content.style.display === 'none' || content.style.display === '') {
+                            // Разворачиваем
+                            content.style.display = 'block';
+                            if (arrow) arrow.className = 'fas fa-chevron-down';
+                            console.log('Подменю развернуто:', targetId);
+                        } else {
+                            // Сворачиваем
+                            content.style.display = 'none';
+                            if (arrow) arrow.className = 'fas fa-chevron-right';
+                            console.log('Подменю свернуто:', targetId);
+                        }
+                    }
+                });
+            });
+        }
+
+        // Функция для инициализации вкладок
+        function initializeTabs() {
+            console.log('Инициализация вкладок...');
+            
+            const sidebarTabs = document.querySelectorAll('.sidebar-tab');
+            const pageContents = document.querySelectorAll('.page-content');
+            
+            console.log('Найдено вкладок:', sidebarTabs.length, 'страниц:', pageContents.length);
+            
+            sidebarTabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Убираем активный класс со всех вкладок
+                    sidebarTabs.forEach(t => t.classList.remove('active'));
+                    pageContents.forEach(p => p.classList.remove('active'));
+                    
+                    // Добавляем активный класс к выбранной вкладке
+                    tab.classList.add('active');
+                    
+                    // Показываем соответствующую страницу
+                    const pageName = tab.getAttribute('data-page');
+                    const targetPage = document.getElementById(pageName + '-page');
+                    if (targetPage) {
+                        targetPage.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Функция для инициализации модальных окон
+        function initializeModals() {
+            console.log('Инициализация модальных окон...');
+            
+            const modalCloses = document.querySelectorAll('.modal-close, .close');
+            modalCloses.forEach(close => {
+                close.addEventListener('click', () => {
+                    const modal = close.closest('.modal-content');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            // Закрытие модальных окон по клику вне их
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-content')) {
+                    e.target.style.display = 'none';
+                }
+            });
+        }
+
+        // Основная инициализация
+        function initializeUI() {
+            console.log('Начало инициализации UI...');
+            
+            // Инициализируем все компоненты
+            initializeAccordion();
+            initializeTabs();
+            initializeModals();
+            
+            console.log('Инициализация UI завершена');
+        }
+
+        // Запускаем инициализацию после загрузки DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeUI);
+        } else {
+            initializeUI();
+        }
+
+        // Дополнительная инициализация через небольшую задержку
+        setTimeout(initializeUI, 100);
+    </script>
+</body>
+</html>
