@@ -635,7 +635,15 @@ async def export_hosts(
         db = get_db()
         
         # Получаем данные хостов
-        hosts_data = await db.search_hosts(hostname, cve, ip_address, criticality, exploits_only, epss_only)
+        hosts_data, _ = await db.search_hosts(
+            hostname_pattern=hostname,
+            cve=cve,
+            ip_address=ip_address,
+            criticality=criticality,
+            exploits_only=exploits_only,
+            epss_only=epss_only,
+            limit=1000  # Большой лимит для экспорта
+        )
         
         if not hosts_data:
             raise HTTPException(status_code=404, detail="Данные для экспорта не найдены")

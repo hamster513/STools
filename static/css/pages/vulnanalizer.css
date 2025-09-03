@@ -628,17 +628,22 @@
 }
 
 /* Exploit Badge */
-.exploit-badge {
+.vulnanalizer-container .exploit-badge {
     display: inline-grid;
     align-items: center;
     justify-items: center;
     width: 20px;
     height: 20px;
     background-color: var(--danger-color);
-    color: var(--text-inverse);
+    color: #ffffff; /* Белый текст для светлой темы */
     border-radius: 50%;
     font-size: var(--font-size-xs);
     font-weight: 600;
+}
+
+/* Темная тема для бейджа эксплойта */
+.dark-theme .vulnanalizer-container .exploit-badge {
+    color: #1a1a1a; /* Темный текст для темной темы */
 }
 
 /* Status Indicators */

@@ -317,8 +317,7 @@ class SettingsModule {
             settings[key] = parseFloat(value) || 0;
         }
 
-        console.log('DEBUG: Impact form data entries:', Array.from(formData.entries()));
-        console.log('DEBUG: Impact settings object:', settings);
+        
 
         try {
             const data = await this.app.api.saveSettings(settings);

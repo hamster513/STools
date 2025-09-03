@@ -421,17 +421,14 @@ class HostsModule {
     }
 
     createRiskLink(riskScore, hostId, cveId) {
-        console.log(`🔍 Creating risk link: riskScore=${riskScore}, hostId=${hostId}, cveId=${cveId}`);
         if (!riskScore || riskScore === 'N/A') return '<span class="risk-score">N/A</span>';
         
         // Проверяем, доступен ли модуль риска
         if (this.app.riskModal && typeof this.app.riskModal.createRiskLink === 'function') {
-            console.log(`✅ Using riskModal.createRiskLink`);
             return this.app.riskModal.createRiskLink(riskScore, hostId, cveId);
         }
         
         // Fallback - создаем простую ссылку
-        console.log(`🔍 Using fallback risk link creation`);
         const riskClass = riskScore >= 70 ? 'high-risk' : 
                          riskScore >= 40 ? 'medium-risk' : 'low-risk';
         
@@ -645,8 +642,11 @@ class HostsModule {
                 document.body.removeChild(a);
                 
                 window.notifications.show('Экспорт завершен успешно!', 'success');
-            } else {
+            } else if (response && typeof response === 'object' && response.error) {
                 window.notifications.show(`Ошибка экспорта: ${response.error}`, 'error');
+            } else {
+                console.error('Unexpected response type:', response);
+                window.notifications.show('Ошибка экспорта: неожиданный тип ответа', 'error');
             }
         } catch (error) {
             console.error('Export error:', error);

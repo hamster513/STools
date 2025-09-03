@@ -50,6 +50,9 @@ class ApiModule {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
+            } else if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+                // Для Excel файлов возвращаем Blob
+                return await response.blob();
             } else {
                 return await response.text();
             }

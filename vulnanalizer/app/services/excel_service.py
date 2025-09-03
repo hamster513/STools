@@ -45,10 +45,10 @@ def create_excel_file(hosts_data: List[Dict]) -> BytesIO:
     for row, host in enumerate(hosts_data, 2):
         ws.cell(row=row, column=1, value=host.get('id')).border = thin_border
         ws.cell(row=row, column=2, value=host.get('hostname')).border = thin_border
-        ws.cell(row=row, column=3, value=host.get('ip_address')).border = thin_border
+        ws.cell(row=row, column=3, value=str(host.get('ip_address')) if host.get('ip_address') else None).border = thin_border
         ws.cell(row=row, column=4, value=host.get('cve')).border = thin_border
         ws.cell(row=row, column=5, value=host.get('cvss')).border = thin_border
-        ws.cell(row=row, column=6, value=host.get('epss')).border = thin_border
+        ws.cell(row=row, column=6, value=host.get('epss_score')).border = thin_border
         ws.cell(row=row, column=7, value=host.get('risk_score')).border = thin_border
         ws.cell(row=row, column=8, value=host.get('criticality')).border = thin_border
         ws.cell(row=row, column=9, value=host.get('status')).border = thin_border

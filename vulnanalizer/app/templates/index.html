@@ -1436,14 +1436,10 @@
     <script>
         // Функция для инициализации accordion и подменю
         function initializeAccordion() {
-            console.log('Инициализация accordion...');
-            
             // Обработчики для accordion-секций
             const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
-            console.log('Найдено accordion-секций:', collapsibleHeaders.length);
             
             collapsibleHeaders.forEach((header, index) => {
-                console.log(`Обработчик ${index}:`, header);
                 
                 // Убираем класс collapsed при инициализации
                 header.classList.remove('collapsed');
@@ -1456,21 +1452,17 @@
                     const content = document.getElementById(targetId);
                     const arrow = header.querySelector('.collapsible-arrow i');
                     
-                    console.log('Клик по accordion:', targetId, content, arrow);
-                    
                     if (content) {
                         if (content.style.display === 'none' || content.style.display === '') {
                             // Разворачиваем
                             content.style.display = 'block';
                             header.classList.remove('collapsed');
                             if (arrow) arrow.className = 'fas fa-chevron-down';
-                            console.log('Развернуто:', targetId);
                         } else {
                             // Сворачиваем
                             content.style.display = 'none';
                             header.classList.add('collapsed');
                             if (arrow) arrow.className = 'fas fa-chevron-right';
-                            console.log('Свернуто:', targetId);
                         }
                     }
                 });
@@ -1478,10 +1470,8 @@
 
             // Обработчики для подменю
             const submenuHeaders = document.querySelectorAll('.submenu-header');
-            console.log('Найдено подменю:', submenuHeaders.length);
             
             submenuHeaders.forEach((header, index) => {
-                console.log(`Подменю ${index}:`, header);
                 
                 header.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -1491,19 +1481,15 @@
                     const content = document.getElementById(targetId);
                     const arrow = header.querySelector('.submenu-arrow i');
                     
-                    console.log('Клик по подменю:', targetId, content, arrow);
-                    
                     if (content) {
                         if (content.classList.contains('active')) {
                             // Сворачиваем
                             content.classList.remove('active');
                             if (arrow) arrow.className = 'fas fa-chevron-right';
-                            console.log('Подменю свернуто:', targetId);
                         } else {
                             // Разворачиваем
                             content.classList.add('active');
                             if (arrow) arrow.className = 'fas fa-chevron-down';
-                            console.log('Подменю развернуто:', targetId);
                         }
                     }
                 });
@@ -1512,12 +1498,8 @@
 
         // Функция для инициализации вкладок
         function initializeTabs() {
-            console.log('Инициализация вкладок...');
-            
             const sidebarTabs = document.querySelectorAll('.sidebar-tab');
             const pageContents = document.querySelectorAll('.page-content');
-            
-            console.log('Найдено вкладок:', sidebarTabs.length, 'страниц:', pageContents.length);
             
             sidebarTabs.forEach(tab => {
                 tab.addEventListener('click', (e) => {
@@ -1542,7 +1524,6 @@
 
         // Функция для инициализации модальных окон
         function initializeModals() {
-            console.log('Инициализация модальных окон...');
             
             const modalCloses = document.querySelectorAll('.modal-close, .close');
             modalCloses.forEach(close => {
@@ -1564,14 +1545,10 @@
 
         // Основная инициализация
         function initializeUI() {
-            console.log('Начало инициализации UI...');
-            
             // Инициализируем все компоненты
             initializeAccordion();
             initializeTabs();
             initializeModals();
-            
-            console.log('Инициализация UI завершена');
         }
 
         // Запускаем инициализацию после загрузки DOM

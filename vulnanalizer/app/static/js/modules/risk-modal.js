@@ -95,9 +95,7 @@ class RiskModalModule {
 
     async loadRiskData(hostId, cveId) {
         try {
-            console.log(`🔍 Loading risk data for host_id=${hostId}, cve=${cveId}`);
             const url = `${this.app.getApiBasePath()}/hosts/${hostId}/risk-calculation/${cveId}`;
-            console.log(`🔍 API URL: ${url}`);
             const response = await fetch(url);
             const data = await response.json();
 

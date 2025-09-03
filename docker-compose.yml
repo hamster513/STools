@@ -51,7 +51,7 @@ services:
     build:
       context: ./auth
       dockerfile: Dockerfile
-    image: stools-auth_web:v0.5.01
+    image: stools-auth_web:v0.6.03
     container_name: auth_web
     volumes:
       - auth_data:/app/data
@@ -80,7 +80,7 @@ services:
     build:
       context: ./loganalizer/app
       dockerfile: Dockerfile
-    image: stools-loganalizer_web:v0.5.01
+    image: stools-loganalizer_web:v0.6.03
     container_name: loganalizer_web
     volumes:
       - loganalizer_data:/app/data
@@ -108,8 +108,10 @@ services:
     build:
       context: ./vulnanalizer/app
       dockerfile: Dockerfile
-    image: stools-vulnanalizer_web:v0.5.01
+    image: stools-vulnanalizer_web:v0.6.03
     container_name: vulnanalizer_web
+    ports:
+      - "8000:8000"
     volumes:
       - vulnanalizer_data:/app/data
       - ./vulnanalizer/app:/app
@@ -137,7 +139,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: stools-main_web:v0.5.01
+    image: stools-main_web:v0.6.03
     container_name: main_web
     volumes:
       - ./templates:/app/templates
