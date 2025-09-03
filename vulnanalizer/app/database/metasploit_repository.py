@@ -277,3 +277,23 @@ class MetasploitRepository(DatabaseBase):
                 'by_rank': [],
                 'last_update': None
             }
+
+    async def get_metasploit_by_cve(self, cve_id: str) -> Optional[Dict]:
+        """Получить данные Metasploit по CVE ID через поиск в поле references"""
+        try:
+            conn = await self.get_connection()
+            try:
+                row = await conn.fetchrow("""
+                    SELECT id, module_name, name, rank, rank_text, type
+                    FROM vulnanalizer.metasploit_modules
+                    WHERE "references" LIKE $1
+                    ORDER BY rank DESC
+                    LIMIT 1
+                """, f'%{cve_id}%')
+                
+                return dict(row) if row else None
+            finally:
+                await self.release_connection(conn)
+        except Exception as e:
+            logger.error(f"Error getting metasploit data for CVE {cve_id}: {e}")
+            return None

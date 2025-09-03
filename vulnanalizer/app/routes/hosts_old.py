@@ -547,7 +547,7 @@ async def start_background_update_parallel():
             ))
         
         # Запускаем параллельное фоновое обновление
-        result = await db.update_hosts_epss_and_exploits_background_parallel(progress_callback)
+        result = await db.update_hosts_complete(progress_callback)
         
         # Обновляем финальный статус в базе данных
         if result['success']:
@@ -713,7 +713,7 @@ async def export_hosts_report(
                 status, os_name, zone, epss_score, epss_percentile, 
                 risk_score, exploits_count, has_exploits, last_exploit_date,
                 epss_updated_at, exploits_updated_at, risk_updated_at
-            FROM hosts 
+            FROM vulnanalizer.hosts 
             WHERE {where_clause}
             ORDER BY risk_score DESC NULLS LAST, hostname, cve
         """
@@ -807,7 +807,7 @@ async def clean_empty_cve():
         # Подсчитываем количество записей с пустыми CVE
         count_query = """
             SELECT COUNT(*) as cnt 
-            FROM hosts 
+            FROM vulnanalizer.hosts 
             WHERE cve IS NULL OR cve = '' OR cve = '""'
         """
         count_result = await conn.fetchrow(count_query)
@@ -822,13 +822,13 @@ async def clean_empty_cve():
         
         # Удаляем записи с пустыми CVE
         delete_query = """
-            DELETE FROM hosts 
+            DELETE FROM vulnanalizer.hosts 
             WHERE cve IS NULL OR cve = '' OR cve = '""'
         """
         await conn.execute(delete_query)
         
         # Получаем общее количество записей после очистки
-        total_query = "SELECT COUNT(*) as cnt FROM hosts"
+        total_query = "SELECT COUNT(*) as cnt FROM vulnanalizer.hosts"
         total_result = await conn.fetchrow(total_query)
         total_count = total_result['cnt'] if total_result else 0
         
@@ -855,14 +855,14 @@ async def get_empty_cve_count():
         
         count_query = """
             SELECT COUNT(*) as cnt 
-            FROM hosts 
+            FROM vulnanalizer.hosts 
             WHERE cve IS NULL OR cve = '' OR cve = '""'
         """
         count_result = await conn.fetchrow(count_query)
         empty_cve_count = count_result['cnt'] if count_result else 0
         
         # Получаем общее количество записей
-        total_query = "SELECT COUNT(*) as cnt FROM hosts"
+        total_query = "SELECT COUNT(*) as cnt FROM vulnanalizer.hosts"
         total_result = await conn.fetchrow(total_query)
         total_count = total_result['cnt'] if total_result else 0
         

@@ -422,7 +422,8 @@
 #metasploit-modal,
 #epss-modal,
 #exploitdb-modal,
-#cve-preview-modal {
+#cve-preview-modal,
+#risk-modal {
     position: fixed;
     top: 50%;
     left: calc(50% + var(--sidebar-width, 280px) / 2);
@@ -434,4 +435,249 @@
     overflow: hidden;
     max-width: calc(90vw - var(--sidebar-width, 280px));
     max-height: 90vh;
+}
+
+/* Стили для модального окна риска */
+#risk-modal .modal-content {
+    background-color: var(--surface-color);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: var(--border-radius);
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+}
+
+#risk-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+}
+
+#risk-modal .modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-xl);
+}
+
+#risk-modal .close {
+    color: var(--text-secondary);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color var(--transition-speed);
+}
+
+#risk-modal .close:hover {
+    color: var(--text-primary);
+}
+
+#risk-modal .modal-body {
+    padding: var(--spacing-lg);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Risk Info styles */
+.risk-info {
+    color: var(--text-primary);
+}
+
+.risk-header {
+    margin-bottom: var(--spacing-lg);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+}
+
+.risk-host-info,
+.risk-cve-info {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    background-color: var(--surface-color-secondary);
+    border: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+}
+
+.risk-summary {
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+}
+
+.risk-score-display h4 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+}
+
+.risk-score-display .risk-score {
+    font-size: var(--font-size-xxl);
+    font-weight: bold;
+    margin-bottom: var(--spacing-sm);
+}
+
+.risk-score-display .risk-level {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    display: inline-block;
+}
+
+.risk-formula {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    background-color: var(--surface-color-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.risk-formula h5 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+}
+
+.risk-formula-display {
+    font-family: 'Courier New', monospace;
+    font-size: var(--font-size-sm);
+}
+
+.formula-main {
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--primary-color);
+}
+
+.formula-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.formula-component {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius);
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.formula-result {
+    text-align: center;
+    padding: var(--spacing-md);
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--success-color);
+    font-weight: bold;
+}
+
+.formula-final-result {
+    color: var(--success-color);
+    font-size: var(--font-size-lg);
+}
+
+.formula-note {
+    text-align: center;
+    margin-top: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.risk-calculation-details {
+    margin-bottom: var(--spacing-lg);
+}
+
+.risk-calculation-details h5 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+}
+
+.risk-calculation-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.risk-factor {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    background-color: var(--surface-color-secondary);
+    border: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+}
+
+.risk-factors h5 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+}
+
+.risk-factors-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.risk-factor-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    background-color: var(--surface-color-secondary);
+    border: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+}
+
+.risk-factor-item i {
+    color: var(--primary-color);
+    width: 16px;
+}
+
+/* Стили для ссылок риска */
+.risk-link {
+    cursor: pointer;
+    transition: all var(--transition-speed);
+}
+
+.risk-link:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* Адаптивность для модального окна риска */
+@media (max-width: 768px) {
+    #risk-modal .modal-content {
+        width: 95%;
+        margin: 2% auto;
+    }
+    
+    #risk-modal .modal-header,
+    #risk-modal .modal-body {
+        padding: var(--spacing-md);
+    }
+    
+    .risk-header {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+    
+    .risk-calculation-breakdown {
+        grid-template-columns: 1fr;
+    }
+    
+    .formula-breakdown {
+        grid-template-columns: 1fr;
+    }
 }

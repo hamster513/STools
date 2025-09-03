@@ -601,6 +601,32 @@
     color: var(--text-secondary);
 }
 
+/* Risk Score with Links */
+.risk-score.risk-link {
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    text-decoration: none;
+    display: inline-block;
+}
+
+.risk-score.risk-link:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+    text-decoration: underline;
+}
+
+.risk-score.high-risk {
+    color: var(--error-color-dark);
+}
+
+.risk-score.medium-risk {
+    color: var(--warning-color);
+}
+
+.risk-score.low-risk {
+    color: var(--success-color);
+}
+
 /* Exploit Badge */
 .exploit-badge {
     display: inline-grid;

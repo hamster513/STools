@@ -1,5 +1,6 @@
 /**
  * Модуль для работы с хостами
+ * v=4.3
  */
 class HostsModule {
     constructor(app) {
@@ -369,19 +370,7 @@ class HostsModule {
         let riskDisplay = '';
         
         if (host.risk_score !== null && host.risk_score !== undefined) {
-            const riskClass = host.risk_score >= 70 ? 'high-risk' : 
-                             host.risk_score >= 40 ? 'medium-risk' : 'low-risk';
-            
-            let riskText;
-            if (host.risk_score < 0.1) {
-                riskText = host.risk_score.toFixed(2);
-            } else if (host.risk_score < 1) {
-                riskText = host.risk_score.toFixed(1);
-            } else {
-                riskText = Math.round(host.risk_score);
-            }
-            
-            riskDisplay = `<span class="risk-score ${riskClass}">${riskText}%</span>`;
+            riskDisplay = this.createRiskLink(host.risk_score, host.id, host.cve);
         } else {
             riskDisplay = '<span class="risk-score">N/A</span>';
         }
@@ -413,6 +402,7 @@ class HostsModule {
                     }
                 </div>
                 ${exploitsIndicator}
+                <div class="host-msf">${this.createMSFDisplay(host)}</div>
                 <div class="host-risk" id="host-risk-${host.id}">${riskDisplay}</div>
             </div>
         `;
@@ -428,6 +418,65 @@ class HostsModule {
         
         // Fallback - создаем простую ссылку
         return `<span class="cve-link" onclick="if(window.vulnAnalizer && window.vulnAnalizer.cveModal) { window.vulnAnalizer.cveModal.show('${cveId}'); }">${cveId}</span>`;
+    }
+
+    createRiskLink(riskScore, hostId, cveId) {
+        console.log(`🔍 Creating risk link: riskScore=${riskScore}, hostId=${hostId}, cveId=${cveId}`);
+        if (!riskScore || riskScore === 'N/A') return '<span class="risk-score">N/A</span>';
+        
+        // Проверяем, доступен ли модуль риска
+        if (this.app.riskModal && typeof this.app.riskModal.createRiskLink === 'function') {
+            console.log(`✅ Using riskModal.createRiskLink`);
+            return this.app.riskModal.createRiskLink(riskScore, hostId, cveId);
+        }
+        
+        // Fallback - создаем простую ссылку
+        console.log(`🔍 Using fallback risk link creation`);
+        const riskClass = riskScore >= 70 ? 'high-risk' : 
+                         riskScore >= 40 ? 'medium-risk' : 'low-risk';
+        
+        let riskText;
+        if (riskScore < 0.1) {
+            riskText = riskScore.toFixed(2);
+        } else if (riskScore < 1) {
+            riskText = riskScore.toFixed(1);
+        } else {
+            riskText = Math.round(riskScore);
+        }
+        
+        return `<span class="risk-score ${riskClass} risk-link" onclick="if(window.vulnAnalizer && window.vulnAnalizer.riskModal) { window.vulnAnalizer.riskModal.show('${hostId}', '${cveId}'); }" title="Нажмите для просмотра деталей расчета">${riskText}%</span>`;
+    }
+
+    createMSFDisplay(host) {
+        // Если у хоста есть информация о Metasploit модуле
+        if (host.msf_rank && host.msf_rank !== 'none') {
+            const rankClass = this.getMSFRankClass(host.msf_rank);
+            const rankText = this.getMSFRankText(host.msf_rank);
+            return `<span class="msf-rank ${rankClass}">${rankText}</span>`;
+        }
+        
+        // Если нет информации о Metasploit
+        return '<span class="msf-rank none">N/A</span>';
+    }
+
+    getMSFRankClass(rank) {
+        // Сопоставляем числовые ранги с классами
+        if (rank >= 500) return 'excellent';
+        if (rank >= 400) return 'good';
+        if (rank >= 300) return 'normal';
+        if (rank >= 200) return 'average';
+        if (rank >= 100) return 'low';
+        return 'unknown';
+    }
+
+    getMSFRankText(rank) {
+        // Сопоставляем числовые ранги с текстом
+        if (rank >= 500) return 'EXC';
+        if (rank >= 400) return 'GOOD';
+        if (rank >= 300) return 'NORM';
+        if (rank >= 200) return 'AVG';
+        if (rank >= 100) return 'LOW';
+        return 'UNK';
     }
 
     trackInnerHTMLChanges() {

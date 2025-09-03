@@ -67,6 +67,38 @@ class SettingsModule {
             });
         }
 
+        // Обработчики для ExploitDB формы
+        const exdbForm = document.getElementById('exdb-form');
+        if (exdbForm) {
+            exdbForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveExploitDBSettings();
+            });
+        }
+
+        const resetExDBDefaultsBtn = document.getElementById('reset-exdb-defaults');
+        if (resetExDBDefaultsBtn) {
+            resetExDBDefaultsBtn.addEventListener('click', () => {
+                this.resetExploitDBDefaults();
+            });
+        }
+
+        // Обработчики для Metasploit формы
+        const msfForm = document.getElementById('msf-form');
+        if (msfForm) {
+            msfForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveMetasploitSettings();
+            });
+        }
+
+        const resetMSFDefaultsBtn = document.getElementById('reset-msf-defaults');
+        if (resetMSFDefaultsBtn) {
+            resetMSFDefaultsBtn.addEventListener('click', () => {
+                this.resetMetasploitDefaults();
+            });
+        }
+
         // Обработчики для подменю
         this.setupSubmenuHandlers();
 
@@ -612,24 +644,24 @@ class SettingsModule {
         }
 
         const defaults = {
-            'cvss_v3_attack_vector_network': 1.10,
-            'cvss_v3_attack_vector_adjacent': 0.90,
-            'cvss_v3_attack_vector_local': 0.60,
-            'cvss_v3_attack_vector_physical': 0.30,
-            'cvss_v3_privileges_required_none': 1.10,
-            'cvss_v3_privileges_required_low': 0.70,
-            'cvss_v3_privileges_required_high': 0.40,
-            'cvss_v3_user_interaction_none': 1.10,
-            'cvss_v3_user_interaction_required': 0.60,
-            'cvss_v2_access_vector_network': 1.10,
-            'cvss_v2_access_vector_adjacent_network': 0.90,
-            'cvss_v2_access_vector_local': 0.60,
+            'cvss_v3_attack_vector_network': 1.20,
+            'cvss_v3_attack_vector_adjacent': 1.10,
+            'cvss_v3_attack_vector_local': 0.95,
+            'cvss_v3_attack_vector_physical': 0.85,
+            'cvss_v3_privileges_required_none': 1.20,
+            'cvss_v3_privileges_required_low': 1.00,
+            'cvss_v3_privileges_required_high': 0.85,
+            'cvss_v3_user_interaction_none': 1.15,
+            'cvss_v3_user_interaction_required': 0.90,
+            'cvss_v2_access_vector_network': 1.20,
+            'cvss_v2_access_vector_adjacent_network': 1.10,
+            'cvss_v2_access_vector_local': 0.95,
             'cvss_v2_access_complexity_low': 1.10,
-            'cvss_v2_access_complexity_medium': 0.80,
-            'cvss_v2_access_complexity_high': 0.40,
-            'cvss_v2_authentication_none': 1.10,
-            'cvss_v2_authentication_single': 0.80,
-            'cvss_v2_authentication_multiple': 0.40
+            'cvss_v2_access_complexity_medium': 1.00,
+            'cvss_v2_access_complexity_high': 0.90,
+            'cvss_v2_authentication_none': 1.15,
+            'cvss_v2_authentication_single': 1.00,
+            'cvss_v2_authentication_multiple': 0.90
         };
 
         // Устанавливаем значения по умолчанию в форму
@@ -651,12 +683,12 @@ class SettingsModule {
         const defaults = {
             'impact_resource_criticality_critical': 0.33,
             'impact_resource_criticality_high': 0.25,
-            'impact_resource_criticality_medium': 0.15,
-            'impact_resource_criticality_none': 0.10,
+            'impact_resource_criticality_medium': 0.2,
+            'impact_resource_criticality_none': 0.2,
             'impact_confidential_data_yes': 0.33,
-            'impact_confidential_data_no': 0.10,
+            'impact_confidential_data_no': 0.2,
             'impact_internet_access_yes': 0.33,
-            'impact_internet_access_no': 0.10
+            'impact_internet_access_no': 0.2
         };
 
         // Устанавливаем значения по умолчанию в форму
@@ -668,6 +700,151 @@ class SettingsModule {
         }
 
         window.notifications.show('Impact параметры сброшены к значениям по умолчанию', 'info');
+    }
+
+    // Методы для работы с ExploitDB параметрами
+    async saveExploitDBSettings() {
+        try {
+            const form = document.getElementById('exdb-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Конвертируем строковые значения в числа
+            for (const key in data) {
+                if (data[key] !== '') {
+                    data[key] = parseFloat(data[key]);
+                }
+            }
+
+            const response = await this.app.api.saveSettings(data);
+
+            if (response.success) {
+                window.notifications.show('Настройки ExploitDB сохранены успешно!', 'success');
+            } else {
+                window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Save ExploitDB settings error:', error);
+            window.notifications.show('Ошибка сохранения настроек ExploitDB', 'error');
+        }
+    }
+
+    async loadExploitDBSettings() {
+        try {
+            const settings = await this.app.api.getSettings();
+            
+            // Загружаем значения в форму ExploitDB
+            const exdbFields = [
+                'exdb_remote', 'exdb_webapps', 'exdb_dos', 'exdb_local', 'exdb_hardware'
+            ];
+            
+            for (const field of exdbFields) {
+                const input = document.querySelector(`[name="${field}"]`);
+                if (input && settings[field] !== undefined) {
+                    input.value = settings[field];
+                }
+            }
+        } catch (error) {
+            console.error('Load ExploitDB settings error:', error);
+        }
+    }
+
+    resetExploitDBDefaults() {
+        if (!confirm('Сбросить все ExploitDB параметры к значениям по умолчанию?')) {
+            return;
+        }
+
+        const defaults = {
+            'exdb_remote': 1.3,
+            'exdb_webapps': 1.2,
+            'exdb_dos': 0.85,
+            'exdb_local': 1.05,
+            'exdb_hardware': 1.0
+        };
+
+        // Устанавливаем значения по умолчанию в форму
+        for (const [key, value] of Object.entries(defaults)) {
+            const input = document.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = value;
+            }
+        }
+
+        window.notifications.show('ExploitDB параметры сброшены к значениям по умолчанию', 'info');
+    }
+
+    // Методы для работы с Metasploit параметрами
+    async saveMetasploitSettings() {
+        try {
+            const form = document.getElementById('msf-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Конвертируем строковые значения в числа
+            for (const key in data) {
+                if (data[key] !== '') {
+                    data[key] = parseFloat(data[key]);
+                }
+            }
+
+            const response = await this.app.api.saveSettings(data);
+
+            if (response.success) {
+                window.notifications.show('Настройки Metasploit сохранены успешно!', 'success');
+            } else {
+                window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Save Metasploit settings error:', error);
+            window.notifications.show('Ошибка сохранения настроек Metasploit', 'error');
+        }
+    }
+
+    async loadMetasploitSettings() {
+        try {
+            const settings = await this.app.api.getSettings();
+            
+            // Загружаем значения в форму Metasploit
+            const msfFields = [
+                'msf_excellent', 'msf_good', 'msf_normal', 'msf_average', 
+                'msf_low', 'msf_unknown', 'msf_manual'
+            ];
+            
+            for (const field of msfFields) {
+                const input = document.querySelector(`[name="${field}"]`);
+                if (input && settings[field] !== undefined) {
+                    input.value = settings[field];
+                }
+            }
+        } catch (error) {
+            console.error('Load Metasploit settings error:', error);
+        }
+    }
+
+    resetMetasploitDefaults() {
+        if (!confirm('Сбросить все Metasploit параметры к значениям по умолчанию?')) {
+            return;
+        }
+
+        const defaults = {
+            'msf_excellent': 1.3,
+            'msf_good': 1.25,
+            'msf_normal': 1.2,
+            'msf_average': 1.1,
+            'msf_low': 0.8,
+            'msf_unknown': 0.8,
+            'msf_manual': 1.0
+        };
+
+        // Устанавливаем значения по умолчанию в форму
+        for (const [key, value] of Object.entries(defaults)) {
+            const input = document.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = value;
+            }
+        }
+
+        window.notifications.show('Metasploit параметры сброшены к значениям по умолчанию', 'info');
     }
 
     // Методы для работы с настройками порога риска

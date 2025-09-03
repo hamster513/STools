@@ -28,14 +28,14 @@ async def update_log_levels():
         
         # Обновляем настройки
         await conn.execute('''
-            UPDATE settings 
+            UPDATE loganalizer.settings 
             SET value = $1::jsonb
             WHERE key = 'important_log_levels'
         ''', json.dumps(new_levels))
         
         # Проверяем результат
         result = await conn.fetchval('''
-            SELECT value FROM settings WHERE key = 'important_log_levels'
+            SELECT value FROM loganalizer.settings WHERE key = 'important_log_levels'
         ''')
         
         print(f'✅ Log levels updated successfully!')

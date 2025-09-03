@@ -511,6 +511,39 @@ async def calculate_missing_risks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/hosts/recalculate-all-risks")
+async def recalculate_all_risks():
+    """Пересчитать риски для ВСЕХ хостов по новой формуле"""
+    try:
+        db = get_db()
+        
+        # Проверяем, не запущена ли уже задача
+        existing_task = await db.get_background_task_by_type('risk_recalculation')
+        if existing_task and existing_task['status'] in ['processing', 'running']:
+            return {"success": False, "message": "Пересчет рисков уже запущен"}
+        
+        # Создаем фоновую задачу для пересчета рисков
+        task_id = await db.create_background_task(
+            task_type="risk_recalculation",
+            parameters={
+                "calculation_type": "recalculate_all"
+            },
+            description="Пересчет рисков для всех хостов по новой формуле"
+        )
+        
+        print(f"✅ Фоновая задача пересчета рисков создана: {task_id}")
+        
+        return {
+            "success": True,
+            "task_id": task_id,
+            "message": "Пересчет рисков для всех хостов запущен в фоновом режиме"
+        }
+        
+    except Exception as e:
+        print('Risk recalculation error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/hosts/update-data-optimized")
 async def start_optimized_update():
     """Запустить оптимизированное обновление данных хостов (batch запросы)"""
@@ -671,7 +704,7 @@ async def export_hosts_report(
                 status, os_name, zone, epss_score, epss_percentile, 
                 risk_score, exploits_count, has_exploits, last_exploit_date,
                 epss_updated_at, exploits_updated_at, risk_updated_at
-            FROM hosts 
+            FROM vulnanalizer.hosts 
             WHERE {where_clause}
             ORDER BY risk_score DESC NULLS LAST, hostname, cve
         """
@@ -741,6 +774,95 @@ async def export_hosts_report(
     except Exception as e:
         print(f"Error exporting report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/hosts/{host_id}/risk-calculation/{cve}")
+async def get_host_risk_calculation(host_id: int, cve: str):
+    """Получить детали расчета риска для конкретного хоста и CVE"""
+    print(f"🔍 Risk calculation request: host_id={host_id}, cve={cve}")
+    try:
+        db = get_db()
+        conn = await db.get_connection()
+        
+        try:
+            # Получаем основную информацию о хосте и CVE
+            query = """
+                SELECT 
+                    h.hostname, h.ip_address, h.criticality, h.risk_score,
+                    h.cvss, h.cvss_source, h.epss_score, h.exploits_count,
+                    h.epss_updated_at, h.exploits_updated_at, h.risk_updated_at,
+                    c.description as cve_description
+                FROM vulnanalizer.hosts h
+                LEFT JOIN vulnanalizer.cve c ON h.cve = c.cve_id
+                WHERE h.id = $1 AND h.cve = $2
+            """
+            
+            print(f"🔍 Executing query: {query}")
+            print(f"🔍 Parameters: host_id={host_id}, cve={cve}")
+            row = await conn.fetchrow(query, host_id, cve)
+            
+            if not row:
+                print(f"❌ No data found for host_id={host_id}, cve={cve}")
+                raise HTTPException(status_code=404, detail="Хост или CVE не найдены")
+            
+            print(f"✅ Found data: {dict(row) if row else 'None'}")
+            
+            # Формируем данные о риске
+            risk_data = {
+                "hostname": row['hostname'],
+                "ip_address": row['ip_address'],
+                "criticality": row['criticality'],
+                "risk_score": row['risk_score'],
+                "cvss_score": row['cvss'],
+                "cvss_severity": row['cvss_source'],
+                "epss_score": row['epss_score'],
+                "exploits_count": row['exploits_count'],
+                "metasploit_rank": None,  # Убираем Metasploit, так как таблица не существует
+                "cve_description": row['cve_description'],
+                "epss_updated_at": row['epss_updated_at'],
+                "exploits_updated_at": row['exploits_updated_at'],
+                "risk_updated_at": row['risk_updated_at']
+            }
+            
+            # Добавляем детали расчета из сервиса риска
+            try:
+                from services.risk_service import get_risk_calculation_details
+                calculation_details = await get_risk_calculation_details(host_id, cve)
+                if calculation_details:
+                    risk_data.update(calculation_details)
+                    print(f"✅ Added calculation details: {calculation_details}")
+                else:
+                    print(f"⚠️ No calculation details available")
+            except Exception as e:
+                print(f"⚠️ Error getting calculation details: {e}")
+                # Если сервис недоступен, используем базовые данные
+                pass
+            
+            return {
+                "success": True,
+                "risk_data": risk_data
+            }
+            
+        finally:
+            await db.release_connection(conn)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting risk calculation: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Ошибка получения данных о риске")
+
+
+@router.get("/api/hosts/test-endpoint")
+async def test_endpoint():
+    """Тестовый endpoint для проверки работы роутера"""
+    return {"success": True, "message": "Hosts router работает", "timestamp": datetime.now().isoformat()}
+
+@router.get("/api/hosts/test-risk")
+async def test_risk_endpoint():
+    """Тестовый endpoint для проверки risk-calculation"""
+    return {"success": True, "message": "Risk endpoint доступен", "timestamp": datetime.now().isoformat()}
 
 @router.post("/api/hosts/clear")
 async def clear_hosts():

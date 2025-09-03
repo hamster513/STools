@@ -6,6 +6,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from .base import DatabaseBase
+from .risk_calculation_service import RiskCalculationService
 
 
 class HostsRepository(DatabaseBase):
@@ -25,14 +26,33 @@ class HostsRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                SELECT id, hostname, ip_address, cve, cvss, criticality, status, 
-                       os_name, zone, epss_score, risk_score, created_at, updated_at
-                FROM vulnanalizer.hosts 
-                ORDER BY created_at DESC 
+                SELECT h.id, h.hostname, h.ip_address, h.cve, h.cvss, h.criticality, h.status, 
+                       h.os_name, h.zone, h.epss_score, h.risk_score, h.created_at, h.updated_at,
+                       h.metasploit_rank as msf_rank
+                FROM vulnanalizer.hosts h
+                ORDER BY h.created_at DESC 
                 LIMIT $1 OFFSET $2
             """
             rows = await conn.fetch(query, limit, offset)
-            return [dict(row) for row in rows]
+            results = []
+            for row in rows:
+                results.append({
+                    'id': row['id'],
+                    'hostname': row['hostname'],
+                    'ip_address': row['ip_address'],
+                    'cve': row['cve'],
+                    'cvss': float(row['cvss']) if row['cvss'] else None,
+                    'criticality': row['criticality'],
+                    'status': row['status'],
+                    'os_name': row['os_name'],
+                    'zone': row['zone'],
+                    'epss_score': float(row['epss_score']) if row['epss_score'] else None,
+                    'risk_score': float(row['risk_score']) if row['risk_score'] else None,
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None,
+                    'msf_rank': row['msf_rank']
+                })
+            return results
         finally:
             await self.release_connection(conn)
     
@@ -41,14 +61,33 @@ class HostsRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                SELECT id, hostname, ip_address, cve, cvss, criticality, status, 
-                       os_name, zone, epss_score, risk_score, created_at, updated_at
-                FROM vulnanalizer.hosts 
-                WHERE cve = $1
-                ORDER BY hostname
+                SELECT h.id, h.hostname, h.ip_address, h.cve, h.cvss, h.criticality, h.status, 
+                       h.os_name, h.zone, h.epss_score, h.risk_score, h.created_at, h.updated_at,
+                       h.metasploit_rank as msf_rank
+                FROM vulnanalizer.hosts h
+                WHERE h.cve = $1
+                ORDER BY h.hostname
             """
             rows = await conn.fetch(query, cve)
-            return [dict(row) for row in rows]
+            results = []
+            for row in rows:
+                results.append({
+                    'id': row['id'],
+                    'hostname': row['hostname'],
+                    'ip_address': row['ip_address'],
+                    'cve': row['cve'],
+                    'cvss': float(row['cvss']) if row['cvss'] else None,
+                    'criticality': row['criticality'],
+                    'status': row['status'],
+                    'os_name': row['os_name'],
+                    'zone': row['zone'],
+                    'epss_score': float(row['epss_score']) if row['epss_score'] else None,
+                    'risk_score': float(row['risk_score']) if row['risk_score'] else None,
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None,
+                    'msf_rank': row['msf_rank']
+                })
+            return results
         finally:
             await self.release_connection(conn)
     
@@ -215,7 +254,7 @@ class HostsRepository(DatabaseBase):
         exploitdb_query = """
             SELECT DISTINCT split_part(codes, ';', 1) as cve_id, COUNT(*) as exploit_count
             FROM vulnanalizer.exploitdb 
-            WHERE codes IS NOT NULL AND codes LIKE 'CVE-%'
+            WHERE codes IS NOT NULL AND split_part(codes, ';', 1) LIKE 'CVE-%'
             GROUP BY split_part(codes, ';', 1)
             LIMIT 10000
         """
@@ -225,6 +264,13 @@ class HostsRepository(DatabaseBase):
             exploitdb_rows = await asyncio.wait_for(conn.fetch(exploitdb_query), timeout=30.0)
             exploitdb_data = {row['cve_id']: row['exploit_count'] for row in exploitdb_rows}
             print(f"✅ Загружено ExploitDB данных: {len(exploitdb_data)} CVE с эксплойтами")
+            
+            # Отладочная информация
+            if 'CVE-2015-1635' in exploitdb_data:
+                print(f"🔍 DEBUG: CVE-2015-1635 найден в exploitdb_data: {exploitdb_data['CVE-2015-1635']}")
+            else:
+                print(f"🔍 DEBUG: CVE-2015-1635 НЕ найден в exploitdb_data")
+                print(f"🔍 DEBUG: Первые 5 ключей: {list(exploitdb_data.keys())[:5]}")
         except asyncio.TimeoutError:
             print("⚠️ Таймаут при загрузке ExploitDB данных, пропускаем анализ эксплойтов")
             exploitdb_data = {}
@@ -256,6 +302,10 @@ class HostsRepository(DatabaseBase):
                 exploit_count = exploitdb_data.get(cve, 0)
                 has_exploits = exploit_count > 0
                 
+                # Отладочная информация для CVE-2015-1635
+                if cve == 'CVE-2015-1635':
+                    print(f"🔍 DEBUG CVE-2015-1635: exploit_count={exploit_count}, exploitdb_data keys: {list(exploitdb_data.keys())[:10]}")
+                
                 if not epss_row or epss_row['epss'] is None:
                     print(f"⚠️ Нет EPSS данных для {cve}")
                     # Продолжаем обработку даже без EPSS для обновления информации об эксплойтах
@@ -275,49 +325,62 @@ class HostsRepository(DatabaseBase):
                         epss_score = float(epss_row['epss'])
                         criticality = host_row['criticality'] or 'Medium'
                         
-                        # Веса для критичности ресурса (точно как в оригинале)
-                        resource_weights = {
-                            'Critical': 0.33,
-                            'High': 0.25,
-                            'Medium': 0.15,
-                            'Low': 0.1,
-                            'None': 0.05
-                        }
-                        
-                        # Веса для конфиденциальных данных (точно как в оригинале)
-                        data_weights = {
-                            'Есть': 0.33,
-                            'Отсутствуют': 0.1
-                        }
-                        
-                        # Веса для доступа к интернету (точно как в оригинале)
-                        internet_weights = {
-                            'Доступен': 0.33,
-                            'Недоступен': 0.1
-                        }
-                        
-                        # Получаем значения из настроек или используем значения по умолчанию (точно как в оригинале)
-                        if settings:
-                            confidential_data = settings.get('impact_confidential_data', 'Отсутствуют')
-                            internet_access = settings.get('impact_internet_access', 'Недоступен')
-                        else:
-                            confidential_data = 'Отсутствуют'
-                            internet_access = 'Недоступен'
-                        
-                        # Рассчитываем Impact с учетом всех факторов (точно как в оригинале)
-                        impact = (
-                            resource_weights.get(criticality, 0.15) +
-                            data_weights.get(confidential_data, 0.1) +
-                            internet_weights.get(internet_access, 0.1)
-                        )
-                        
-                        # Полная формула расчета риска (точно как в оригинале)
-                        raw_risk = epss_score * impact
-                        risk_score = min(1, raw_risk) * 100
-                        
                         # Определяем CVSS score (приоритет: CVE v3 > CVE v2 > хост)
                         cvss_score = None
                         cvss_source = None
+                        
+                        if cve_data_row and cve_data_row['cvss_v3_base_score'] is not None:
+                            cvss_score = float(cve_data_row['cvss_v3_base_score'])
+                            cvss_source = 'CVSS v3'
+                        elif cve_data_row and cve_data_row['cvss_v2_base_score'] is not None:
+                            cvss_score = float(cve_data_row['cvss_v2_base_score'])
+                            cvss_source = 'CVSS v2'
+                        elif host_row['cvss'] is not None:
+                            cvss_score = float(host_row['cvss'])
+                            cvss_source = 'Host'
+                        
+                        # Используем новый сервис расчета риска
+                        risk_service = RiskCalculationService()
+                        
+                        # Подготавливаем данные CVE для расчета
+                        cve_calculation_data = {}
+                        if cve_data_row:
+                            cve_calculation_data.update({
+                                'cvss_v3_attack_vector': cve_data_row.get('cvss_v3_attack_vector'),
+                                'cvss_v3_privileges_required': cve_data_row.get('cvss_v3_privileges_required'),
+                                'cvss_v3_user_interaction': cve_data_row.get('cvss_v3_user_interaction'),
+                                'cvss_v2_access_vector': cve_data_row.get('cvss_v2_access_vector'),
+                                'cvss_v2_access_complexity': cve_data_row.get('cvss_v2_access_complexity'),
+                                'cvss_v2_authentication': cve_data_row.get('cvss_v2_authentication')
+                            })
+                        
+                        # Получаем данные ExploitDB и Metasploit для CVE
+                        if exploit_count > 0:
+                            # Получаем тип эксплойта из ExploitDB
+                            exdb_query = "SELECT type FROM vulnanalizer.exploitdb WHERE codes LIKE $1 LIMIT 1"
+                            exdb_row = await conn.fetchrow(exdb_query, f'%{cve}%')
+                            if exdb_row and exdb_row['type']:
+                                cve_calculation_data['exploitdb_type'] = exdb_row['type']
+                        
+                        # Получаем ранг Metasploit для CVE (ищем в поле references)
+                        msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" LIKE $1 LIMIT 1"
+                        msf_row = await conn.fetchrow(msf_query, f'%{cve}%')
+                        if msf_row and msf_row['rank'] is not None:
+                            cve_calculation_data['msf_rank'] = msf_row['rank']
+                        else:
+                            cve_calculation_data['msf_rank'] = None
+                        
+                        # Рассчитываем риск с новой формулой
+                        risk_result = risk_service.calculate_risk_score_fast(
+                            epss=epss_score,
+                            cvss=cvss_score,
+                            criticality=criticality,
+                            settings=settings,
+                            cve_data=cve_calculation_data
+                        )
+                        
+                        risk_score = risk_result['risk_score']
+                        raw_risk = risk_result['raw_risk']
                         
                         if cve_data_row and cve_data_row['cvss_v3_base_score'] is not None:
                             cvss_score = float(cve_data_row['cvss_v3_base_score'])
@@ -342,8 +405,9 @@ class HostsRepository(DatabaseBase):
                                 risk_raw = $8,
                                 epss_updated_at = $9,
                                 exploits_updated_at = $10,
-                                risk_updated_at = $11
-                            WHERE id = $12
+                                risk_updated_at = $11,
+                                metasploit_rank = $12
+                            WHERE id = $13
                         """
                         
                         await conn.execute(update_query,
@@ -358,6 +422,7 @@ class HostsRepository(DatabaseBase):
                             datetime.now(),
                             datetime.now(),
                             datetime.now(),
+                            cve_calculation_data.get('msf_rank'),
                             host_row['id']
                         )
                         
@@ -497,11 +562,12 @@ class HostsRepository(DatabaseBase):
             # Затем получаем данные с пагинацией
             offset = (page - 1) * limit
             query = f"""
-                SELECT id, hostname, ip_address, cve, cvss, cvss_source, criticality, status,
-                       os_name, zone, epss_score, epss_percentile, risk_score, risk_raw, impact_score,
-                       exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
-                       epss_updated_at, exploits_updated_at, risk_updated_at, created_at
-                FROM vulnanalizer.hosts 
+                SELECT h.id, h.hostname, h.ip_address, h.cve, h.cvss, h.cvss_source, h.criticality, h.status,
+                       h.os_name, h.zone, h.epss_score, h.epss_percentile, h.risk_score, h.risk_raw, h.impact_score,
+                       h.exploits_count, h.verified_exploits_count, h.has_exploits, h.last_exploit_date,
+                       h.epss_updated_at, h.exploits_updated_at, h.risk_updated_at, h.created_at,
+                       h.metasploit_rank as msf_rank
+                FROM vulnanalizer.hosts h
                 WHERE {where_clause}
                 {order_clause}
                 LIMIT {limit} OFFSET {offset}
@@ -534,7 +600,8 @@ class HostsRepository(DatabaseBase):
                     'epss_updated_at': row['epss_updated_at'].isoformat() if row['epss_updated_at'] else None,
                     'exploits_updated_at': row['exploits_updated_at'].isoformat() if row['exploits_updated_at'] else None,
                     'risk_updated_at': row['risk_updated_at'].isoformat() if row['risk_updated_at'] else None,
-                    'imported_at': row['created_at'].isoformat() if row['created_at'] else None
+                    'imported_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'msf_rank': row['msf_rank']
                 })
             
             return results, total_count
@@ -549,12 +616,13 @@ class HostsRepository(DatabaseBase):
         conn = await self.get_connection()
         try:
             query = """
-                SELECT id, hostname, ip_address, cve, cvss, criticality, status,
-                       os_name, zone, epss_score, epss_percentile, risk_score, risk_raw, impact_score,
-                       exploits_count, verified_exploits_count, has_exploits, last_exploit_date,
-                       epss_updated_at, exploits_updated_at, risk_updated_at, created_at
-                FROM vulnanalizer.hosts 
-                WHERE id = $1
+                SELECT h.id, h.hostname, h.ip_address, h.cve, h.cvss, h.criticality, h.status,
+                       h.os_name, h.zone, h.epss_score, h.epss_percentile, h.risk_score, h.risk_raw, h.impact_score,
+                       h.exploits_count, h.verified_exploits_count, h.has_exploits, h.last_exploit_date,
+                       h.epss_updated_at, h.exploits_updated_at, h.risk_updated_at, h.created_at,
+                       h.metasploit_rank as msf_rank
+                FROM vulnanalizer.hosts h
+                WHERE h.id = $1
             """
             row = await conn.fetchrow(query, host_id)
             
@@ -581,7 +649,8 @@ class HostsRepository(DatabaseBase):
                     'epss_updated_at': row['epss_updated_at'].isoformat() if row['epss_updated_at'] else None,
                     'exploits_updated_at': row['exploits_updated_at'].isoformat() if row['exploits_updated_at'] else None,
                     'risk_updated_at': row['risk_updated_at'].isoformat() if row['risk_updated_at'] else None,
-                    'imported_at': row['created_at'].isoformat() if row['created_at'] else None
+                    'imported_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'msf_rank': row['msf_rank']
                 }
             return None
         except Exception as e:

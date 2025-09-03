@@ -19,11 +19,8 @@ class CVERepository(DatabaseBase):
         
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             # Очищаем старые записи
-            await conn.execute("DELETE FROM cve")
+            await conn.execute("DELETE FROM vulnanalizer.cve")
             
             # Вставляем новые записи батчами
             batch_size = 1000
@@ -184,10 +181,7 @@ class CVERepository(DatabaseBase):
         """Подсчитать количество записей CVE"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM cve")
+            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM vulnanalizer.cve")
             return row['cnt'] if row else 0
         except Exception as e:
             print(f"Error counting CVE records: {e}")
@@ -202,9 +196,6 @@ class CVERepository(DatabaseBase):
             
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             row = await conn.fetchrow("""
                 SELECT cve_id, description, cvss_v3_base_score, cvss_v3_base_severity,
                        cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
@@ -213,7 +204,7 @@ class CVERepository(DatabaseBase):
                        cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
                        cvss_v2_integrity_impact, cvss_v2_availability_impact, exploitability_score,
                        impact_score, published_date, last_modified_date, created_at
-                FROM cve 
+                FROM vulnanalizer.cve 
                 WHERE cve_id = $1
             """, cve_id.upper())
             
@@ -254,14 +245,11 @@ class CVERepository(DatabaseBase):
         """Поиск CVE записей"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             if query:
                 # Поиск по CVE ID или описанию
                 rows = await conn.fetch("""
                     SELECT cve_id, description, cvss_v2_base_score, cvss_v3_base_score, published_date, modified_date, updated_at
-                    FROM cve 
+                    FROM vulnanalizer.cve 
                     WHERE cve_id ILIKE $1 OR description ILIKE $1
                     ORDER BY published_date DESC
                     LIMIT $2 OFFSET $3
@@ -270,7 +258,7 @@ class CVERepository(DatabaseBase):
                 # Получить все записи
                 rows = await conn.fetch("""
                     SELECT cve_id, description, cvss_v2_base_score, cvss_v3_base_score, published_date, modified_date, updated_at
-                    FROM cve 
+                    FROM vulnanalizer.cve 
                     ORDER BY published_date DESC
                     LIMIT $1 OFFSET $2
                 """, limit, offset)
@@ -298,10 +286,7 @@ class CVERepository(DatabaseBase):
         """Очистить все записи CVE"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            await conn.execute("DELETE FROM cve")
+            await conn.execute("DELETE FROM vulnanalizer.cve")
             print("CVE data cleared")
         except Exception as e:
             print(f"Error clearing CVE data: {e}")
@@ -320,14 +305,11 @@ class CVERepository(DatabaseBase):
             # Создаем отдельное соединение для массовой вставки
             conn = await asyncpg.connect(self.database_url)
             
-            # Устанавливаем схему для vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             # Проверяем, что соединение активно
             await conn.execute("SELECT 1")
             
             # Получаем количество записей до вставки
-            count_before = await conn.fetchval("SELECT COUNT(*) FROM cve")
+            count_before = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.cve")
             
             inserted_count = 0
             updated_count = 0
@@ -371,7 +353,7 @@ class CVERepository(DatabaseBase):
                         # Обрабатываем каждую запись в отдельной транзакции
                         async with conn.transaction():
                             # Проверяем, существует ли запись
-                            existing = await conn.fetchval("SELECT cve_id FROM cve WHERE cve_id = $1", rec['cve_id'])
+                            existing = await conn.fetchval("SELECT cve_id FROM vulnanalizer.cve WHERE cve_id = $1", rec['cve_id'])
                             
                             # Конвертируем даты в объекты datetime
                             published_date = None
@@ -422,7 +404,7 @@ class CVERepository(DatabaseBase):
                 # Показываем прогресс
             
             # Получаем количество записей после вставки
-            count_after = await conn.fetchval("SELECT COUNT(*) FROM cve")
+            count_after = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.cve")
             
         except Exception as e:
             raise e
@@ -445,7 +427,7 @@ class CVERepository(DatabaseBase):
                        cvss_v2_access_complexity, cvss_v2_authentication, cvss_v2_confidentiality_impact,
                        cvss_v2_integrity_impact, cvss_v2_availability_impact, exploitability_score,
                        impact_score, published_date, last_modified_date
-                FROM cve 
+                FROM vulnanalizer.cve 
                 WHERE cve_id = $1
             """
             row = await conn.fetchrow(query, cve_id)
@@ -486,7 +468,7 @@ class CVERepository(DatabaseBase):
         """Очистить все CVE данные"""
         conn = await self.get_connection()
         try:
-            await conn.execute("DELETE FROM cve")
+            await conn.execute("DELETE FROM vulnanalizer.cve")
             print("All CVE data cleared")
         except Exception as e:
             print(f"Error clearing CVE data: {e}")

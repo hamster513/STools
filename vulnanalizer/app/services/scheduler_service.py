@@ -92,7 +92,7 @@ class SchedulerService:
             
             # Проверяем количество хостов без данных
             hosts_without_data = await conn.fetchval("""
-                SELECT COUNT(*) FROM hosts 
+                SELECT COUNT(*) FROM vulnanalizer.hosts 
                 WHERE epss_score IS NULL AND exploits_count IS NULL
             """)
             
@@ -102,7 +102,7 @@ class SchedulerService:
             # Проверяем последнее обновление
             last_update = await conn.fetchval("""
                 SELECT MAX(GREATEST(epss_updated_at, exploits_updated_at, risk_updated_at)) 
-                FROM hosts
+                FROM vulnanalizer.hosts
             """)
             
             if last_update:
@@ -380,9 +380,9 @@ class SchedulerService:
             update_type = parameters.get('update_type', 'parallel')
             
             if update_type == 'optimized_batch':
-                print(f"🚀 Используем оптимизированный batch метод обновления")
-                # Запускаем оптимизированное обновление данных хостов
-                result = await self.db.risk_calculation.update_hosts_optimized_batch(update_progress)
+                print(f"🚀 Используем полное обновление хостов")
+                # Запускаем полное обновление данных хостов
+                result = await self.db.risk_calculation.update_hosts_complete(update_progress)
             else:
                 print(f"🔄 Используем стандартный параллельный метод обновления")
                 # Запускаем стандартное обновление данных хостов
@@ -478,6 +478,10 @@ class SchedulerService:
                         print(f"🚀 Запускаем обработку задачи расчета рисков {task_id} в отдельной задаче")
                         task = asyncio.create_task(self.process_risk_calculation_task(task_id, parameters))
                         task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'risk_calculation'))
+                    elif task_type == 'risk_recalculation':
+                        print(f"🚀 Запускаем обработку задачи пересчета рисков {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_risk_recalculation_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'risk_recalculation'))
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
                         await self.db.update_background_task(task_id, **{
@@ -496,7 +500,6 @@ class SchedulerService:
         """Проверить зависшие задачи (processing более 10 минут)"""
         try:
             conn = await self.db.get_connection()
-            await conn.execute('SET search_path TO vulnanalizer')
             
             # Ищем задачи в статусе processing, которые не обновлялись более 10 минут
             query = """
@@ -595,7 +598,7 @@ class SchedulerService:
             
             if task_name == 'full_update':
                 # Полное обновление
-                result = await self.db.update_hosts_epss_and_exploits_background_parallel()
+                result = await self.db.update_hosts_complete()
             elif task_name == 'incremental_update':
                 # Инкрементальное обновление
                 days = self.tasks.get(task_name, {}).get('days_old', 1)
@@ -651,13 +654,12 @@ class SchedulerService:
             
             # Получаем хосты без EPSS и Risk данных
             conn = await self.db.get_connection()
-            await conn.execute('SET search_path TO vulnanalizer')
             
             # Находим CVE хостов без EPSS данных
             cve_query = """
                 SELECT DISTINCT h.cve 
-                FROM hosts h 
-                LEFT JOIN epss e ON h.cve = e.cve 
+                FROM vulnanalizer.hosts h 
+                LEFT JOIN vulnanalizer.epss e ON h.cve = e.cve 
                 WHERE h.cve IS NOT NULL AND h.cve != '' 
                 AND (h.epss_score IS NULL OR h.risk_score IS NULL)
                 AND e.cve IS NOT NULL
@@ -698,8 +700,8 @@ class SchedulerService:
                     'processed_records': kwargs.get('updated_hosts', 0)
                 })
             
-            # Используем оптимизированный batch метод для обновления хостов
-            await self.db.risk_calculation.update_hosts_optimized_batch(update_progress)
+            # Используем полное обновление хостов
+            await self.db.risk_calculation.update_hosts_complete(update_progress)
             
             # Завершаем задачу
             await self.db.update_background_task(task_id, **{
@@ -717,6 +719,86 @@ class SchedulerService:
             await self.db.update_background_task(task_id, **{
                 'status': 'error',
                 'current_step': 'Ошибка расчета рисков',
+                'error_message': str(e),
+                'end_time': datetime.now()
+            })
+
+    async def process_risk_recalculation_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработка задачи пересчета рисков для ВСЕХ хостов"""
+        try:
+            print(f"🔍 Начинаем пересчет рисков для ВСЕХ хостов (задача {task_id})")
+            
+            # Обновляем статус на 'processing'
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Поиск всех хостов для пересчета рисков',
+                'start_time': datetime.now()
+            })
+            
+            # Получаем ВСЕ хосты с CVE
+            conn = await self.db.get_connection()
+            
+            # Находим все CVE хостов
+            cve_query = """
+                SELECT DISTINCT h.cve 
+                FROM vulnanalizer.hosts h 
+                WHERE h.cve IS NOT NULL AND h.cve != '' 
+                ORDER BY h.cve
+            """
+            cve_rows = await conn.fetch(cve_query)
+            
+            if not cve_rows:
+                print("✅ Нет хостов для пересчета рисков")
+                await self.db.update_background_task(task_id, **{
+                    'status': 'completed',
+                    'current_step': 'Нет хостов для пересчета рисков',
+                    'end_time': datetime.now()
+                })
+                return
+            
+            total_cves = len(cve_rows)
+            print(f"🔍 Найдено {total_cves} CVE для пересчета рисков")
+            
+            # Обновляем общее количество
+            await self.db.update_background_task(task_id, **{
+                'total_items': total_cves,
+                'current_step': f'Найдено {total_cves} CVE для пересчета рисков'
+            })
+            
+            # Получаем настройки
+            settings_query = "SELECT key, value FROM vulnanalizer.settings"
+            settings_rows = await conn.fetch(settings_query)
+            settings = {row['key']: row['value'] for row in settings_rows}
+            
+            # Создаем функцию обратного вызова для прогресса
+            async def update_progress(step: str, message: str, progress_percent: int = 0, **kwargs):
+                await self.db.update_background_task(task_id, **{
+                    'current_step': message,
+                    'progress_percent': progress_percent,
+                    'processed_items': kwargs.get('processed_cves', 0),
+                    'total_items': total_cves,
+                    'processed_records': kwargs.get('updated_hosts', 0)
+                })
+            
+            # Используем специальный метод для пересчета рисков
+            await self.db.risk_calculation.recalculate_all_risks(update_progress)
+            
+            # Завершаем задачу
+            await self.db.update_background_task(task_id, **{
+                'status': 'completed',
+                'current_step': f'Пересчет рисков завершен для {total_cves} CVE',
+                'end_time': datetime.now()
+            })
+            
+            print(f"✅ Пересчет рисков завершен для {total_cves} CVE")
+            
+        except Exception as e:
+            print(f"❌ Ошибка пересчета рисков: {e}")
+            print(f"❌ Error details: {traceback.format_exc()}")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'current_step': 'Ошибка пересчета рисков',
                 'error_message': str(e),
                 'end_time': datetime.now()
             })

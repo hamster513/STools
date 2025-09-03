@@ -95,6 +95,12 @@ class VulnAnalizer {
         } else {
             console.warn('CVEPreviewModalModule не найден!');
         }
+        
+        if (typeof RiskModalModule !== 'undefined') {
+            this.riskModal = new RiskModalModule(this);
+        } else {
+            console.warn('RiskModalModule не найден!');
+        }
     }
 
     init() {
@@ -408,30 +414,7 @@ class VulnAnalizer {
 
 
 
-        // Форма поиска хостов
-        const hostsSearchForm = document.getElementById('hosts-search-form');
-        if (hostsSearchForm) {
-            hostsSearchForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.searchHosts();
-            });
-        }
-
-        // Кнопка очистки результатов поиска хостов
-        const clearHostsResultsBtn = document.getElementById('clear-hosts-results');
-        if (clearHostsResultsBtn) {
-            clearHostsResultsBtn.addEventListener('click', () => {
-                this.clearHostsResults();
-            });
-        }
-
-        // Кнопка экспорта хостов
-        const exportHostsBtn = document.getElementById('export-hosts');
-        if (exportHostsBtn) {
-            exportHostsBtn.addEventListener('click', () => {
-                this.exportHosts();
-            });
-        }
+        // Обработчики для хостов перенесены в HostsModule
 
         // Форма настроек Impact
         const impactForm = document.getElementById('impact-form');
@@ -1072,14 +1055,7 @@ class VulnAnalizer {
         // Проверяем активные задачи при загрузке страницы
         this.checkActiveImportTasks();
         
-        // Поиск хостов
-        const hostsSearchForm = document.getElementById('hosts-search-form');
-        if (hostsSearchForm) {
-            hostsSearchForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await this.searchHosts();
-            });
-        }
+        // Поиск хостов обрабатывается в HostsModule
 
         // Обработчики пагинации
         const prevPageBtn = document.getElementById('prev-page');
@@ -1544,13 +1520,7 @@ class VulnAnalizer {
         `;
     }
 
-    clearHostsResults() {
-        const resultsDiv = document.getElementById('hosts-search-results');
-        if (resultsDiv) {
-            resultsDiv.innerHTML = '';
-        }
-        this.hidePagination();
-    }
+    // clearHostsResults перенесен в HostsModule
 
     renderPagination() {
         const paginationDiv = document.getElementById('hosts-pagination');
@@ -1810,6 +1780,10 @@ class VulnAnalizer {
         try {
             // Загружаем настройки Impact
             await this.loadImpactSettings();
+            // Загружаем настройки ExploitDB
+            await this.loadExploitDBSettings();
+            // Загружаем настройки Metasploit
+            await this.loadMetasploitSettings();
         } catch (error) {
             console.error('Error loading initial data:', error);
             this.showNotification('Ошибка загрузки данных', 'error');
@@ -1923,6 +1897,51 @@ class VulnAnalizer {
             }
         } catch (error) {
             console.error('Error loading impact settings:', error);
+        }
+    }
+
+    // Загрузка настроек ExploitDB
+    async loadExploitDBSettings() {
+        try {
+            const response = await fetch(this.getApiBasePath() + '/settings');
+            const settings = await response.json();
+            
+            // Устанавливаем значения в форму ExploitDB
+            const exdbFields = [
+                'exdb_remote', 'exdb_webapps', 'exdb_dos', 'exdb_local', 'exdb_hardware'
+            ];
+            
+            for (const field of exdbFields) {
+                const input = document.querySelector(`[name="${field}"]`);
+                if (input && settings[field] !== undefined) {
+                    input.value = settings[field];
+                }
+            }
+        } catch (error) {
+            console.error('Error loading ExploitDB settings:', error);
+        }
+    }
+
+    // Загрузка настроек Metasploit
+    async loadMetasploitSettings() {
+        try {
+            const response = await fetch(this.getApiBasePath() + '/settings');
+            const settings = await response.json();
+            
+            // Устанавливаем значения в форму Metasploit
+            const msfFields = [
+                'msf_excellent', 'msf_good', 'msf_normal', 'msf_average', 
+                'msf_low', 'msf_unknown', 'msf_manual'
+            ];
+            
+            for (const field of msfFields) {
+                const input = document.querySelector(`[name="${field}"]`);
+                if (input && settings[field] !== undefined) {
+                    input.value = settings[field];
+                }
+            }
+        } catch (error) {
+            console.error('Error loading Metasploit settings:', error);
         }
     }
 

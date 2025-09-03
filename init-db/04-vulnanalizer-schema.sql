@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS hosts (
     verified_exploits_count INTEGER DEFAULT 0,
     has_exploits BOOLEAN DEFAULT FALSE,
     last_exploit_date DATE,
+    metasploit_rank INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -121,6 +122,10 @@ CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
 CREATE INDEX IF NOT EXISTS idx_hosts_zone ON hosts(zone);
 CREATE INDEX IF NOT EXISTS idx_hosts_epss_score ON hosts(epss_score);
 CREATE INDEX IF NOT EXISTS idx_hosts_risk_score ON hosts(risk_score);
+
+-- Уникальный индекс для предотвращения дубликатов хостов с одинаковым CVE
+CREATE UNIQUE INDEX IF NOT EXISTS idx_hosts_hostname_cve_unique ON hosts(hostname, cve);
+
 CREATE INDEX IF NOT EXISTS idx_cve_data_cve_id ON cve_data(cve_id);
 CREATE INDEX IF NOT EXISTS idx_cve_data_cvss_score ON cve_data(cvss_score);
 CREATE INDEX IF NOT EXISTS idx_host_vulnerabilities_host_id ON host_vulnerabilities(host_id);

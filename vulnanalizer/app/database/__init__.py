@@ -141,7 +141,7 @@ class NewDatabase:
 
         async def update_hosts_epss_and_exploits_background(self, progress_callback=None):
             """Обновить EPSS и ExploitDB данные для хостов"""
-            return await self.risk_calculation.update_hosts_epss_and_exploits_background_parallel(progress_callback)
+            return await self.risk_calculation.update_hosts_complete(progress_callback)
 
         async def get_exploitdb_by_cve(self, cve_id: str):
             """Получить данные ExploitDB по CVE ID"""
@@ -207,9 +207,9 @@ class NewDatabase:
             """Обновить статус импорта VM"""
             return await self.hosts.update_vm_import_status(count, error)
 
-        async def update_hosts_epss_and_exploits_background_parallel(self, progress_callback=None, max_concurrent=10):
-            """Обновить данные EPSS и эксплойтов для всех хостов с параллельной обработкой"""
-            return await self.risk_calculation.update_hosts_epss_and_exploits_background_parallel(progress_callback, max_concurrent)
+        async def update_hosts_complete(self, progress_callback=None):
+            """Полное обновление хостов: EPSS, CVSS, ExploitDB, Metasploit"""
+            return await self.risk_calculation.update_hosts_complete(progress_callback)
 
         async def update_hosts_incremental(self, progress_callback=None, days_old=1):
             """Инкрементальное обновление хостов"""

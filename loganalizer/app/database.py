@@ -19,7 +19,6 @@ class Database:
         try:
             pool = await self.get_pool()
             async with pool.acquire() as conn:
-                await conn.execute('SET search_path TO loganalizer')
                 await conn.execute('SELECT 1')
             print("Database connection successful")
         except Exception as e:
@@ -30,9 +29,6 @@ class Database:
         """Инициализация базы данных"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            # Устанавливаем схему loganalizer
-            await conn.execute('SET search_path TO loganalizer')
-            
             # Создаем таблицу настроек
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS settings (
@@ -211,7 +207,7 @@ class Database:
 
             # Проверяем, есть ли уже настройки MP SIEM
             existing_settings = await conn.fetch('''
-                SELECT COUNT(*) as count FROM custom_analysis_settings 
+                SELECT COUNT(*) as count FROM loganalizer.custom_analysis_settings 
                 WHERE name LIKE 'MP SIEM - %'
             ''')
             
@@ -219,7 +215,7 @@ class Database:
                 # Добавляем настройки только если их еще нет
                 for setting in mp_siem_settings:
                     await conn.execute('''
-                        INSERT INTO custom_analysis_settings (id, name, pattern, description, enabled)
+                        INSERT INTO loganalizer.custom_analysis_settings (id, name, pattern, description, enabled)
                         VALUES ($1, $2, $3, $4, $5)
                         ON CONFLICT (id) DO NOTHING
                     ''', setting['id'], setting['name'], setting['pattern'], 
@@ -232,8 +228,7 @@ class Database:
         """Получение настроек"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
-            rows = await conn.fetch('SELECT key, value FROM settings')
+            rows = await conn.fetch('SELECT key, value FROM loganalizer.settings')
             settings = {}
             for row in rows:
                 try:
@@ -247,10 +242,9 @@ class Database:
         """Обновление настроек"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             for key, value in settings.items():
                 await conn.execute('''
-                    INSERT INTO settings (key, value) VALUES ($1, $2)
+                    INSERT INTO loganalizer.settings (key, value) VALUES ($1, $2)
                     ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
                 ''', key, json.dumps(value))
             print(f"💾 Settings updated in database: {settings}")
@@ -259,9 +253,8 @@ class Database:
         """Вставка информации о файле лога"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             await conn.execute('''
-                INSERT INTO log_files (id, original_name, file_path, file_type, file_size, upload_date, parent_file_id)
+                INSERT INTO loganalizer.log_files (id, original_name, file_path, file_type, file_size, upload_date, parent_file_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
             ''', file_data['id'], file_data['original_name'], file_data['file_path'],
                  file_data['file_type'], file_data['file_size'], file_data['upload_date'],
@@ -271,7 +264,6 @@ class Database:
         """Batch вставка информации о файлах логов"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             # Подготавливаем данные для batch insert
             values = []
             for file_data in files_data:
@@ -283,7 +275,7 @@ class Database:
             
             # Выполняем batch insert
             await conn.executemany('''
-                INSERT INTO log_files (id, original_name, file_path, file_type, file_size, upload_date, parent_file_id)
+                INSERT INTO loganalizer.log_files (id, original_name, file_path, file_type, file_size, upload_date, parent_file_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
             ''', values)
 
@@ -291,11 +283,10 @@ class Database:
         """Получение списка файлов логов с информацией о фильтрации"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             # Получаем все файлы
             rows = await conn.fetch('''
                 SELECT id, original_name, file_path, file_type, file_size, upload_date, parent_file_id
-                FROM log_files ORDER BY upload_date DESC
+                FROM loganalizer.log_files ORDER BY upload_date DESC
             ''')
             
             files = []
@@ -304,7 +295,7 @@ class Database:
                 
                 # Проверяем, есть ли отфильтрованная версия файла
                 filtered_row = await conn.fetchrow('''
-                    SELECT id FROM filtered_files WHERE original_file_id = $1
+                    SELECT id FROM loganalizer.filtered_files WHERE original_file_id = $1
                 ''', file_data['id'])
                 
                 file_data['has_filtered_version'] = filtered_row is not None
@@ -316,10 +307,9 @@ class Database:
         """Получение информации о конкретном файле"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             row = await conn.fetchrow('''
                 SELECT id, original_name, file_path, file_type, file_size, upload_date, parent_file_id
-                FROM log_files WHERE id = $1
+                FROM loganalizer.log_files WHERE id = $1
             ''', file_id)
             return dict(row) if row else None
 
@@ -327,24 +317,21 @@ class Database:
         """Удаление файла лога"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
-            await conn.execute('DELETE FROM log_files WHERE id = $1', file_id)
+            await conn.execute('DELETE FROM loganalizer.log_files WHERE id = $1', file_id)
 
     async def clear_log_files(self):
         """Очистка всех файлов логов"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
-            await conn.execute('DELETE FROM log_files')
+            await conn.execute('DELETE FROM loganalizer.log_files')
 
     async def get_presets(self) -> List[Dict]:
         """Получение пресетов анализа"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             rows = await conn.fetch('''
                 SELECT id, name, description, system_context, questions, created_date, is_default
-                FROM analysis_presets ORDER BY is_default DESC, created_date DESC
+                FROM loganalizer.analysis_presets ORDER BY is_default DESC, created_date DESC
             ''')
             presets = []
             for row in rows:
@@ -358,9 +345,8 @@ class Database:
         preset_id = str(uuid.uuid4())
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             await conn.execute('''
-                INSERT INTO analysis_presets (id, name, description, system_context, questions)
+                INSERT INTO loganalizer.analysis_presets (id, name, description, system_context, questions)
                 VALUES ($1, $2, $3, $4, $5)
             ''', preset_id, preset_data['name'], preset_data['description'],
                  preset_data['system_context'], json.dumps(preset_data['questions']))
@@ -370,10 +356,9 @@ class Database:
         """Получение пользовательских настроек анализа"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             rows = await conn.fetch('''
                 SELECT id, name, pattern, description, enabled, created_date
-                FROM custom_analysis_settings ORDER BY created_date DESC
+                FROM loganalizer.custom_analysis_settings ORDER BY created_date DESC
             ''')
             return [dict(row) for row in rows]
 
@@ -381,10 +366,9 @@ class Database:
         """Создание новой пользовательской настройки анализа"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             setting_id = str(uuid.uuid4())
             await conn.execute('''
-                INSERT INTO custom_analysis_settings (id, name, pattern, description, enabled)
+                INSERT INTO loganalizer.custom_analysis_settings (id, name, pattern, description, enabled)
                 VALUES ($1, $2, $3, $4, $5)
             ''', setting_id, setting_data['name'], setting_data['pattern'],
                  setting_data.get('description'), setting_data.get('enabled', True))
@@ -394,9 +378,8 @@ class Database:
         """Обновление пользовательской настройки анализа"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             await conn.execute('''
-                UPDATE custom_analysis_settings 
+                UPDATE loganalizer.custom_analysis_settings 
                 SET name = $2, pattern = $3, description = $4, enabled = $5
                 WHERE id = $1
             ''', setting_id, setting_data['name'], setting_data['pattern'],
@@ -406,8 +389,7 @@ class Database:
         """Удаление пользовательской настройки анализа"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
-            await conn.execute('DELETE FROM custom_analysis_settings WHERE id = $1', setting_id)
+            await conn.execute('DELETE FROM loganalizer.custom_analysis_settings WHERE id = $1', setting_id)
 
     async def insert_filtered_file(self, filtered_file_data: Dict):
         """Вставка информации об отфильтрованном файле"""
@@ -415,9 +397,8 @@ class Database:
             print(f"💾 Inserting filtered file data: {filtered_file_data}")
             pool = await self.get_pool()
             async with pool.acquire() as conn:
-                await conn.execute('SET search_path TO loganalizer')
                 await conn.execute('''
-                    INSERT INTO filtered_files (id, original_file_id, filtered_file_path, filter_settings, lines_count)
+                    INSERT INTO loganalizer.filtered_files (id, original_file_id, filtered_file_path, filter_settings, lines_count)
                     VALUES ($1, $2, $3, $4, $5)
                 ''', filtered_file_data['id'], filtered_file_data['original_file_id'],
                      filtered_file_data['filtered_file_path'], json.dumps(filtered_file_data['filter_settings']),
@@ -431,10 +412,9 @@ class Database:
         """Получение информации об отфильтрованном файле"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
             row = await conn.fetchrow('''
                 SELECT id, original_file_id, filtered_file_path, filter_settings, lines_count, created_date
-                FROM filtered_files WHERE original_file_id = $1
+                FROM loganalizer.filtered_files WHERE original_file_id = $1
             ''', original_file_id)
             if row:
                 result = dict(row)
@@ -446,8 +426,7 @@ class Database:
         """Удаление отфильтрованного файла"""
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            await conn.execute('SET search_path TO loganalizer')
-            await conn.execute('DELETE FROM filtered_files WHERE original_file_id = $1', original_file_id)
+            await conn.execute('DELETE FROM loganalizer.filtered_files WHERE original_file_id = $1', original_file_id)
 
     async def close(self):
         """Закрытие соединения с базой данных"""

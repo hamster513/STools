@@ -152,7 +152,7 @@
 /* Host Item */
 .host-item {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr;
+    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr 0.6fr;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
@@ -169,7 +169,7 @@
 
 .host-item.single-line {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr;
+    grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 0.8fr 0.6fr 0.4fr 0.5fr 0.6fr;
     gap: var(--spacing-xs);
     align-items: center;
 }
@@ -673,4 +673,64 @@
     padding: var(--spacing-xl);
     color: var(--text-secondary);
     font-style: italic;
+}
+
+/* MSF Column Styling */
+.host-msf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-align: center;
+}
+
+.msf-rank {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.msf-rank.excellent {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.msf-rank.good {
+    background-color: var(--info-color);
+    color: white;
+}
+
+.msf-rank.normal {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.msf-rank.average {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.msf-rank.low {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.msf-rank.unknown {
+    background-color: var(--text-secondary);
+    color: white;
+}
+
+.msf-rank.manual {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.msf-rank.none {
+    background-color: var(--surface-color);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }

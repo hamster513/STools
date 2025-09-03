@@ -19,11 +19,8 @@ class EPSSRepository(DatabaseBase):
         
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             # Очищаем старые записи
-            await conn.execute("DELETE FROM epss")
+            await conn.execute("DELETE FROM vulnanalizer.epss")
             
             # Вставляем новые записи батчами
             batch_size = 1000
@@ -70,7 +67,7 @@ class EPSSRepository(DatabaseBase):
                 if values:
                     # Массовая вставка
                     await conn.executemany("""
-                        INSERT INTO epss (cve, epss, percentile, updated_at) 
+                        INSERT INTO vulnanalizer.epss (cve, epss, percentile, updated_at) 
                         VALUES ($1, $2, $3, $4)
                         ON CONFLICT (cve) DO UPDATE SET
                             epss = EXCLUDED.epss,
@@ -93,10 +90,7 @@ class EPSSRepository(DatabaseBase):
         """Подсчитать количество записей EPSS"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM epss")
+            row = await conn.fetchrow("SELECT COUNT(*) as cnt FROM vulnanalizer.epss")
             return row['cnt'] if row else 0
         except Exception as e:
             print(f"Error counting EPSS records: {e}")
@@ -115,14 +109,13 @@ class EPSSRepository(DatabaseBase):
             # Создаем отдельное соединение для массовой вставки
             conn = await asyncpg.connect(self.database_url)
             
-            # Устанавливаем схему для vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
+
             
             # Проверяем, что соединение активно
             await conn.execute("SELECT 1")
             
             # Получаем количество записей до вставки
-            count_before = await conn.fetchval("SELECT COUNT(*) FROM epss")
+            count_before = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.epss")
             print(f"EPSS records in database before insert: {count_before}")
             
             # Группируем записи по CVE для обработки
@@ -164,12 +157,12 @@ class EPSSRepository(DatabaseBase):
                             await conn.execute("SELECT 1")
                             
                             # Проверяем, существует ли запись для этого CVE
-                            existing = await conn.fetchval("SELECT id FROM epss WHERE cve = $1", cve)
+                            existing = await conn.fetchval("SELECT id FROM vulnanalizer.epss WHERE cve = $1", cve)
                             
                             if existing:
                                 # Обновляем существующую запись
                                 query = """
-                                    UPDATE epss 
+                                    UPDATE vulnanalizer.epss 
                                     SET epss = $2, percentile = $3, cvss = $4, date = $5
                                     WHERE cve = $1
                                 """
@@ -180,7 +173,7 @@ class EPSSRepository(DatabaseBase):
                             else:
                                 # Вставляем новую запись
                                 query = """
-                                    INSERT INTO epss (cve, epss, percentile, cvss, date)
+                                    INSERT INTO vulnanalizer.epss (cve, epss, percentile, cvss, date)
                                     VALUES ($1, $2, $3, $4, $5)
                                 """
                                 await conn.execute(query, 
@@ -208,7 +201,7 @@ class EPSSRepository(DatabaseBase):
                 print(f"Processed batch {i//batch_size + 1}/{(len(cve_list) + batch_size - 1)//batch_size}")
             
             # Получаем количество записей после вставки
-            count_after = await conn.fetchval("SELECT COUNT(*) FROM epss")
+            count_after = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.epss")
             print(f"EPSS records in database after insert: {count_after}")
             print(f"New EPSS records inserted: {inserted_count}")
             print(f"Existing EPSS records updated: {updated_count}")
@@ -231,7 +224,7 @@ class EPSSRepository(DatabaseBase):
         try:
             query = """
                 SELECT cve, epss, percentile, cvss, date 
-                FROM epss 
+                FROM vulnanalizer.epss 
                 WHERE cve = $1 
                 ORDER BY date DESC 
                 LIMIT 1
@@ -257,7 +250,7 @@ class EPSSRepository(DatabaseBase):
         """Получить все записи EPSS"""
         conn = await self.get_connection()
         try:
-            rows = await conn.fetch("SELECT cve, epss, percentile FROM epss ORDER BY cve")
+            rows = await conn.fetch("SELECT cve, epss, percentile FROM vulnanalizer.epss ORDER BY cve")
             return [dict(row) for row in rows]
         except Exception as e:
             print(f"Error getting all epss records: {e}")
@@ -269,7 +262,7 @@ class EPSSRepository(DatabaseBase):
         """Очистка таблицы EPSS"""
         conn = await self.get_connection()
         try:
-            query = "DELETE FROM epss"
+            query = "DELETE FROM vulnanalizer.epss"
             await conn.execute(query)
             print("EPSS table cleared successfully")
         except Exception as e:
@@ -282,10 +275,7 @@ class EPSSRepository(DatabaseBase):
         """Получить все записи EPSS"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            rows = await conn.fetch("SELECT cve, epss, percentile, updated_at FROM epss ORDER BY cve")
+            rows = await conn.fetch("SELECT cve, epss, percentile, updated_at FROM vulnanalizer.epss ORDER BY cve")
             return [dict(row) for row in rows]
         except Exception as e:
             print(f"Error getting EPSS records: {e}")
@@ -300,12 +290,9 @@ class EPSSRepository(DatabaseBase):
             
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             row = await conn.fetchrow("""
                 SELECT cve, epss, percentile, updated_at 
-                FROM epss 
+                FROM vulnanalizer.epss 
                 WHERE cve = $1
             """, cve_id.upper())
             
@@ -327,10 +314,7 @@ class EPSSRepository(DatabaseBase):
         """Очистить все записи EPSS"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
-            await conn.execute("DELETE FROM epss")
+            await conn.execute("DELETE FROM vulnanalizer.epss")
             print("EPSS data cleared")
         except Exception as e:
             print(f"Error clearing EPSS data: {e}")
@@ -342,9 +326,6 @@ class EPSSRepository(DatabaseBase):
         """Поиск EPSS данных по CVE"""
         conn = await self.get_connection()
         try:
-            # Устанавливаем схему vulnanalizer
-            await conn.execute('SET search_path TO vulnanalizer')
-            
             conditions = []
             params = []
             param_count = 0
@@ -368,14 +349,14 @@ class EPSSRepository(DatabaseBase):
             where_clause = " AND ".join(conditions) if conditions else "1=1"
             
             # Сначала получаем общее количество записей
-            count_query = f"SELECT COUNT(*) FROM epss WHERE {where_clause}"
+            count_query = f"SELECT COUNT(*) FROM vulnanalizer.epss WHERE {where_clause}"
             total_count = await conn.fetchval(count_query, *params)
             
             # Затем получаем данные с пагинацией
             offset = (page - 1) * limit
             query = f"""
                 SELECT cve, epss, percentile, created_at
-                FROM epss 
+                FROM vulnanalizer.epss 
                 WHERE {where_clause}
                 ORDER BY cve
                 LIMIT {limit} OFFSET {offset}

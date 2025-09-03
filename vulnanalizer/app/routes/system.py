@@ -24,8 +24,6 @@ async def get_background_tasks_status():
     try:
         db = get_db()
         conn = await db.get_connection()
-        # Явно используем схему vulnanalizer, чтобы не получать пустые результаты из public
-        await conn.execute('SET search_path TO vulnanalizer')
         
         # Получаем все активные задачи
         query = """
@@ -285,37 +283,51 @@ async def get_settings():
             # Impact настройки
             "impact_resource_criticality_critical": 0.33,
             "impact_resource_criticality_high": 0.25,
-            "impact_resource_criticality_medium": 0.15,
-            "impact_resource_criticality_none": 0.10,
+            "impact_resource_criticality_medium": 0.2,
+            "impact_resource_criticality_none": 0.2,
             "impact_confidential_data_yes": 0.33,
-            "impact_confidential_data_no": 0.10,
+            "impact_confidential_data_no": 0.2,
             "impact_internet_access_yes": 0.33,
-            "impact_internet_access_no": 0.10,
+            "impact_internet_access_no": 0.2,
+            # ExploitDB настройки
+            "exdb_remote": 1.3,
+            "exdb_webapps": 1.2,
+            "exdb_dos": 0.85,
+            "exdb_local": 1.05,
+            "exdb_hardware": 1.0,
+            # Metasploit настройки
+            "msf_excellent": 1.3,
+            "msf_good": 1.25,
+            "msf_normal": 1.2,
+            "msf_average": 1.1,
+            "msf_low": 0.8,
+            "msf_unknown": 0.8,
+            "msf_manual": 1.0,
             "database_host": "",
             "database_port": "",
             "database_name": "",
             "database_user": "",
             "database_password": "",
             # CVSS v3 настройки
-            "cvss_v3_attack_vector_network": 1.10,
-            "cvss_v3_attack_vector_adjacent": 0.90,
-            "cvss_v3_attack_vector_local": 0.60,
-            "cvss_v3_attack_vector_physical": 0.30,
-            "cvss_v3_privileges_required_none": 1.10,
-            "cvss_v3_privileges_required_low": 0.70,
-            "cvss_v3_privileges_required_high": 0.40,
-            "cvss_v3_user_interaction_none": 1.10,
-            "cvss_v3_user_interaction_required": 0.60,
+            "cvss_v3_attack_vector_network": 1.20,
+            "cvss_v3_attack_vector_adjacent": 1.10,
+            "cvss_v3_attack_vector_local": 0.95,
+            "cvss_v3_attack_vector_physical": 0.85,
+            "cvss_v3_privileges_required_none": 1.20,
+            "cvss_v3_privileges_required_low": 1.00,
+            "cvss_v3_privileges_required_high": 0.85,
+            "cvss_v3_user_interaction_none": 1.15,
+            "cvss_v3_user_interaction_required": 0.90,
             # CVSS v2 настройки
-            "cvss_v2_access_vector_network": 1.10,
-            "cvss_v2_access_vector_adjacent_network": 0.90,
-            "cvss_v2_access_vector_local": 0.60,
+            "cvss_v2_access_vector_network": 1.20,
+            "cvss_v2_access_vector_adjacent_network": 1.10,
+            "cvss_v2_access_vector_local": 0.95,
             "cvss_v2_access_complexity_low": 1.10,
-            "cvss_v2_access_complexity_medium": 0.80,
-            "cvss_v2_access_complexity_high": 0.40,
-            "cvss_v2_authentication_none": 1.10,
-            "cvss_v2_authentication_single": 0.80,
-            "cvss_v2_authentication_multiple": 0.40
+            "cvss_v2_access_complexity_medium": 1.00,
+            "cvss_v2_access_complexity_high": 0.90,
+            "cvss_v2_authentication_none": 1.15,
+            "cvss_v2_authentication_single": 1.00,
+            "cvss_v2_authentication_multiple": 0.90
         }
 
 
@@ -404,32 +416,32 @@ async def get_dashboard_stats():
         
         # Получаем базовую статистику
         conn = await db.get_connection()
-        total_hosts = await conn.fetchval("SELECT COUNT(*) FROM hosts")
-        total_cves = await conn.fetchval("SELECT COUNT(DISTINCT cve) FROM hosts WHERE cve IS NOT NULL")
+        total_hosts = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.hosts")
+        total_cves = await conn.fetchval("SELECT COUNT(DISTINCT cve) FROM vulnanalizer.hosts WHERE cve IS NOT NULL")
         
         # Хосты с высоким риском
         high_risk_hosts = await conn.fetchval(
-            "SELECT COUNT(*) FROM hosts WHERE risk_score > 50"
+            "SELECT COUNT(*) FROM vulnanalizer.hosts WHERE risk_score > 50"
         )
         
         # Критические хосты
         critical_hosts = await conn.fetchval(
-            "SELECT COUNT(*) FROM hosts WHERE criticality = 'Critical'"
+            "SELECT COUNT(*) FROM vulnanalizer.hosts WHERE criticality = 'Critical'"
         )
         
         # Хосты с эксплойтами
         hosts_with_exploits = await conn.fetchval(
-            "SELECT COUNT(*) FROM hosts WHERE has_exploits = TRUE"
+            "SELECT COUNT(*) FROM vulnanalizer.hosts WHERE has_exploits = TRUE"
         )
         
         # Средний риск
         avg_risk_score = await conn.fetchval(
-            "SELECT AVG(risk_score) FROM hosts WHERE risk_score IS NOT NULL"
+            "SELECT AVG(risk_score) FROM vulnanalizer.hosts WHERE risk_score IS NOT NULL"
         ) or 0.0
         
         # Последнее обновление
         last_update = await conn.fetchval(
-            "SELECT MAX(GREATEST(epss_updated_at, exploits_updated_at, risk_updated_at)) FROM hosts"
+            "SELECT MAX(GREATEST(epss_updated_at, exploits_updated_at, risk_updated_at)) FROM vulnanalizer.hosts"
         )
         
         return {
@@ -468,7 +480,7 @@ async def get_risk_distribution():
                         WHEN risk_score >= 20 THEN 'Low'
                         ELSE 'Very Low'
                     END as risk_level
-                FROM hosts 
+                FROM vulnanalizer.hosts 
                 WHERE risk_score IS NOT NULL
             ) subquery
             GROUP BY risk_level
@@ -494,7 +506,7 @@ async def get_risk_distribution():
                         WHEN cvss >= 0.1 THEN 'Low (0.1-3.9)'
                         ELSE 'None'
                     END as cvss_level
-                FROM hosts 
+                FROM vulnanalizer.hosts 
                 WHERE cvss IS NOT NULL
             ) subquery
             GROUP BY cvss_level
@@ -531,7 +543,7 @@ async def get_top_cves(limit: int = 10):
                 AVG(risk_score) as avg_risk,
                 AVG(cvss) as avg_cvss,
                 SUM(CASE WHEN has_exploits THEN 1 ELSE 0 END) as hosts_with_exploits
-            FROM hosts 
+            FROM vulnanalizer.hosts 
             WHERE cve IS NOT NULL
             GROUP BY cve
             ORDER BY host_count DESC

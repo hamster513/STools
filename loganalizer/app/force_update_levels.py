@@ -24,21 +24,21 @@ async def force_update_log_levels():
         
         # Принудительно обновляем настройки
         await conn.execute('''
-            UPDATE settings 
+            UPDATE loganalizer.settings 
             SET value = $1::jsonb
             WHERE key = 'important_log_levels'
         ''', json.dumps(new_levels))
         
         # Проверяем результат
         result = await conn.fetchval('''
-            SELECT value FROM settings WHERE key = 'important_log_levels'
+            SELECT value FROM loganalizer.settings WHERE key = 'important_log_levels'
         ''')
         
         print(f'✅ Log levels force updated successfully!')
         print(f'📋 New levels: {result}')
         
         # Также обновляем кэш
-        await conn.execute('DELETE FROM settings WHERE key = "_cache"')
+        await conn.execute('DELETE FROM loganalizer.settings WHERE key = "_cache"')
         
         await conn.close()
         

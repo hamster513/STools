@@ -22,17 +22,14 @@ class AuthDatabase:
     async def init_tables(self):
         """Инициализация таблиц"""
         async with self.pool.acquire() as conn:
-            # Устанавливаем схему auth
-            await conn.execute('SET search_path TO auth')
-            
             # Проверяем, есть ли уже пользователи
             try:
-                count = await conn.fetchval('SELECT COUNT(*) FROM users')
+                count = await conn.fetchval('SELECT COUNT(*) FROM auth.users')
                 if count == 0:
                     # Создаем админа по умолчанию
                     admin_password = bcrypt.hashpw('admin'.encode('utf-8'), bcrypt.gensalt())
                     await conn.execute('''
-                        INSERT INTO users (username, email, password_hash, is_admin) 
+                        INSERT INTO auth.users (username, email, password_hash, is_admin) 
                         VALUES ($1, $2, $3, $4)
                     ''', 'admin', 'admin@stools.local', admin_password.decode('utf-8'), True)
             except Exception as e:
@@ -42,11 +39,10 @@ class AuthDatabase:
     async def create_user(self, username: str, email: str, password: str, is_admin: bool = False, is_active: bool = True) -> Dict:
         """Создание нового пользователя"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             
             user_id = await conn.fetchval('''
-                INSERT INTO users (username, email, password_hash, is_admin, is_active)
+                INSERT INTO auth.users (username, email, password_hash, is_admin, is_active)
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING id
             ''', username, email, password_hash.decode('utf-8'), is_admin, is_active)
@@ -62,10 +58,9 @@ class AuthDatabase:
     async def get_user_by_username(self, username: str) -> Optional[Dict]:
         """Получение пользователя по имени"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             row = await conn.fetchrow('''
                 SELECT id, username, email, password_hash, is_active, is_admin, created_at
-                FROM users WHERE username = $1
+                FROM auth.users WHERE username = $1
             ''', username)
             
             if row:
@@ -75,10 +70,9 @@ class AuthDatabase:
     async def get_user_by_id(self, user_id: int) -> Optional[Dict]:
         """Получение пользователя по ID"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             row = await conn.fetchrow('''
                 SELECT id, username, email, password_hash, is_active, is_admin, created_at
-                FROM users WHERE id = $1
+                FROM auth.users WHERE id = $1
             ''', user_id)
             
             if row:
@@ -96,19 +90,17 @@ class AuthDatabase:
     async def get_all_users(self) -> List[Dict]:
         """Получение всех пользователей"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             rows = await conn.fetch('''
                 SELECT id, username, email, is_active, is_admin, created_at
-                FROM users ORDER BY created_at DESC
+                FROM auth.users ORDER BY created_at DESC
             ''')
             return [dict(row) for row in rows]
 
     async def update_user(self, user_id: int, username: str, email: str, is_active: bool, is_admin: bool) -> bool:
         """Обновление пользователя"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             result = await conn.execute('''
-                UPDATE users 
+                UPDATE auth.users 
                 SET username = $2, email = $3, is_active = $4, is_admin = $5, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
             ''', user_id, username, email, is_active, is_admin)
@@ -118,10 +110,9 @@ class AuthDatabase:
     async def update_user_password(self, user_id: int, password: str) -> bool:
         """Обновление пароля пользователя"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             result = await conn.execute('''
-                UPDATE users 
+                UPDATE auth.users 
                 SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
             ''', user_id, password_hash.decode('utf-8'))
@@ -131,21 +122,19 @@ class AuthDatabase:
     async def delete_user(self, user_id: int) -> bool:
         """Удаление пользователя"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
-            result = await conn.execute('DELETE FROM users WHERE id = $1', user_id)
+            result = await conn.execute('DELETE FROM auth.users WHERE id = $1', user_id)
             return result != 'DELETE 0'
 
     async def check_username_exists(self, username: str, exclude_id: int = None) -> bool:
         """Проверка существования имени пользователя"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             if exclude_id:
                 count = await conn.fetchval('''
-                    SELECT COUNT(*) FROM users WHERE username = $1 AND id != $2
+                    SELECT COUNT(*) FROM auth.users WHERE username = $1 AND id != $2
                 ''', username, exclude_id)
             else:
                 count = await conn.fetchval('''
-                    SELECT COUNT(*) FROM users WHERE username = $1
+                    SELECT COUNT(*) FROM auth.users WHERE username = $1
                 ''', username)
             
             return count > 0
@@ -153,14 +142,13 @@ class AuthDatabase:
     async def check_email_exists(self, email: str, exclude_id: int = None) -> bool:
         """Проверка существования email"""
         async with self.pool.acquire() as conn:
-            await conn.execute('SET search_path TO auth')
             if exclude_id:
                 count = await conn.fetchval('''
-                    SELECT COUNT(*) FROM users WHERE email = $1 AND id != $2
+                    SELECT COUNT(*) FROM auth.users WHERE email = $1 AND id != $2
                 ''', email, exclude_id)
             else:
                 count = await conn.fetchval('''
-                    SELECT COUNT(*) FROM users WHERE email = $1
+                    SELECT COUNT(*) FROM auth.users WHERE email = $1
                 ''', email)
             
             return count > 0

@@ -214,18 +214,19 @@
                 <!-- Отдельный контейнер для результатов поиска -->
                 <div class="hosts-search-results-container content-block content-block-no-margin">
                     <!-- Заголовок таблицы с подписями колонок -->
-                    <div class="hosts-table-header">
-                        <div class="host-item single-line">
-                            <div class="host-name">Host</div>
-                            <div class="host-ip">IP</div>
-                            <div class="host-criticality">Severity</div>
-                            <div class="host-cve">CVE</div>
-                            <div class="host-cvss">CVSS</div>
-                            <div class="host-status">EPSS</div>
-                            <div class="host-exploits">PoC</div>
-                            <div class="host-risk">Risk</div>
-                        </div>
-                    </div>
+                                         <div class="hosts-table-header">
+                         <div class="host-item single-line">
+                             <div class="host-name">Host</div>
+                             <div class="host-ip">IP</div>
+                             <div class="host-criticality">Severity</div>
+                             <div class="host-cve">CVE</div>
+                             <div class="host-cvss">CVSS</div>
+                             <div class="host-status">EPSS</div>
+                             <div class="host-exploits">PoC</div>
+                             <div class="host-msf">MSF</div>
+                             <div class="host-risk">Risk</div>
+                         </div>
+                     </div>
                     <div id="hosts-search-results" class="hosts-results">
                         <!-- Результаты поиска хостов будут загружены динамически -->
                     </div>
@@ -430,12 +431,12 @@
                                                     <div class="form-group">
                                                         <label for="impact-resource-criticality-medium">Medium:</label>
                                                         <input type="number" id="impact-resource-criticality-medium" name="impact_resource_criticality_medium" 
-                                                               step="0.01" min="0" max="1" value="0.15" required>
+                                                               step="0.01" min="0" max="1" value="0.2" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="impact-resource-criticality-none">None:</label>
                                                         <input type="number" id="impact-resource-criticality-none" name="impact_resource_criticality_none" 
-                                                               step="0.01" min="0" max="1" value="0.10" required>
+                                                               step="0.01" min="0" max="1" value="0.2" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -451,7 +452,7 @@
                                                     <div class="form-group">
                                                         <label for="impact-confidential-data-no">Отсутствуют:</label>
                                                         <input type="number" id="impact-confidential-data-no" name="impact_confidential_data_no" 
-                                                               step="0.01" min="0" max="1" value="0.10" required>
+                                                               step="0.01" min="0" max="1" value="0.2" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -467,7 +468,7 @@
                                                     <div class="form-group">
                                                         <label for="impact-internet-access-no">Недоступен:</label>
                                                         <input type="number" id="impact-internet-access-no" name="impact_internet_access_no" 
-                                                               step="0.01" min="0" max="1" value="0.10" required>
+                                                               step="0.01" min="0" max="1" value="0.2" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -503,22 +504,22 @@
                                                     <div class="form-group">
                                                         <label for="cvss-v3-av-network">NETWORK:</label>
                                                         <input type="number" id="cvss-v3-av-network" name="cvss_v3_attack_vector_network" 
-                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                               step="0.01" min="0" max="2" value="1.20" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v3-av-adjacent">ADJACENT:</label>
                                                         <input type="number" id="cvss-v3-av-adjacent" name="cvss_v3_attack_vector_adjacent" 
-                                                               step="0.01" min="0" max="2" value="0.90" required>
+                                                               step="0.01" min="0" max="2" value="1.10" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v3-av-local">LOCAL:</label>
                                                         <input type="number" id="cvss-v3-av-local" name="cvss_v3_attack_vector_local" 
-                                                               step="0.01" min="0" max="2" value="0.60" required>
+                                                               step="0.01" min="0" max="2" value="0.95" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v3-av-physical">PHYSICAL:</label>
                                                         <input type="number" id="cvss-v3-av-physical" name="cvss_v3_attack_vector_physical" 
-                                                               step="0.01" min="0" max="2" value="0.30" required>
+                                                               step="0.01" min="0" max="2" value="0.85" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -529,17 +530,17 @@
                                                     <div class="form-group">
                                                         <label for="cvss-v3-pr-none">NONE:</label>
                                                         <input type="number" id="cvss-v3-pr-none" name="cvss_v3_privileges_required_none" 
-                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                               step="0.01" min="0" max="2" value="1.20" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v3-pr-low">LOW:</label>
                                                         <input type="number" id="cvss-v3-pr-low" name="cvss_v3_privileges_required_low" 
-                                                               step="0.01" min="0" max="2" value="0.70" required>
+                                                               step="0.01" min="0" max="2" value="1.00" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v3-pr-high">HIGH:</label>
                                                         <input type="number" id="cvss-v3-pr-high" name="cvss_v3_privileges_required_high" 
-                                                               step="0.01" min="0" max="2" value="0.40" required>
+                                                               step="0.01" min="0" max="2" value="0.85" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -550,12 +551,12 @@
                                                     <div class="form-group">
                                                         <label for="cvss-v3-ui-none">NONE:</label>
                                                         <input type="number" id="cvss-v3-ui-none" name="cvss_v3_user_interaction_none" 
-                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                               step="0.01" min="0" max="2" value="1.15" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v3-ui-required">REQUIRED:</label>
                                                         <input type="number" id="cvss-v3-ui-required" name="cvss_v3_user_interaction_required" 
-                                                               step="0.01" min="0" max="2" value="0.60" required>
+                                                               step="0.01" min="0" max="2" value="0.90" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -570,17 +571,17 @@
                                                     <div class="form-group">
                                                         <label for="cvss-v2-av-network">NETWORK:</label>
                                                         <input type="number" id="cvss-v2-av-network" name="cvss_v2_access_vector_network" 
-                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                               step="0.01" min="0" max="2" value="1.20" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v2-av-adjacent">ADJACENT_NETWORK:</label>
                                                         <input type="number" id="cvss-v2-av-adjacent" name="cvss_v2_access_vector_adjacent_network" 
-                                                               step="0.01" min="0" max="2" value="0.90" required>
+                                                               step="0.01" min="0" max="2" value="1.10" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v2-av-local">LOCAL:</label>
                                                         <input type="number" id="cvss-v2-av-local" name="cvss_v2_access_vector_local" 
-                                                               step="0.01" min="0" max="2" value="0.60" required>
+                                                               step="0.01" min="0" max="2" value="0.95" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -596,12 +597,12 @@
                                                     <div class="form-group">
                                                         <label for="cvss-v2-ac-medium">MEDIUM:</label>
                                                         <input type="number" id="cvss-v2-ac-medium" name="cvss_v2_access_complexity_medium" 
-                                                               step="0.01" min="0" max="2" value="0.80" required>
+                                                               step="0.01" min="0" max="2" value="1.00" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v2-ac-high">HIGH:</label>
                                                         <input type="number" id="cvss-v2-ac-high" name="cvss_v2_access_complexity_high" 
-                                                               step="0.01" min="0" max="2" value="0.40" required>
+                                                               step="0.01" min="0" max="2" value="0.90" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -612,17 +613,17 @@
                                                     <div class="form-group">
                                                         <label for="cvss-v2-au-none">NONE:</label>
                                                         <input type="number" id="cvss-v2-au-none" name="cvss_v2_authentication_none" 
-                                                               step="0.01" min="0" max="2" value="1.10" required>
+                                                               step="0.01" min="0" max="2" value="1.15" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v2-au-single">SINGLE:</label>
                                                         <input type="number" id="cvss-v2-au-single" name="cvss_v2_authentication_single" 
-                                                               step="0.01" min="0" max="2" value="0.80" required>
+                                                               step="0.01" min="0" max="2" value="1.00" required>
                                                     </div>
                                                     <div class="form-group">
                                                         <label for="cvss-v2-au-multiple">MULTIPLE:</label>
                                                         <input type="number" id="cvss-v2-au-multiple" name="cvss_v2_authentication_multiple" 
-                                                               step="0.01" min="0" max="2" value="0.40" required>
+                                                               step="0.01" min="0" max="2" value="0.90" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -635,6 +636,128 @@
                                             <button type="button" id="reset-cvss-defaults" class="btn btn-secondary btn-sm">
                                                 <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
                                             </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Подменю ExploitDB -->
+                            <div class="submenu-block">
+                                <div class="submenu-header" data-target="exdb-submenu">
+                                    <h4><i class="fas fa-bug"></i> ExploitDB параметры</h4>
+                                    <div class="submenu-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                                <div class="submenu-content" id="exdb-submenu">
+                                    <form id="exdb-form">
+                                        <div class="exdb-section">
+                                            <h5>ExploitDB Множители</h5>
+                                            
+                                            <div class="exdb-group">
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="exdb-remote">remote:</label>
+                                                        <input type="number" id="exdb-remote" name="exdb_remote" 
+                                                               step="0.01" min="0" max="2" value="1.3" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="exdb-webapps">webapps:</label>
+                                                        <input type="number" id="exdb-webapps" name="exdb_webapps" 
+                                                               step="0.01" min="0" max="2" value="1.2" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="exdb-dos">dos:</label>
+                                                        <input type="number" id="exdb-dos" name="exdb_dos" 
+                                                               step="0.01" min="0" max="2" value="0.85" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="exdb-local">local:</label>
+                                                        <input type="number" id="exdb-local" name="exdb_local" 
+                                                               step="0.01" min="0" max="2" value="1.05" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="exdb-hardware">hardware:</label>
+                                                        <input type="number" id="exdb-hardware" name="exdb_hardware" 
+                                                               step="0.01" min="0" max="2" value="1.0" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-actions">
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-save"></i> Сохранить ExploitDB
+                                                </button>
+                                                <button type="button" id="reset-exdb-defaults" class="btn btn-secondary btn-sm">
+                                                    <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Подменю Metasploit -->
+                            <div class="submenu-block">
+                                <div class="submenu-header" data-target="msf-submenu">
+                                    <h4><i class="fas fa-tools"></i> Metasploit параметры</h4>
+                                    <div class="submenu-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                                <div class="submenu-content" id="msf-submenu">
+                                    <form id="msf-form">
+                                        <div class="msf-section">
+                                            <h5>Metasploit Множители</h5>
+                                            
+                                            <div class="msf-group">
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label for="msf-excellent">excellent:</label>
+                                                        <input type="number" id="msf-excellent" name="msf_excellent" 
+                                                               step="0.01" min="0" max="2" value="1.3" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="msf-good">good:</label>
+                                                        <input type="number" id="msf-good" name="msf_good" 
+                                                               step="0.01" min="0" max="2" value="1.25" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="msf-normal">normal:</label>
+                                                        <input type="number" id="msf-normal" name="msf_normal" 
+                                                               step="0.01" min="0" max="2" value="1.2" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="msf-average">average:</label>
+                                                        <input type="number" id="msf-average" name="msf_average" 
+                                                               step="0.01" min="0" max="2" value="1.1" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="msf-low">low:</label>
+                                                        <input type="number" id="msf-low" name="msf_low" 
+                                                               step="0.01" min="0" max="2" value="0.8" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="msf-unknown">unknown:</label>
+                                                        <input type="number" id="msf-unknown" name="msf_unknown" 
+                                                               step="0.01" min="0" max="2" value="0.8" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="msf-manual">manual:</label>
+                                                        <input type="number" id="msf-manual" name="msf_manual" 
+                                                               step="0.01" min="0" max="2" value="1.0" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-actions">
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-save"></i> Сохранить Metasploit
+                                                </button>
+                                                <button type="button" id="reset-msf-defaults" class="btn btn-secondary btn-sm">
+                                                    <i class="fas fa-undo"></i> Сбросить к значениям по умолчанию
+                                                </button>
+                                            </div>
                                         </div>
                                     </form>
                                 </div>
@@ -939,7 +1062,7 @@
                     <h4>🎯 Основная формула</h4>
                     <div class="formula-box">
                         <div class="formula-main">
-                            <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param</span>
+                            <span class="formula-text">Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param × ExDB_param × MSF_param</span>
                         </div>
                         <div class="formula-note">
                             Где: <strong>Risk</strong> - итоговый риск в процентах (0-100%)
@@ -976,8 +1099,8 @@
                             <ul>
                                 <li><strong>Critical:</strong> 0.33</li>
                                 <li><strong>High:</strong> 0.25</li>
-                                <li><strong>Medium:</strong> 0.15</li>
-                                <li><strong>None:</strong> 0.1</li>
+                                <li><strong>Medium:</strong> 0.2</li>
+                                <li><strong>None:</strong> 0.2</li>
                             </ul>
                         </div>
                         
@@ -985,7 +1108,7 @@
                             <h5>🔒 Конфиденциальные данные:</h5>
                             <ul>
                                 <li><strong>Есть:</strong> 0.33</li>
-                                <li><strong>Отсутствуют:</strong> 0.1</li>
+                                <li><strong>Отсутствуют:</strong> 0.2</li>
                             </ul>
                         </div>
                         
@@ -993,7 +1116,7 @@
                             <h5>🌐 Доступ из интернета:</h5>
                             <ul>
                                 <li><strong>Доступен:</strong> 0.33</li>
-                                <li><strong>Недоступен:</strong> 0.1</li>
+                                <li><strong>Недоступен:</strong> 0.2</li>
                             </ul>
                         </div>
                     </div>
@@ -1005,27 +1128,27 @@
                         <div class="weight-group">
                             <h5>🎯 Attack Vector (AV):</h5>
                             <ul>
-                                <li><strong>NETWORK:</strong> 1.10</li>
-                                <li><strong>ADJACENT:</strong> 0.90</li>
-                                <li><strong>LOCAL:</strong> 0.60</li>
-                                <li><strong>PHYSICAL:</strong> 0.30</li>
+                                <li><strong>NETWORK:</strong> 1.20</li>
+                                <li><strong>ADJACENT:</strong> 1.10</li>
+                                <li><strong>LOCAL:</strong> 0.95</li>
+                                <li><strong>PHYSICAL:</strong> 0.85</li>
                             </ul>
                         </div>
                         
                         <div class="weight-group">
                             <h5>🔐 Privileges Required (PR):</h5>
                             <ul>
-                                <li><strong>NONE:</strong> 1.10</li>
-                                <li><strong>LOW:</strong> 0.70</li>
-                                <li><strong>HIGH:</strong> 0.40</li>
+                                <li><strong>NONE:</strong> 1.20</li>
+                                <li><strong>LOW:</strong> 1.00</li>
+                                <li><strong>HIGH:</strong> 0.85</li>
                             </ul>
                         </div>
                         
                         <div class="weight-group">
                             <h5>👤 User Interaction (UI):</h5>
                             <ul>
-                                <li><strong>NONE:</strong> 1.10</li>
-                                <li><strong>REQUIRED:</strong> 0.60</li>
+                                <li><strong>NONE:</strong> 1.15</li>
+                                <li><strong>REQUIRED:</strong> 0.90</li>
                             </ul>
                         </div>
                     </div>
@@ -1037,9 +1160,9 @@
                         <div class="weight-group">
                             <h5>🎯 Access Vector (AV):</h5>
                             <ul>
-                                <li><strong>NETWORK:</strong> 1.10</li>
-                                <li><strong>ADJACENT_NETWORK:</strong> 0.90</li>
-                                <li><strong>LOCAL:</strong> 0.60</li>
+                                <li><strong>NETWORK:</strong> 1.20</li>
+                                <li><strong>ADJACENT_NETWORK:</strong> 1.10</li>
+                                <li><strong>LOCAL:</strong> 0.95</li>
                             </ul>
                         </div>
                         
@@ -1047,18 +1170,58 @@
                             <h5>🔐 Access Complexity (AC):</h5>
                             <ul>
                                 <li><strong>LOW:</strong> 1.10</li>
-                                <li><strong>MEDIUM:</strong> 0.80</li>
-                                <li><strong>HIGH:</strong> 0.40</li>
+                                <li><strong>MEDIUM:</strong> 1.00</li>
+                                <li><strong>HIGH:</strong> 0.90</li>
                             </ul>
                         </div>
                         
                         <div class="weight-group">
                             <h5>👤 Authentication (Au):</h5>
                             <ul>
-                                <li><strong>NONE:</strong> 1.10</li>
-                                <li><strong>SINGLE:</strong> 0.80</li>
-                                <li><strong>MULTIPLE:</strong> 0.40</li>
+                                <li><strong>NONE:</strong> 1.15</li>
+                                <li><strong>SINGLE:</strong> 1.00</li>
+                                <li><strong>MULTIPLE:</strong> 0.90</li>
                             </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formula-section">
+                    <h4>🐛 ExploitDB Множители</h4>
+                    <div class="cvss-weights">
+                        <div class="weight-group">
+                            <h5>🎯 Тип эксплойта:</h5>
+                            <ul>
+                                <li><strong>remote:</strong> 1.3</li>
+                                <li><strong>webapps:</strong> 1.2</li>
+                                <li><strong>dos:</strong> 0.85</li>
+                                <li><strong>local:</strong> 1.05</li>
+                                <li><strong>hardware:</strong> 1.0</li>
+                            </ul>
+                        </div>
+                        <div class="formula-note">
+                            Если информация об эксплойте отсутствует, используется множитель 1.0
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formula-section">
+                    <h4>🛠️ Metasploit Множители</h4>
+                    <div class="cvss-weights">
+                        <div class="weight-group">
+                            <h5>🎯 Ранг модуля:</h5>
+                            <ul>
+                                <li><strong>excellent:</strong> 1.3</li>
+                                <li><strong>good:</strong> 1.25</li>
+                                <li><strong>normal:</strong> 1.2</li>
+                                <li><strong>average:</strong> 1.1</li>
+                                <li><strong>low:</strong> 0.8</li>
+                                <li><strong>unknown:</strong> 0.8</li>
+                                <li><strong>manual:</strong> 1.0</li>
+                            </ul>
+                        </div>
+                        <div class="formula-note">
+                            Если информация о модуле Metasploit отсутствует, используется множитель 1.0
                         </div>
                     </div>
                 </div>
@@ -1074,7 +1237,9 @@
                                 <li>Критичность ресурса = Critical (0.33)</li>
                                 <li>Конфиденциальные данные = Есть (0.33)</li>
                                 <li>Доступ из интернета = Доступен (0.33)</li>
-                                <li>CVSS v3: AV=NETWORK(1.10), PR=NONE(1.10), UI=NONE(1.10)</li>
+                                <li>CVSS v3: AV=NETWORK(1.20), PR=NONE(1.20), UI=NONE(1.15)</li>
+                                <li>ExploitDB тип = remote (1.3)</li>
+                                <li>Metasploit ранг = excellent (1.3)</li>
                             </ul>
                         </div>
                         
@@ -1082,9 +1247,11 @@
                             <p><strong>Расчет:</strong></p>
                             <div class="calculation-steps">
                                 <div class="step">1. Impact = 0.33 + 0.33 + 0.33 = <strong>0.99</strong></div>
-                                <div class="step">2. CVE_param = 1.10 × 1.10 × 1.10 = <strong>1.331</strong></div>
-                                <div class="step">3. Risk = 0.5 × (8.0 ÷ 10) × 0.99 × 1.331 = <strong>0.527</strong></div>
-                                <div class="step">4. Risk Score = min(1, 0.527) × 100 = <strong>52.7%</strong></div>
+                                <div class="step">2. CVE_param = 1.20 × 1.20 × 1.15 = <strong>1.656</strong></div>
+                                <div class="step">3. ExDB_param = remote = <strong>1.3</strong></div>
+                                <div class="step">4. MSF_param = excellent = <strong>1.3</strong></div>
+                                <div class="step">5. Risk = 0.5 × (8.0 ÷ 10) × 0.99 × 1.656 × 1.3 × 1.3 = <strong>1.108</strong></div>
+                                <div class="step">6. Risk Score = min(1, 1.108) × 100 = <strong>100%</strong></div>
                             </div>
                         </div>
                     </div>
@@ -1206,18 +1373,54 @@
         </div>
     </div>
 
+    <!-- Модальное окно для просмотра расчета риска -->
+    <div id="risk-modal" class="modal-content" style="display: none;">
+        <div class="modal-header">
+            <h3 id="risk-modal-title">Детали расчета риска</h3>
+            <span class="close" id="risk-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="risk-modal-loading" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin"></i> Загрузка...
+            </div>
+            <div id="risk-modal-content" style="display: none;">
+                <div class="risk-info">
+                    <div class="risk-header">
+                        <div id="risk-host-info" class="risk-host-info"></div>
+                        <div id="risk-cve-info" class="risk-cve-info"></div>
+                    </div>
+                    <div class="risk-summary">
+                        <div class="risk-score-display">
+                            <h4>Общий риск:</h4>
+                            <div id="risk-score-value" class="risk-score"></div>
+                            <div id="risk-level-value" class="risk-level"></div>
+                        </div>
+                    </div>
+                    <div id="risk-formula" class="risk-formula"></div>
+                    <div id="risk-calculation-details" class="risk-calculation-details"></div>
+                    <div id="risk-factors" class="risk-factors"></div>
+                </div>
+            </div>
+            <div id="risk-modal-error" style="display: none; text-align: center; color: var(--error-color);">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p id="risk-error-message"></p>
+            </div>
+        </div>
+    </div>
+
     <!-- Скрипты -->
     <script src="/static/js/ui-manager.js?v=6.3"></script>
         <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
     <script src="/vulnanalizer/static/js/modules/auth.js?v=2.1"></script>
-            <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.0"></script>
+            <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.3"></script>
         <script src="/vulnanalizer/static/js/modules/epss.js?v=2.3"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
-            <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
-            <script src="/vulnanalizer/static/js/modules/settings.js?v=3.0"></script>
+                    <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
+        <script src="/vulnanalizer/static/js/modules/risk-modal.js?v=1.5"></script>
+        <script src="/vulnanalizer/static/js/modules/settings.js?v=3.1"></script>
         <script src="/vulnanalizer/static/js/modules/base-modal.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
