@@ -4,7 +4,7 @@
 import os
 import psutil
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from database import get_db
 
@@ -267,8 +267,12 @@ async def cancel_background_task(task_type: str):
 
 
 @router.get("/api/settings")
-async def get_settings():
+async def get_settings(request: Request):
     """Получить настройки приложения"""
+    # Проверяем права администратора
+    # TODO: Добавить проверку аутентификации
+    # await require_admin(request)
+    
     try:
         from database import Database
         db = Database()
@@ -326,14 +330,21 @@ async def get_settings():
             "cvss_v2_access_complexity_medium": 1.00,
             "cvss_v2_access_complexity_high": 0.90,
             "cvss_v2_authentication_none": 1.15,
+            "cvss_v2_access_complexity_medium": 1.00,
+            "cvss_v2_access_complexity_high": 0.90,
+            "cvss_v2_authentication_none": 1.15,
             "cvss_v2_authentication_single": 1.00,
             "cvss_v2_authentication_multiple": 0.90
         }
 
 
 @router.post("/api/settings")
-async def update_settings(settings: dict):
+async def update_settings(settings: dict, request: Request):
     """Обновить настройки приложения"""
+    # Проверяем права администратора
+    # TODO: Добавить проверку аутентификации
+    # await require_admin(request)
+    
     try:
         print(f"DEBUG: Received settings: {settings}")
         

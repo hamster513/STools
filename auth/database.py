@@ -87,6 +87,18 @@ class AuthDatabase:
                 return user
         return None
 
+    async def get_user_by_token(self, token: str) -> Optional[Dict]:
+        """Получение пользователя по токену (пока упрощенная версия)"""
+        try:
+            # Пока используем простую проверку - ищем пользователя admin
+            # В реальной системе здесь должна быть проверка JWT токена
+            if token == "admin_token" or token == "admin":
+                return await self.get_user_by_username("admin")
+            return None
+        except Exception as e:
+            print(f"Error getting user by token: {e}")
+            return None
+
     async def get_all_users(self) -> List[Dict]:
         """Получение всех пользователей"""
         async with self.pool.acquire() as conn:

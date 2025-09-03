@@ -10,6 +10,7 @@ class NavigationModule {
     init() {
         this.setupNavigation();
         this.setupSidebar();
+        this.checkUserPermissions(); // Проверяем права пользователя
     }
 
     setupNavigation() {
@@ -88,6 +89,43 @@ class NavigationModule {
             const isNowCollapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('sidebar_collapsed', isNowCollapsed.toString());
             updateToggleIcon(isNowCollapsed);
+        });
+    }
+
+    // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
+    async checkUserPermissions() {
+        try {
+            // Проверяем права пользователя
+            const response = await fetch('/auth/api/me');
+            if (response.ok) {
+                const user = await response.json();
+                this.updateSidebarVisibility(user.is_admin);
+            } else {
+                // Если не авторизован, скрываем админские вкладки
+                this.updateSidebarVisibility(false);
+            }
+        } catch (error) {
+            console.log('Ошибка проверки прав:', error);
+            // При ошибке скрываем админские вкладки
+            this.updateSidebarVisibility(false);
+        }
+    }
+
+    updateSidebarVisibility(isAdmin) {
+        // Скрываем/показываем админские вкладки в боковом меню
+        const adminTabs = [
+            'settings' // Вкладка настроек
+        ];
+        
+        adminTabs.forEach(tabName => {
+            const tab = document.querySelector(`[data-page="${tabName}"]`);
+            if (tab) {
+                if (isAdmin) {
+                    tab.style.display = 'block';
+                } else {
+                    tab.style.display = 'none';
+                }
+            }
         });
     }
 

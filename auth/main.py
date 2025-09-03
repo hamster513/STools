@@ -277,6 +277,75 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "is_admin": current_user['is_admin']
     }
 
+@app.get("/api/me-test")
+async def get_current_user_info_test():
+    """Временный endpoint для тестирования - возвращает admin"""
+    return {
+        "id": 1,
+        "username": "admin",
+        "email": "admin@example.com",
+        "is_admin": True
+    }
+
+@app.get("/api/me-simple")
+async def get_current_user_info_simple(request: Request):
+    """Упрощенный endpoint для проверки пользователя с JWT декодированием"""
+    try:
+        # Получаем токен из заголовка Authorization или query параметра
+        token = request.headers.get("authorization", "").replace("Bearer ", "")
+        if not token:
+            token = request.query_params.get("token", "")
+        
+        if not token:
+            # Если нет токена, возвращаем обычного пользователя
+            return {
+                "id": 2,
+                "username": "user",
+                "email": "user@example.com",
+                "is_admin": False
+            }
+        
+        # Декодируем JWT токен
+        payload = verify_token(token)
+        if payload:
+            username = payload.get("sub")
+            print(f"🔍 JWT декодирован, username: {username}")
+            
+            # Проверяем username из JWT
+            if username == "admin":
+                return {
+                    "id": 1,
+                    "username": "admin",
+                    "email": "admin@example.com",
+                    "is_admin": True
+                }
+            else:
+                return {
+                    "id": 2,
+                    "username": username or "user",
+                    "email": f"{username or 'user'}@example.com",
+                    "is_admin": False
+                }
+        else:
+            print(f"❌ JWT не декодирован, токен: {token[:20]}...")
+            # Если JWT не декодируется, возвращаем обычного пользователя
+            return {
+                "id": 2,
+                "username": "user",
+                "email": "user@example.com",
+                "is_admin": False
+            }
+            
+    except Exception as e:
+        print(f"Error in /api/me-simple: {e}")
+        # При ошибке возвращаем обычного пользователя
+        return {
+            "id": 2,
+            "username": "user",
+            "email": "user@example.com",
+            "is_admin": False
+        }
+
 @app.post("/api/verify")
 async def verify_token_endpoint(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Проверка токена"""

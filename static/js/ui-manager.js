@@ -20,6 +20,7 @@ class UIManager {
         this.initTopPanel();
         this.initDropZones();
         this.bindGlobalEvents();
+        this.checkUserPermissions(); // Проверяем права пользователя
     }
 
     // ===== ТЕМЫ =====
@@ -383,6 +384,45 @@ class UIManager {
                 usersTab.classList.add('active');
             }
         }
+    }
+
+    // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
+    async checkUserPermissions() {
+        try {
+            // Проверяем права пользователя
+            const response = await fetch('/auth/api/me');
+            if (response.ok) {
+                const user = await response.json();
+                this.updateMenuVisibility(user.is_admin);
+            } else {
+                // Если не авторизован, скрываем админские меню
+                this.updateMenuVisibility(false);
+            }
+        } catch (error) {
+            console.log('Ошибка проверки прав:', error);
+            // При ошибке скрываем админские меню
+            this.updateMenuVisibility(false);
+        }
+    }
+
+    updateMenuVisibility(isAdmin) {
+        // Скрываем/показываем админские меню
+        const adminMenus = [
+            'settings-link',
+            'users-link', 
+            'background-tasks-link'
+        ];
+        
+        adminMenus.forEach(menuId => {
+            const menuItem = document.getElementById(menuId);
+            if (menuItem) {
+                if (isAdmin) {
+                    menuItem.style.display = 'block';
+                } else {
+                    menuItem.style.display = 'none';
+                }
+            }
+        });
     }
 
     // ===== DROP ZONES =====

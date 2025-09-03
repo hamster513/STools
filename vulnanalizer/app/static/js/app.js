@@ -21,6 +21,11 @@ class VulnAnalizer {
             totalCount: 0,
             limit: 100
         };
+        
+        // Проверяем права пользователя сразу после инициализации
+        setTimeout(() => {
+            this.checkUserPermissions();
+        }, 100);
     }
 
     // Получение базового пути для API
@@ -150,9 +155,9 @@ class VulnAnalizer {
             return;
         }
 
-        // Проверяем токен через auth сервис
+        // Проверяем токен через auth сервис (используем новый endpoint)
 
-        fetch('/auth/api/me', {
+        fetch(`/auth/api/me-simple?token=${token || 'user'}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -181,6 +186,61 @@ class VulnAnalizer {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_info');
             window.location.href = '/auth/';
+        });
+    }
+
+    // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
+    async checkUserPermissions() {
+        try {
+            console.log('🔐 Проверяем права пользователя...');
+            
+            // Получаем токен из localStorage
+            const token = localStorage.getItem('auth_token');
+            console.log('🎫 Токен из localStorage:', token);
+            
+            // Проверяем права пользователя через новый endpoint
+            const response = await fetch(`/auth/api/me-simple?token=${token || 'user'}`);
+            console.log('📡 Ответ от API:', response.status, response.ok);
+            
+            if (response.ok) {
+                const user = await response.json();
+                console.log('👤 Данные пользователя:', user);
+                console.log('🔑 is_admin:', user.is_admin);
+                this.updateSidebarVisibility(user.is_admin);
+            } else {
+                console.log('❌ API вернул ошибку, скрываем настройки');
+                // Если не авторизован, скрываем админские вкладки
+                this.updateSidebarVisibility(false);
+            }
+        } catch (error) {
+            console.log('💥 Ошибка проверки прав:', error);
+            // При ошибке скрываем админские вкладки
+            this.updateSidebarVisibility(false);
+        }
+    }
+
+    updateSidebarVisibility(isAdmin) {
+        console.log('🎯 updateSidebarVisibility вызвана с isAdmin:', isAdmin);
+        // Скрываем/показываем админские вкладки в боковом меню
+        const adminTabs = [
+            'settings' // Вкладка настроек
+        ];
+        
+        adminTabs.forEach(tabName => {
+            const tab = document.querySelector(`[data-page="${tabName}"]`);
+            console.log(`🔍 Ищем вкладку [data-page="${tabName}"]:`, tab);
+            
+            if (tab) {
+                if (isAdmin) {
+                    console.log(`✅ Показываем вкладку ${tabName}`);
+                    tab.style.setProperty('display', 'block', 'important');
+                } else {
+                    console.log(`❌ Скрываем вкладку ${tabName}`);
+                    tab.style.setProperty('display', 'none', 'important');
+                }
+            } else {
+                console.log(`⚠️ Вкладка ${tabName} не найдена!`);
+            }
         });
     }
 
@@ -283,6 +343,9 @@ class VulnAnalizer {
                 }
             });
         });
+        
+        // Проверяем права пользователя и скрываем админские вкладки
+        this.checkUserPermissions();
     }
 
     setupSettings() {

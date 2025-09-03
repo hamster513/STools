@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import os
+import sys
+
+# TODO: Добавить импорт auth модуля после исправления путей
+# from auth.database import AuthDatabase
 
 # Импортируем роуты (временно отключено)
 # from routes.backup import router as backup_router
@@ -16,7 +20,7 @@ def get_version():
     except:
         return "0.6.03"
 
-app = FastAPI(title="STools", version=get_version())
+app = FastAPI(title="STools Main Service", version=get_version())
 
 # Логируем информацию о приложении (отладочно)
 # print(f"🚀 FastAPI приложение создано: {app.title} v{app.version}")
@@ -28,6 +32,20 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Настройка шаблонов
 templates = Jinja2Templates(directory="templates")
+
+# TODO: Инициализировать auth_db после исправления импорта
+# auth_db = AuthDatabase()
+
+# TODO: Добавить функции аутентификации после исправления импорта
+async def get_current_user(request: Request) -> dict:
+    """Получить текущего пользователя из сессии"""
+    # Временно возвращаем admin для тестирования
+    return {"username": "admin", "is_admin": True}
+
+async def require_admin(request: Request) -> dict:
+    """Требовать права администратора"""
+    # Временно блокируем доступ для всех
+    raise HTTPException(status_code=403, detail="Доступ временно заблокирован")
 
 # Добавляем CORS middleware
 app.add_middleware(
@@ -46,16 +64,22 @@ async def root(request: Request):
 @app.get("/users/", response_class=HTMLResponse)
 async def users_page(request: Request):
     """Страница управления пользователями"""
+    # Проверяем права администратора
+    await require_admin(request)
     return templates.TemplateResponse("users.html", {"request": request, "version": get_version()})
 
 @app.get("/background-tasks/", response_class=HTMLResponse)
 async def background_tasks_page(request: Request):
     """Страница управления очередями"""
+    # Проверяем права администратора
+    await require_admin(request)
     return templates.TemplateResponse("background-tasks.html", {"request": request, "version": get_version()})
 
 @app.get("/settings/", response_class=HTMLResponse)
 async def settings_page(request: Request):
     """Страница общих настроек системы"""
+    # Проверяем права администратора
+    await require_admin(request)
     return templates.TemplateResponse("settings.html", {"request": request, "version": get_version()})
 
 # Подключаем роуты (временно отключено)
@@ -67,8 +91,11 @@ async def settings_page(request: Request):
 
 # Простые роуты для бэкапа (временно)
 @app.get("/api/backup/tables")
-async def get_backup_tables():
+async def get_backup_tables(request: Request):
     """Получить список доступных таблиц для бэкапа"""
+    # Проверяем права администратора
+    await require_admin(request)
+    
     tables = [
         {"schema": "auth", "name": "users", "description": "Пользователи системы"},
         {"schema": "auth", "name": "sessions", "description": "Сессии пользователей"},
@@ -86,15 +113,20 @@ async def get_backup_tables():
     return {"success": True, "tables": tables}
 
 @app.get("/api/backup/list")
-async def list_backups():
+async def list_backups(request: Request):
     """Получить список бэкапов"""
+    # Проверяем права администратора
+    await require_admin(request)
     return {"success": True, "backups": []}
 
 @app.post("/api/backup/create")
-async def create_backup(request: dict):
+async def create_backup(request_data: dict, request: Request):
     """Создать бэкап выбранных таблиц"""
+    # Проверяем права администратора
+    await require_admin(request)
+    
     try:
-        if not request.get('tables'):
+        if not request_data.get('tables'):
             raise HTTPException(status_code=400, detail="Не выбрано ни одной таблицы")
         
         # Здесь должна быть логика создания бэкапа
@@ -130,7 +162,7 @@ async def health_check():
     return {"status": "healthy", "service": "main"}
 
 # Логируем зарегистрированные роуты (отладочно)
-# print("📋 Зарегистрированные роуты:")
+# print("�� Зарегистрированные роуты:")
 # for route in app.routes:
 #     try:
 #         if hasattr(route, 'path') and hasattr(route, 'methods'):

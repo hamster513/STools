@@ -101,6 +101,35 @@
     width: 1000px;
 }
 
+/* Стили для модального окна пользователей - точно как у формулы расчета риска */
+#user-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    width: auto;
+    max-width: 90vw;
+    min-width: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#user-modal > div {
+    width: auto;
+    max-width: 80vw;
+    min-width: 20vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+}
+
 /* CVE Modal specific styles */
 #cve-modal {
     position: fixed;
