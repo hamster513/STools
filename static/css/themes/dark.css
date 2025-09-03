@@ -11,7 +11,9 @@
     --secondary-color-light: #888888;
     
     --background-color: #1a1a1a;
+    --background-secondary: #2a2a2a;
     --surface-color: #2d2d2d;
+    --surface-color-secondary: #3a3a3a;
     --surface-color-dark: rgba(0, 0, 0, 0.4);
     --surface-color-light: rgba(255, 255, 255, 0.2);
     

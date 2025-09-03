@@ -422,7 +422,21 @@
 #metasploit-modal,
 #epss-modal,
 #exploitdb-modal,
-#cve-preview-modal,
+#cve-preview-modal {
+    position: fixed;
+    top: 50%;
+    left: calc(50% + var(--sidebar-width, 280px) / 2);
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    max-width: calc(90vw - var(--sidebar-width, 280px));
+    max-height: 90vh;
+}
+
+/* Стили для модального окна риска - точно как у EPSS */
 #risk-modal {
     position: fixed;
     top: 50%;
@@ -437,7 +451,6 @@
     max-height: 90vh;
 }
 
-/* Стили для модального окна риска */
 #risk-modal .modal-content {
     background-color: var(--surface-color);
     margin: 5% auto;
@@ -451,12 +464,12 @@
 }
 
 #risk-modal .modal-header {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-md);
     align-items: center;
     padding: var(--spacing-lg);
     border-bottom: 1px solid var(--border-color);
-    background-color: var(--surface-color);
 }
 
 #risk-modal .modal-header h3 {

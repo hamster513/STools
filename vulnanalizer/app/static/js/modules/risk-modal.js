@@ -44,7 +44,7 @@ class RiskModalModule {
         if (!this.modal) return;
 
         // Показываем модальное окно
-        this.modal.style.display = 'flex';
+        this.modal.style.display = 'block';
         this.modal.classList.add('show');
 
         // Показываем загрузку
