@@ -2167,9 +2167,6 @@ class VulnAnalizer {
                                 <span class="score-value">${epss ? (epss.epss * 100).toFixed(2) : 'N/A'}%</span>
                                 <span class="score-label">Вероятность эксплуатации</span>
                             </div>
-                            <div class="epss-percentile">
-                                <strong>Перцентиль:</strong> ${epss ? epss.percentile : 'N/A'}
-                            </div>
                             <div class="epss-date">
                                 <strong>Дата:</strong> ${epss ? epss.date : 'N/A'}
                             </div>
@@ -2189,6 +2186,19 @@ class VulnAnalizer {
                                         <span class="exploit-type ${exp.type.toLowerCase()}">${exp.type}</span>
                                     `).join('')}
                                 </div>
+                                <div class="exploit-list">
+                                    ${exploitdb.map(exp => `
+                                        <div class="exploit-item">
+                                            <div class="exploit-header">
+                                                <span class="exploit-id">#${exp.exploit_id}</span>
+                                                <span class="exploit-type-badge ${exp.type.toLowerCase()}">${exp.type}</span>
+                                                <span class="exploit-date">${exp.date_published}</span>
+                                            </div>
+                                            <div class="exploit-description">${exp.description}</div>
+                                            <div class="exploit-author">Автор: ${exp.author}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             ` : '<p>Эксплойты не найдены</p>'}
                         </div>
                     </div>
@@ -2204,6 +2214,19 @@ class VulnAnalizer {
                                 <div class="module-ranks">
                                     ${metasploit.map(mod => `
                                         <span class="module-rank ${mod.rank.toLowerCase()}">${mod.rank}</span>
+                                    `).join('')}
+                                </div>
+                                <div class="module-list">
+                                    ${metasploit.map(mod => `
+                                        <div class="module-item">
+                                            <div class="module-header">
+                                                <span class="module-id">#${mod.id}</span>
+                                                <span class="module-rank-badge ${mod.rank.toLowerCase()}">${mod.rank}</span>
+                                                <span class="module-type">${mod.type}</span>
+                                            </div>
+                                            <div class="module-name">${mod.name}</div>
+                                            <div class="module-path">${mod.module_name}</div>
+                                        </div>
                                     `).join('')}
                                 </div>
                             ` : '<p>Модули не найдены</p>'}

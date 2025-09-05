@@ -637,4 +637,114 @@ async def search_cve(cve_id: str):
     """
     Поиск информации о CVE с расчетом риска
     """
-    return {"success": True, "cve_id": cve_id, "message": "CVE search endpoint is working"}
+    try:
+        db = get_db()
+        
+        # Получаем данные CVE
+        cve_data = await db.cve.get_cve_by_id(cve_id)
+        if not cve_data:
+            return {
+                "success": False,
+                "error": f"CVE {cve_id} не найден в базе данных"
+            }
+        
+        # Получаем данные EPSS
+        epss_data = await db.epss.get_epss_by_cve(cve_id)
+        
+        # Получаем данные ExploitDB
+        exploitdb_data = await db.exploitdb.get_exploitdb_by_cve(cve_id)
+        
+        # Получаем данные Metasploit
+        metasploit_data = await db.metasploit.get_metasploit_by_cve(cve_id)
+        
+        # Получаем настройки системы для расчета риска
+        from database.settings_repository import SettingsRepository
+        settings_repo = SettingsRepository()
+        settings = await settings_repo.get_settings()
+        
+        # Подготавливаем данные CVE для расчета риска (как в risk_service.py)
+        cve_calculation_data = {
+            'cve_id': cve_id,
+            'cvss_v3_attack_vector': cve_data.get('cvss_v3_attack_vector'),
+            'cvss_v3_privileges_required': cve_data.get('cvss_v3_privileges_required'),
+            'cvss_v3_user_interaction': cve_data.get('cvss_v3_user_interaction'),
+            'cvss_v2_access_vector': cve_data.get('cvss_v2_access_vector'),
+            'cvss_v2_access_complexity': cve_data.get('cvss_v2_access_complexity'),
+            'cvss_v2_authentication': cve_data.get('cvss_v2_authentication')
+        }
+        
+        # Получаем тип эксплойта из ExploitDB (как в risk_service.py)
+        if exploitdb_data and isinstance(exploitdb_data, list) and len(exploitdb_data) > 0:
+            cve_calculation_data['exploitdb_type'] = exploitdb_data[0].get('type', '').lower()
+        else:
+            cve_calculation_data['exploitdb_type'] = None
+        
+        # Получаем ранг Metasploit (как в risk_service.py)
+        if metasploit_data:
+            cve_calculation_data['msf_rank'] = metasploit_data.get('rank')
+        else:
+            cve_calculation_data['msf_rank'] = None
+        
+        # Используем единую функцию расчета риска
+        from database.risk_calculation import calculate_risk_score
+        
+        epss_score = epss_data.get('epss', 0.0) if epss_data else 0.0
+        cvss_score = cve_data.get('cvss_v3_base_score') or cve_data.get('cvss_v2_base_score', 0.0)
+        
+        risk_result = calculate_risk_score(
+            epss=float(epss_score),
+            cvss=float(cvss_score) if cvss_score else None,
+            criticality='Medium',  # По умолчанию для CVE search
+            settings=settings,
+            cve_data=cve_calculation_data,
+            confidential_data=False,  # По умолчанию для CVE search
+            internet_access=True  # По умолчанию для CVE search
+        )
+        
+        # Формируем данные риска
+        risk_data = {
+            "score": risk_result.get('risk_score', 0),
+            "risk_score": risk_result.get('risk_score', 0),  # Добавляем для совместимости с JavaScript
+            "level": "HIGH" if risk_result.get('risk_score', 0) > 70 else "MEDIUM" if risk_result.get('risk_score', 0) > 30 else "LOW",
+            "factors": [],
+            "epss": epss_score,
+            "cvss_factor": (float(cvss_score) / 10) if cvss_score else 0.0,
+            "impact": risk_result.get('impact', 1.0),
+            "cve_param": risk_result.get('cve_param', 1.0),
+            "exdb_param": risk_result.get('exdb_param', 1.0),
+            "msf_param": risk_result.get('msf_param', 1.0)
+        }
+        
+        # Преобразуем Metasploit данные в массив для совместимости с JavaScript
+        metasploit_array = []
+        if metasploit_data:
+            # Добавляем поле rank как строку для совместимости с JavaScript
+            metasploit_item = dict(metasploit_data)
+            metasploit_item['rank'] = metasploit_data.get('rank_text', 'unknown')
+            metasploit_array = [metasploit_item]
+        
+        return {
+            "success": True,
+            "cve": {
+                "cve_id": cve_data['cve_id'],
+                "description": cve_data['description'],
+                "status": "PUBLISHED",  # Заглушка
+                "published_date": cve_data['published_date'],
+                "last_modified_date": cve_data['last_modified_date'],
+                "cvss_v3_score": cve_data['cvss_v3_base_score'],
+                "cvss_v3_severity": cve_data['cvss_v3_base_severity'],
+                "cvss_v2_score": cve_data['cvss_v2_base_score'],
+                "cvss_v2_severity": cve_data['cvss_v2_base_severity']
+            },
+            "epss": epss_data,
+            "exploitdb": exploitdb_data,
+            "metasploit": metasploit_array,
+            "risk": risk_data
+        }
+        
+    except Exception as e:
+        print(f"Error searching CVE {cve_id}: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

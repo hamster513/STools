@@ -503,7 +503,7 @@ async def start_background_update_parallel():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/calculate-missing-risks")
+@router.post("/api/hosts/calculate-missing-risks")
 async def calculate_missing_risks():
     """Рассчитать риски для всех хостов, которые их не имеют"""
     try:
@@ -536,7 +536,7 @@ async def calculate_missing_risks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/recalculate-all-risks")
+@router.post("/api/hosts/recalculate-all-risks")
 async def recalculate_all_risks():
     """Пересчитать риски для ВСЕХ хостов по новой формуле"""
     try:
@@ -569,7 +569,7 @@ async def recalculate_all_risks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/update-data-optimized")
+@router.post("/api/hosts/update-data-optimized")
 async def start_optimized_update():
     """Запустить оптимизированное обновление данных хостов (batch запросы)"""
     try:
@@ -600,7 +600,7 @@ async def start_optimized_update():
     except Exception as e:
         print('Optimized update error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
-@router.get("/{host_id}/risk")
+@router.get("/api/hosts/{host_id}/risk")
 async def calculate_host_risk(host_id: int):
     """Рассчитать риск для конкретного хоста"""
     try:
@@ -651,7 +651,7 @@ async def calculate_host_risk(host_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/export")
+@router.get("/api/hosts/export")
 async def export_hosts(
     hostname: str = None,
     cve: str = None,
@@ -694,7 +694,7 @@ async def export_hosts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/export-report")
+@router.post("/api/hosts/export-report")
 async def export_hosts_report(
     format: str = "excel",
     filters: dict = None,
@@ -814,7 +814,7 @@ async def export_hosts_report(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{host_id}/risk-calculation/{cve}")
+@router.get("/api/hosts/{host_id}/risk-calculation/{cve}")
 async def get_host_risk_calculation(host_id: int, cve: str):
     """Получить детали расчета риска для конкретного хоста и CVE"""
     print(f"🔍 Risk calculation request: host_id={host_id}, cve={cve}")
@@ -892,17 +892,17 @@ async def get_host_risk_calculation(host_id: int, cve: str):
         raise HTTPException(status_code=500, detail="Ошибка получения данных о риске")
 
 
-@router.get("/test-endpoint")
+@router.get("/api/hosts/test-endpoint")
 async def test_endpoint():
     """Тестовый endpoint для проверки работы роутера"""
     return {"success": True, "message": "Hosts router работает", "timestamp": datetime.now().isoformat()}
 
-@router.get("/test-risk")
+@router.get("/api/hosts/test-risk")
 async def test_risk_endpoint():
     """Тестовый endpoint для проверки risk-calculation"""
     return {"success": True, "message": "Risk endpoint доступен", "timestamp": datetime.now().isoformat()}
 
-@router.post("/clear")
+@router.post("/api/hosts/clear")
 async def clear_hosts():
     """Очистить все записи хостов"""
     try:

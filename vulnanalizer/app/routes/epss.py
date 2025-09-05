@@ -180,7 +180,7 @@ async def epss_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/preview")
+@router.get("/api/epss/preview")
 async def get_epss_preview():
     """Получить первые 20 записей EPSS для предварительного просмотра"""
     try:
@@ -221,7 +221,7 @@ async def get_epss_preview():
         print(f"Error getting EPSS preview: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/clear")
+@router.post("/api/epss/clear")
 async def clear_epss():
     """Очистить все EPSS данные"""
     try:
