@@ -9,6 +9,7 @@
     <!-- Основные CSS файлы -->
     <link rel="stylesheet" href="/static/css/main.css?v=6.26">
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
+    <link rel="stylesheet" href="/static/css/components/cve-search.css?v=1.0">
             <link rel="stylesheet" href="/vulnanalizer/css-debug/collapsible.css?v=4.4&nocache={{ range(1, 999999) | random }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
@@ -109,7 +110,13 @@
                     <div class="sidebar-tab-icon">
                         <i class="fas fa-search-plus"></i>
                     </div>
-                    <span class="sidebar-tab-title">Поиск</span>
+                    <span class="sidebar-tab-title">Поиск в активах</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="cve-search">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-bug"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Поиск по CVE</span>
                 </a>
                 <a href="#" class="sidebar-tab" data-page="hosts">
                     <div class="sidebar-tab-icon">
@@ -244,6 +251,37 @@
                                 Следующая <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Страница поиска по CVE -->
+            <div id="cve-search-page" class="page-content">
+                <div class="content-header">
+                    <h2>Поиск по CVE</h2>
+                    <p>Поиск информации о конкретной уязвимости</p>
+                </div>
+                
+                <div class="cve-search-container content-block">
+                    <div class="cve-search-form">
+                        <h3>Поиск CVE</h3>
+                        <form id="cve-search-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cve-id">CVE ID:</label>
+                                    <input type="text" id="cve-id" name="cve_id" placeholder="CVE-2023-1234" required>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Поиск
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div id="cve-results" class="cve-results" style="display: none;">
+                        <!-- Результаты поиска CVE будут отображаться здесь -->
                     </div>
                 </div>
             </div>
@@ -1413,7 +1451,7 @@
         <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
     <script src="/vulnanalizer/static/js/modules/auth.js?v=2.1"></script>
-            <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.3"></script>
+            <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.4"></script>
         <script src="/vulnanalizer/static/js/modules/epss.js?v=2.3"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>

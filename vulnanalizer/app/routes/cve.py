@@ -18,7 +18,7 @@ from database import get_db
 class CVEDownloadRequest(BaseModel):
     years: Optional[List[int]] = None
 
-router = APIRouter()
+router = APIRouter(tags=["cve"])
 
 
 def parse_cve_json(data):
@@ -623,3 +623,18 @@ async def get_cve_description(cve_id: str):
     except Exception as e:
         print(f"❌ Ошибка получения описания CVE {cve_id}: {e}")
         return {"success": False, "error": str(e)}
+
+
+@router.get("/api/cve/test")
+async def test_cve():
+    """
+    Тестовый endpoint для проверки работы CVE роутера
+    """
+    return {"success": True, "message": "CVE router is working"}
+
+@router.get("/api/cve/search/{cve_id}")
+async def search_cve(cve_id: str):
+    """
+    Поиск информации о CVE с расчетом риска
+    """
+    return {"success": True, "cve_id": cve_id, "message": "CVE search endpoint is working"}

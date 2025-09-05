@@ -81,7 +81,7 @@ async def import_vm_hosts():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/api/vm/status")
+@router.get("/vm/status")
 async def get_vm_status():
     """Получить статус подключения к VM MaxPatrol"""
     try:

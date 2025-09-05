@@ -6,7 +6,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from .base import DatabaseBase
-from .risk_calculation_service import RiskCalculationService
+from .hosts_update_service import HostsUpdateService
 
 
 class HostsRepository(DatabaseBase):
@@ -115,12 +115,11 @@ class HostsRepository(DatabaseBase):
             
             print(f"🚀 Начинаем импорт {total_records:,} записей с CVE (пропущено {skipped_records:,} записей без CVE)")
             
-            # Этап 1: Очистка старых записей (5%)
+            # Этап 1: Подготовка к импорту (5%)
             if progress_callback:
-                await progress_callback('cleaning', 'Очистка старых записей...', 5)
+                await progress_callback('preparing', 'Подготовка к импорту...', 5)
             
-            await conn.execute("DELETE FROM vulnanalizer.hosts")
-            print("🗑️ Старые записи очищены")
+            print("🔄 Подготовка к импорту записей")
             
             # Этап 2: Вставка записей (70%)
             batch_size = 100
@@ -129,6 +128,15 @@ class HostsRepository(DatabaseBase):
             query = """
                 INSERT INTO vulnanalizer.hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (hostname, cve) 
+                DO UPDATE SET 
+                    ip_address = EXCLUDED.ip_address,
+                    cvss = EXCLUDED.cvss,
+                    criticality = EXCLUDED.criticality,
+                    status = EXCLUDED.status,
+                    os_name = EXCLUDED.os_name,
+                    zone = EXCLUDED.zone,
+                    updated_at = CURRENT_TIMESTAMP
             """
             
             for i in range(0, total_records, batch_size):
@@ -246,7 +254,7 @@ class HostsRepository(DatabaseBase):
         epss_data = {row['cve']: row for row in epss_rows}
         
         # Получаем все CVSS данные одним запросом
-        cve_query = "SELECT cve_id as cve, cvss_v3_base_score, cvss_v2_base_score FROM vulnanalizer.cve WHERE cve_id = ANY($1::text[])"
+        cve_query = "SELECT cve_id as cve, cvss_v3_base_score, cvss_v2_base_score, cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction, cvss_v2_access_vector, cvss_v2_access_complexity, cvss_v2_authentication FROM vulnanalizer.cve WHERE cve_id = ANY($1::text[])"
         cve_rows_data = await conn.fetch(cve_query, cve_list)
         cve_data = {row['cve']: row for row in cve_rows_data}
         
@@ -256,7 +264,6 @@ class HostsRepository(DatabaseBase):
             FROM vulnanalizer.exploitdb 
             WHERE codes IS NOT NULL AND split_part(codes, ';', 1) LIKE 'CVE-%'
             GROUP BY split_part(codes, ';', 1)
-            LIMIT 10000
         """
         try:
             # Добавляем таймаут для запроса
@@ -311,7 +318,7 @@ class HostsRepository(DatabaseBase):
                     # Продолжаем обработку даже без EPSS для обновления информации об эксплойтах
                 
                 # Получаем хосты для этого CVE
-                hosts_query = "SELECT id, cvss, criticality FROM vulnanalizer.hosts WHERE cve = $1"
+                hosts_query = "SELECT id, cvss, criticality, confidential_data, internet_access FROM vulnanalizer.hosts WHERE cve = $1"
                 hosts_rows = await conn.fetch(hosts_query, cve)
                 
                 if not hosts_rows:
@@ -339,8 +346,8 @@ class HostsRepository(DatabaseBase):
                             cvss_score = float(host_row['cvss'])
                             cvss_source = 'Host'
                         
-                        # Используем новый сервис расчета риска
-                        risk_service = RiskCalculationService()
+                        # Используем единую функцию расчета риска
+                        from database.risk_calculation import calculate_risk_score
                         
                         # Подготавливаем данные CVE для расчета
                         cve_calculation_data = {}
@@ -370,17 +377,20 @@ class HostsRepository(DatabaseBase):
                         else:
                             cve_calculation_data['msf_rank'] = None
                         
-                        # Рассчитываем риск с новой формулой
-                        risk_result = risk_service.calculate_risk_score_fast(
+                        # Рассчитываем риск с единой функцией
+                        risk_result = calculate_risk_score(
                             epss=epss_score,
                             cvss=cvss_score,
                             criticality=criticality,
                             settings=settings,
-                            cve_data=cve_calculation_data
+                            cve_data=cve_calculation_data,
+                            confidential_data=host_row.get('confidential_data', False),
+                            internet_access=host_row.get('internet_access', False)
                         )
                         
                         risk_score = risk_result['risk_score']
                         raw_risk = risk_result['raw_risk']
+                        
                         
                         if cve_data_row and cve_data_row['cvss_v3_base_score'] is not None:
                             cvss_score = float(cve_data_row['cvss_v3_base_score'])
@@ -739,6 +749,15 @@ class HostsRepository(DatabaseBase):
                         query = """
                             INSERT INTO vulnanalizer.hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                            ON CONFLICT (hostname, cve) 
+                            DO UPDATE SET 
+                                ip_address = EXCLUDED.ip_address,
+                                cvss = EXCLUDED.cvss,
+                                criticality = EXCLUDED.criticality,
+                                status = EXCLUDED.status,
+                                os_name = EXCLUDED.os_name,
+                                zone = EXCLUDED.zone,
+                                updated_at = CURRENT_TIMESTAMP
                         """
                         await conn.execute(query, 
                             hostname, ip_address, cve, None, criticality, 'Active', 

@@ -8,7 +8,7 @@ from .cve_repository import CVERepository
 from .hosts_repository import HostsRepository
 from .background_tasks_repository import BackgroundTasksRepository
 from .settings_repository import SettingsRepository
-from .risk_calculation_service import RiskCalculationService
+from .hosts_update_service import HostsUpdateService
 from .metasploit_repository import MetasploitRepository
 
 # Класс Database для обратной совместимости
@@ -31,7 +31,7 @@ class NewDatabase:
             self.metasploit = MetasploitRepository()
             self.background_tasks = BackgroundTasksRepository()
             self.settings = SettingsRepository()
-            self.risk_calculation = RiskCalculationService()
+            self.hosts_update = HostsUpdateService()
         
         async def get_connection(self):
             """Получить соединение из базового класса"""
@@ -141,7 +141,7 @@ class NewDatabase:
 
         async def update_hosts_epss_and_exploits_background(self, progress_callback=None):
             """Обновить EPSS и ExploitDB данные для хостов"""
-            return await self.risk_calculation.update_hosts_complete(progress_callback)
+            return await self.hosts_update.update_hosts_complete(progress_callback)
 
         async def get_exploitdb_by_cve(self, cve_id: str):
             """Получить данные ExploitDB по CVE ID"""
@@ -209,11 +209,11 @@ class NewDatabase:
 
         async def update_hosts_complete(self, progress_callback=None):
             """Полное обновление хостов: EPSS, CVSS, ExploitDB, Metasploit"""
-            return await self.risk_calculation.update_hosts_complete(progress_callback)
+            return await self.hosts_update.update_hosts_complete(progress_callback)
 
         async def update_hosts_incremental(self, progress_callback=None, days_old=1):
             """Инкрементальное обновление хостов"""
-            return await self.risk_calculation.update_hosts_incremental(progress_callback, days_old)
+            return await self.hosts_update.update_hosts_incremental(progress_callback, days_old)
 
 # Функция get_db для обратной совместимости
 def get_db():
@@ -228,7 +228,7 @@ __all__ = [
     'HostsRepository',
     'BackgroundTasksRepository',
     'SettingsRepository',
-    'RiskCalculationService',
+    'HostsUpdateService',
     'Database',
     'get_db'
 ]

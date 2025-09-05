@@ -382,11 +382,11 @@ class SchedulerService:
             if update_type == 'optimized_batch':
                 print(f"🚀 Используем полное обновление хостов")
                 # Запускаем полное обновление данных хостов
-                result = await self.db.risk_calculation.update_hosts_complete(update_progress)
+                result = await self.db.hosts_update.update_hosts_complete(update_progress)
             else:
                 print(f"🔄 Используем стандартный параллельный метод обновления")
                 # Запускаем стандартное обновление данных хостов
-                result = await self.db.update_hosts_epss_and_exploits_background(update_progress)
+                result = await self.db.hosts_update.update_hosts_complete(update_progress)
             
             # Обновляем финальный статус
             if result['success']:

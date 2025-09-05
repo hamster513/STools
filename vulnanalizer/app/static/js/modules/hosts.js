@@ -55,6 +55,13 @@ class HostsModule {
         if (hostsForm) {
             hostsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Защита от дублирования запросов
+                if (this.isUploading) {
+                    console.log('Загрузка уже выполняется, пропускаем дублирующий запрос');
+                    return;
+                }
+                
                 await this.uploadHosts();
             });
         }
@@ -660,9 +667,18 @@ class HostsModule {
     }
 
     async uploadHosts() {
+        // Защита от дублирования запросов
+        if (this.isUploading) {
+            console.log('Загрузка уже выполняется, пропускаем дублирующий запрос');
+            return;
+        }
+        
+        this.isUploading = true;
+        
         const fileInput = document.getElementById('hosts-file');
         if (!fileInput.files.length) {
             window.notifications.show('Выберите файл для загрузки', 'warning');
+            this.isUploading = false;
             return;
         }
         
@@ -748,6 +764,9 @@ class HostsModule {
                 this.hideImportProgress();
             }, 3000);
         } finally {
+            // Сбрасываем флаг загрузки
+            this.isUploading = false;
+            
             // Восстанавливаем кнопку только если произошла ошибка
             // При успешной загрузке кнопка уже восстановлена выше
             if (!data || !data.success) {

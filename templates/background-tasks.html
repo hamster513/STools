@@ -14,6 +14,9 @@
             <button type="button" id="refresh-tasks-btn" class="btn btn-secondary btn-sm">
                 <i class="fas fa-sync-alt"></i> Обновить
             </button>
+            <button type="button" id="clear-tasks-btn" class="btn btn-danger btn-sm" style="margin-left: 10px;">
+                <i class="fas fa-trash"></i> Очистить задачи
+            </button>
         </div>
         
         <!-- Статистика -->
@@ -39,6 +42,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="/static/js/background-tasks-new.js?v=1.2"></script>
+<script src="/static/js/background-tasks.js?v=2.0"></script>
 {% endblock %}
 

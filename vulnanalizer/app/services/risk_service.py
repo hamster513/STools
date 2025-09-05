@@ -41,34 +41,6 @@ def calculate_impact(settings: dict) -> float:
     return impact
 
 
-def calculate_risk_score(epss: float, cvss: float, settings: dict) -> Dict:
-    """Рассчитать риск по формуле: raw_risk = EPSS * (CVSS / 10) * Impact"""
-    if epss is None or cvss is None:
-        return {
-            'raw_risk': None,
-            'risk_score': None,
-            'calculation_possible': False,
-            'impact': None
-        }
-    
-    # Конвертируем в float если это decimal
-    epss = float(epss) if hasattr(epss, 'as_tuple') else float(epss)
-    cvss = float(cvss) if hasattr(cvss, 'as_tuple') else float(cvss)
-    
-    # Рассчитываем Impact на основе настроек
-    impact = calculate_impact(settings)
-    
-    raw_risk = epss * (cvss / 10) * impact
-    risk_score = min(1, raw_risk) * 100
-    
-    return {
-        'raw_risk': raw_risk,
-        'risk_score': risk_score,
-        'calculation_possible': True,
-        'impact': impact
-    }
-
-
 async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
     """Получить детали расчета риска для конкретного хоста и CVE"""
     print(f"🔍 Risk service: host_id={host_id}, cve={cve}")
@@ -84,7 +56,8 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                 SELECT 
                     h.hostname, h.ip_address, h.criticality, h.risk_score,
                     h.cvss, h.cvss_source, h.epss_score, h.exploits_count,
-                    h.epss_updated_at, h.exploits_updated_at, h.risk_updated_at
+                    h.epss_updated_at, h.exploits_updated_at, h.risk_updated_at,
+                    h.confidential_data, h.internet_access
                 FROM vulnanalizer.hosts h
                 WHERE h.id = $1 AND h.cve = $2
             """
@@ -95,14 +68,14 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                 return {}
             
             # Получаем настройки системы
-            settings_query = "SELECT * FROM vulnanalizer.settings WHERE id = 1"
-            settings_row = await conn.fetchrow(settings_query)
-            settings = dict(settings_row) if settings_row else {}
+            from database.settings_repository import SettingsRepository
+            settings_repo = SettingsRepository()
+            settings = await settings_repo.get_settings()
             
             # Используем реальный сервис расчета риска
             try:
-                from database.risk_calculation_service import RiskCalculationService
-                risk_service = RiskCalculationService()
+                from database.hosts_update_service import HostsUpdateService
+                hosts_update_service = HostsUpdateService()
                 
                 # Получаем данные CVE для расчета
                 cve_query = """
@@ -113,6 +86,7 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                 """
                 cve_row = await conn.fetchrow(cve_query, cve)
                 cve_data = dict(cve_row) if cve_row else {}
+                cve_data['cve_id'] = cve
                 
                 # Сохраняем CVSS метрики для отображения в деталях
                 cvss_metrics = {
@@ -158,13 +132,16 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                     print(f"⚠️ Error getting Metasploit data: {e}")
                     cve_data['msf_rank'] = None
                 
-                # Рассчитываем риск по реальной формуле
-                risk_result = risk_service.calculate_risk_score_fast(
+                # Рассчитываем риск по единой функции
+                from database.risk_calculation import calculate_risk_score
+                risk_result = calculate_risk_score(
                     epss=float(host_row['epss_score']) if host_row['epss_score'] else 0,
                     cvss=float(host_row['cvss']) if host_row['cvss'] else 0,
                     criticality=host_row['criticality'],
                     settings=settings,
-                    cve_data=cve_data
+                    cve_data=cve_data,
+                    confidential_data=host_row.get('confidential_data', False),
+                    internet_access=host_row.get('internet_access', False)
                 )
                 
                 # Формируем детали расчета
@@ -194,31 +171,25 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                 
             except Exception as e:
                 print(f"⚠️ Error using real risk service: {e}")
-                # Fallback к простому расчету
-                epss = float(host_row['epss_score']) if host_row['epss_score'] else 0
-                cvss = float(host_row['cvss']) if host_row['cvss'] else 0
-                impact = 0.73  # Значение по умолчанию для Impact
-                
-                calculated_risk = epss * (cvss / 10) * impact
-                calculated_risk_percent = min(1, calculated_risk) * 100
-                
+                # Возвращаем пустые детали в случае ошибки
                 calculation_details = {
-                    "base_risk": round(calculated_risk * 100, 2),
-                    "criticality_multiplier": get_criticality_multiplier(host_row['criticality']),
-                    "epss_multiplier": get_epss_multiplier(host_row['epss_score']),
-                    "exploits_multiplier": get_exploits_multiplier(host_row['exploits_count']),
-                    "final_calculation": f"{calculated_risk_percent:.2f}%",
-                    "impact": impact,
+                    "error": f"Ошибка расчета риска: {str(e)}",
+                    "base_risk": 0,
+                    "final_calculation": "0.00%",
+                    "impact": 0,
                     "cve_param": 1.0,
                     "exdb_param": 1.0,
                     "msf_param": 1.0,
-                    "calculated_risk": calculated_risk,
-                    "calculated_risk_percent": calculated_risk_percent,
+                    "calculated_risk": 0,
+                    "calculated_risk_percent": 0,
                     "formula_components": {
-                        "epss": epss,
-                        "cvss": cvss,
-                        "cvss_factor": cvss / 10,
-                        "impact": impact
+                        "epss": 0,
+                        "cvss": 0,
+                        "cvss_factor": 0,
+                        "impact": 0,
+                        "cve_param": 1.0,
+                        "exdb_param": 1.0,
+                        "msf_param": 1.0
                     },
                     **cvss_metrics
                 }

@@ -266,6 +266,37 @@ async def cancel_background_task(task_type: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/background-tasks/clear")
+async def clear_background_tasks():
+    """Очистить все завершенные фоновые задачи"""
+    try:
+        db = get_db()
+        conn = await db.get_connection()
+        
+        try:
+            # Удаляем все завершенные задачи (completed, error, cancelled)
+            query = """
+                DELETE FROM vulnanalizer.background_tasks 
+                WHERE status IN ('completed', 'error', 'cancelled')
+            """
+            result = await conn.execute(query)
+            
+            # Получаем количество удаленных записей
+            deleted_count = int(result.split()[-1]) if result.split()[-1].isdigit() else 0
+            
+            return {
+                "success": True, 
+                "message": f"Удалено {deleted_count} завершенных задач",
+                "deleted_count": deleted_count
+            }
+        finally:
+            await db.release_connection(conn)
+            
+    except Exception as e:
+        print(f"Error clearing background tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/api/settings")
 async def get_settings(request: Request):
     """Получить настройки приложения"""

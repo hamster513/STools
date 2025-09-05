@@ -43,6 +43,15 @@ class ApiModule {
             
             // Проверяем статус ответа
             if (!response.ok) {
+                // Для 422 ошибок пытаемся получить детали из ответа
+                if (response.status === 422) {
+                    try {
+                        const errorData = await response.json();
+                        throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
+                    } catch (parseError) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
@@ -85,7 +94,9 @@ class ApiModule {
         if (data) {
             if (data instanceof FormData) {
                 // Для FormData убираем Content-Type, браузер сам установит
-                delete options.headers['Content-Type'];
+                if (options.headers && options.headers['Content-Type']) {
+                    delete options.headers['Content-Type'];
+                }
                 options.body = data;
             } else {
                 options.body = JSON.stringify(data);

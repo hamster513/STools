@@ -488,6 +488,15 @@ class VulnAnalizer {
             });
         }
 
+        // Форма поиска CVE
+        const cveSearchForm = document.getElementById('cve-search-form');
+        if (cveSearchForm) {
+            cveSearchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.searchCVE();
+            });
+        }
+
         // Обработка ползунка порога риска
         const thresholdSlider = document.getElementById('risk-threshold');
         const thresholdValue = document.getElementById('threshold-value');
@@ -2054,6 +2063,229 @@ class VulnAnalizer {
             console.error('Error saving impact settings:', error);
             this.showNotification('Ошибка сохранения настроек Impact', 'error');
         }
+    }
+
+    // Поиск CVE
+    async searchCVE() {
+        const cveId = document.getElementById('cve-id').value.trim();
+        if (!cveId) {
+            this.showNotification('Введите CVE ID', 'warning');
+            return;
+        }
+
+        // Валидация формата CVE
+        if (!/^CVE-\d{4}-\d+$/i.test(cveId)) {
+            this.showNotification('Неверный формат CVE ID. Используйте формат: CVE-2023-1234', 'warning');
+            return;
+        }
+
+        try {
+            this.showNotification('Поиск CVE...', 'info');
+            
+            const response = await fetch(this.getApiBasePath() + `/cve/search/${cveId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    this.showNotification(`CVE ${cveId} не найдена в базе данных`, 'warning');
+                    this.displayCVENotFound(cveId);
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            this.displayCVEResults(data);
+            this.showNotification(`Информация о ${cveId} загружена`, 'success');
+
+        } catch (error) {
+            console.error('Error searching CVE:', error);
+            this.showNotification('Ошибка поиска CVE', 'error');
+        }
+    }
+
+    // Отображение результатов поиска CVE
+    displayCVEResults(data) {
+        const resultsContainer = document.getElementById('cve-results');
+        if (!resultsContainer) return;
+
+        const cve = data.cve;
+        const epss = data.epss;
+        const exploitdb = data.exploitdb;
+        const metasploit = data.metasploit;
+        const risk = data.risk;
+
+        resultsContainer.innerHTML = `
+            <div class="cve-details">
+                <div class="cve-header">
+                    <h3>${cve.cve_id}</h3>
+                    <div class="cve-status">
+                        <span class="status-badge ${cve.status === 'PUBLISHED' ? 'published' : 'draft'}">${cve.status}</span>
+                    </div>
+                </div>
+                
+                <div class="cve-info-grid">
+                    <div class="info-card">
+                        <h4><i class="fas fa-info-circle"></i> Основная информация</h4>
+                        <div class="info-item">
+                            <strong>Описание:</strong>
+                            <p>${cve.description || 'Описание недоступно'}</p>
+                        </div>
+                        <div class="info-item">
+                            <strong>Дата публикации:</strong>
+                            <span>${cve.published_date || 'Не указана'}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Дата последнего изменения:</strong>
+                            <span>${cve.last_modified_date || 'Не указана'}</span>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h4><i class="fas fa-shield-alt"></i> CVSS</h4>
+                        <div class="cvss-info">
+                            <div class="cvss-score">
+                                <span class="score-value ${this.getCVSSSeverityClass(cve.cvss_v3_score || cve.cvss_v2_score)}">
+                                    ${cve.cvss_v3_score || cve.cvss_v2_score || 'N/A'}
+                                </span>
+                                <span class="score-label">CVSS ${cve.cvss_v3_score ? 'v3' : 'v2'}</span>
+                            </div>
+                            <div class="cvss-vector">
+                                <strong>Вектор:</strong> ${cve.cvss_v3_vector || cve.cvss_v2_vector || 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h4><i class="fas fa-chart-line"></i> EPSS</h4>
+                        <div class="epss-info">
+                            <div class="epss-score">
+                                <span class="score-value">${epss ? (epss.epss * 100).toFixed(2) : 'N/A'}%</span>
+                                <span class="score-label">Вероятность эксплуатации</span>
+                            </div>
+                            <div class="epss-percentile">
+                                <strong>Перцентиль:</strong> ${epss ? epss.percentile : 'N/A'}
+                            </div>
+                            <div class="epss-date">
+                                <strong>Дата:</strong> ${epss ? epss.date : 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h4><i class="fas fa-bug"></i> ExploitDB</h4>
+                        <div class="exploitdb-info">
+                            ${exploitdb && exploitdb.length > 0 ? `
+                                <div class="exploit-count">
+                                    <span class="count-value">${exploitdb.length}</span>
+                                    <span class="count-label">эксплойтов найдено</span>
+                                </div>
+                                <div class="exploit-types">
+                                    ${exploitdb.map(exp => `
+                                        <span class="exploit-type ${exp.type.toLowerCase()}">${exp.type}</span>
+                                    `).join('')}
+                                </div>
+                            ` : '<p>Эксплойты не найдены</p>'}
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h4><i class="fas fa-tools"></i> Metasploit</h4>
+                        <div class="metasploit-info">
+                            ${metasploit && metasploit.length > 0 ? `
+                                <div class="module-count">
+                                    <span class="count-value">${metasploit.length}</span>
+                                    <span class="count-label">модулей найдено</span>
+                                </div>
+                                <div class="module-ranks">
+                                    ${metasploit.map(mod => `
+                                        <span class="module-rank ${mod.rank.toLowerCase()}">${mod.rank}</span>
+                                    `).join('')}
+                                </div>
+                            ` : '<p>Модули не найдены</p>'}
+                        </div>
+                    </div>
+
+                    <div class="info-card risk-card">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Расчет риска</h4>
+                        <div class="risk-info">
+                            <div class="risk-score">
+                                <span class="score-value ${this.getRiskSeverityClass(risk.risk_score)}">
+                                    ${risk.risk_score}%
+                                </span>
+                                <span class="score-label">Общий риск</span>
+                            </div>
+                            <div class="risk-breakdown">
+                                <div class="risk-item">
+                                    <strong>EPSS:</strong> ${(risk.epss * 100).toFixed(2)}%
+                                </div>
+                                <div class="risk-item">
+                                    <strong>CVSS фактор:</strong> ${risk.cvss_factor.toFixed(2)}
+                                </div>
+                                <div class="risk-item">
+                                    <strong>Impact:</strong> ${risk.impact}
+                                </div>
+                                <div class="risk-item">
+                                    <strong>CVE параметр:</strong> ${risk.cve_param.toFixed(2)}
+                                </div>
+                                <div class="risk-item">
+                                    <strong>ExploitDB параметр:</strong> ${risk.exdb_param.toFixed(2)}
+                                </div>
+                                <div class="risk-item">
+                                    <strong>Metasploit параметр:</strong> ${risk.msf_param.toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        resultsContainer.style.display = 'block';
+    }
+
+    // Отображение сообщения о том, что CVE не найдена
+    displayCVENotFound(cveId) {
+        const resultsContainer = document.getElementById('cve-results');
+        if (!resultsContainer) return;
+
+        resultsContainer.innerHTML = `
+            <div class="cve-not-found">
+                <div class="not-found-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>CVE ${cveId} не найдена</h3>
+                <p>Данная уязвимость не найдена в базе данных. Возможные причины:</p>
+                <ul>
+                    <li>CVE ID введен неверно</li>
+                    <li>Уязвимость еще не добавлена в базу данных</li>
+                    <li>Уязвимость была удалена или архивирована</li>
+                </ul>
+            </div>
+        `;
+
+        resultsContainer.style.display = 'block';
+    }
+
+    // Получение класса для CVSS оценки
+    getCVSSSeverityClass(score) {
+        if (!score) return 'unknown';
+        if (score >= 9.0) return 'critical';
+        if (score >= 7.0) return 'high';
+        if (score >= 4.0) return 'medium';
+        return 'low';
+    }
+
+    // Получение класса для оценки риска
+    getRiskSeverityClass(score) {
+        if (score >= 80) return 'critical';
+        if (score >= 60) return 'high';
+        if (score >= 40) return 'medium';
+        return 'low';
     }
 
     // Обновление цвета ползунка порога риска

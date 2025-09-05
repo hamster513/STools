@@ -13,7 +13,6 @@ from starlette.responses import FileResponse
 from utils.file_utils import split_file_by_size, extract_compressed_file
 from utils.validation_utils import is_valid_ip
 from utils.progress_utils import update_import_progress, estimate_remaining_time, import_progress
-from services.risk_service import calculate_risk_score
 from services.excel_service import create_excel_file
 from database import get_db
 
@@ -26,9 +25,35 @@ async def upload_hosts(file: UploadFile = File(...)):
     try:
         print(f"🔄 Начинаем загрузку файла: {file.filename} ({file.size} байт)")
         
+        # Проверяем, что файл был загружен
+        if not file.filename:
+            print("❌ DEBUG: Файл не выбран")
+            raise HTTPException(status_code=422, detail="Файл не выбран")
+        
         # Проверяем размер файла (максимум 1GB для стабильности)
         if file.size and file.size > 1024 * 1024 * 1024:  # 1GB
             raise HTTPException(status_code=400, detail="Файл слишком большой. Максимальный размер: 1GB.")
+        
+        # Проверяем, что файл не пустой
+        if file.size == 0:
+            print("❌ DEBUG: Файл пустой")
+            raise HTTPException(status_code=422, detail="Файл пустой")
+        
+        # Проверяем тип файла (разрешаем CSV, TXT, ZIP, GZ, GZIP, TAR.GZ)
+        allowed_extensions = ['.csv', '.txt', '.zip', '.gz', '.gzip', '.tar.gz']
+        
+        # Определяем расширение файла (учитываем составные расширения как .tar.gz)
+        filename_lower = file.filename.lower()
+        file_extension = ''
+        if filename_lower.endswith('.tar.gz'):
+            file_extension = '.tar.gz'
+        elif '.' in filename_lower:
+            file_extension = '.' + filename_lower.split('.')[-1]
+        
+        print(f"🔍 DEBUG: Расширение файла: '{file_extension}', разрешенные: {allowed_extensions}")
+        if file_extension not in allowed_extensions:
+            print(f"❌ DEBUG: Неподдерживаемый тип файла: '{file_extension}'")
+            raise HTTPException(status_code=422, detail=f"Неподдерживаемый тип файла. Разрешены: {', '.join(allowed_extensions)}")
         
         # Загружаем файл
         content = await file.read()
@@ -478,7 +503,7 @@ async def start_background_update_parallel():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/api/hosts/calculate-missing-risks")
+@router.post("/calculate-missing-risks")
 async def calculate_missing_risks():
     """Рассчитать риски для всех хостов, которые их не имеют"""
     try:
@@ -511,7 +536,7 @@ async def calculate_missing_risks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/api/hosts/recalculate-all-risks")
+@router.post("/recalculate-all-risks")
 async def recalculate_all_risks():
     """Пересчитать риски для ВСЕХ хостов по новой формуле"""
     try:
@@ -544,7 +569,7 @@ async def recalculate_all_risks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/api/hosts/update-data-optimized")
+@router.post("/update-data-optimized")
 async def start_optimized_update():
     """Запустить оптимизированное обновление данных хостов (batch запросы)"""
     try:
@@ -575,7 +600,7 @@ async def start_optimized_update():
     except Exception as e:
         print('Optimized update error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
-@router.get("/api/hosts/{host_id}/risk")
+@router.get("/{host_id}/risk")
 async def calculate_host_risk(host_id: int):
     """Рассчитать риск для конкретного хоста"""
     try:
@@ -599,10 +624,15 @@ async def calculate_host_risk(host_id: int):
             }
         
         # Рассчитываем риск
+        from database.risk_calculation import calculate_risk_score
         risk_result = calculate_risk_score(
-            host_data.get('epss'),
-            host_data.get('cvss'),
-            settings
+            epss=host_data.get('epss'),
+            cvss=host_data.get('cvss'),
+            criticality=host_data.get('criticality', 'Medium'),
+            settings=settings,
+            cve_data=cve_data,
+            confidential_data=host_data.get('confidential_data', False),
+            internet_access=host_data.get('internet_access', False)
         )
         
         return {
@@ -621,7 +651,7 @@ async def calculate_host_risk(host_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/api/hosts/export")
+@router.get("/export")
 async def export_hosts(
     hostname: str = None,
     cve: str = None,
@@ -664,7 +694,7 @@ async def export_hosts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/api/hosts/export-report")
+@router.post("/export-report")
 async def export_hosts_report(
     format: str = "excel",
     filters: dict = None,
@@ -784,7 +814,7 @@ async def export_hosts_report(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/api/hosts/{host_id}/risk-calculation/{cve}")
+@router.get("/{host_id}/risk-calculation/{cve}")
 async def get_host_risk_calculation(host_id: int, cve: str):
     """Получить детали расчета риска для конкретного хоста и CVE"""
     print(f"🔍 Risk calculation request: host_id={host_id}, cve={cve}")
@@ -862,17 +892,17 @@ async def get_host_risk_calculation(host_id: int, cve: str):
         raise HTTPException(status_code=500, detail="Ошибка получения данных о риске")
 
 
-@router.get("/api/hosts/test-endpoint")
+@router.get("/test-endpoint")
 async def test_endpoint():
     """Тестовый endpoint для проверки работы роутера"""
     return {"success": True, "message": "Hosts router работает", "timestamp": datetime.now().isoformat()}
 
-@router.get("/api/hosts/test-risk")
+@router.get("/test-risk")
 async def test_risk_endpoint():
     """Тестовый endpoint для проверки risk-calculation"""
     return {"success": True, "message": "Risk endpoint доступен", "timestamp": datetime.now().isoformat()}
 
-@router.post("/api/hosts/clear")
+@router.post("/clear")
 async def clear_hosts():
     """Очистить все записи хостов"""
     try:
