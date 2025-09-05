@@ -356,8 +356,10 @@ body.sidebar-collapsed .top-bar {
     border: 1px solid transparent;
 }
 
-.sidebar-tab {
+.sidebar-tabs .sidebar-tab,
+.sidebar:not(.collapsed) .sidebar-tabs .sidebar-tab {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
@@ -371,14 +373,14 @@ body.sidebar-collapsed .top-bar {
     border: 1px solid transparent;
 }
 
-.sidebar-tab:hover {
+.sidebar-tabs .sidebar-tab:hover {
     color: var(--text-primary);
     background: var(--surface-color-dark);
     transform: translateX(4px);
     box-shadow: var(--shadow-md);
 }
 
-.sidebar-tab.active {
+.sidebar-tabs .sidebar-tab.active {
     color: var(--text-inverse);
     background: var(--primary-color);
     box-shadow: var(--shadow-lg);
@@ -670,4 +672,31 @@ body.sidebar-collapsed .top-bar {
 .modern-dropdown .user-role {
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
+}
+
+/* Принудительное горизонтальное выравнивание для sidebar-tab */
+.sidebar .sidebar-tabs .sidebar-tab,
+.sidebar:not(.collapsed) .sidebar-tabs .sidebar-tab,
+.sidebar.collapsed .sidebar-tabs .sidebar-tab {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+/* Дополнительное правило для обеспечения горизонтального выравнивания */
+.sidebar-tab[data-page="settings"] {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+/* CSS классы для управления видимостью sidebar элементов */
+.sidebar-tab.visible {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.sidebar-tab.hidden {
+    display: none;
 }

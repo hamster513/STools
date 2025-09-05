@@ -507,4 +507,15 @@
         width: 100%;
     }
 }
+/* CSS классы для управления видимостью sidebar элементов */
+.sidebar-tab.visible {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.sidebar-tab.hidden {
+    display: none;
+}
+
 /* DEBUG: Файл обновлен в Mon Sep  1 22:04:37 UTC 2025 */

@@ -389,8 +389,18 @@ class UIManager {
     // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
     async checkUserPermissions() {
         try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                this.updateMenuVisibility(false);
+                return;
+            }
+
             // Проверяем права пользователя
-            const response = await fetch('/auth/api/me');
+            const response = await fetch('/auth/api/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const user = await response.json();
                 this.updateMenuVisibility(user.is_admin);
@@ -423,6 +433,18 @@ class UIManager {
                 }
             }
         });
+        
+        // Управляем видимостью sidebar элементов через CSS классы
+        const sidebarSettings = document.querySelector('.sidebar-tab[data-page="settings"]');
+        if (sidebarSettings) {
+            if (isAdmin) {
+                sidebarSettings.classList.remove('hidden');
+                sidebarSettings.classList.add('visible');
+            } else {
+                sidebarSettings.classList.remove('visible');
+                sidebarSettings.classList.add('hidden');
+            }
+        }
     }
 
     // ===== DROP ZONES =====

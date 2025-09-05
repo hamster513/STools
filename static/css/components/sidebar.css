@@ -38,6 +38,7 @@
 
 .sidebar-tab {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);

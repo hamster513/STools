@@ -121,9 +121,11 @@ class NavigationModule {
             const tab = document.querySelector(`[data-page="${tabName}"]`);
             if (tab) {
                 if (isAdmin) {
-                    tab.style.display = 'block';
+                    tab.classList.remove('hidden');
+                    tab.classList.add('visible');
                 } else {
-                    tab.style.display = 'none';
+                    tab.classList.remove('visible');
+                    tab.classList.add('hidden');
                 }
             }
         });

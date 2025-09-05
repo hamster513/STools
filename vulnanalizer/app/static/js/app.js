@@ -233,10 +233,12 @@ class VulnAnalizer {
             if (tab) {
                 if (isAdmin) {
                     console.log(`✅ Показываем вкладку ${tabName}`);
-                    tab.style.setProperty('display', 'block', 'important');
+                    tab.classList.remove('hidden');
+                    tab.classList.add('visible');
                 } else {
                     console.log(`❌ Скрываем вкладку ${tabName}`);
-                    tab.style.setProperty('display', 'none', 'important');
+                    tab.classList.remove('visible');
+                    tab.classList.add('hidden');
                 }
             } else {
                 console.log(`⚠️ Вкладка ${tabName} не найдена!`);
