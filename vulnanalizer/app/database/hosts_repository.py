@@ -258,12 +258,20 @@ class HostsRepository(DatabaseBase):
         cve_rows_data = await conn.fetch(cve_query, cve_list)
         cve_data = {row['cve']: row for row in cve_rows_data}
         
-        # Получаем все ExploitDB данные одним запросом (оптимизированно)
+        # Получаем все ExploitDB данные одним запросом (исправленная логика)
+        # Создаем временную таблицу для разбора всех CVE из поля codes
         exploitdb_query = """
-            SELECT DISTINCT split_part(codes, ';', 1) as cve_id, COUNT(*) as exploit_count
-            FROM vulnanalizer.exploitdb 
-            WHERE codes IS NOT NULL AND split_part(codes, ';', 1) LIKE 'CVE-%'
-            GROUP BY split_part(codes, ';', 1)
+            WITH cve_exploits AS (
+                SELECT 
+                    unnest(string_to_array(codes, ';')) as cve_id,
+                    exploit_id
+                FROM vulnanalizer.exploitdb 
+                WHERE codes IS NOT NULL AND codes LIKE '%CVE-%'
+            )
+            SELECT cve_id, COUNT(*) as exploit_count
+            FROM cve_exploits 
+            WHERE cve_id LIKE 'CVE-%'
+            GROUP BY cve_id
         """
         try:
             # Добавляем таймаут для запроса

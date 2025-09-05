@@ -54,13 +54,20 @@ class HostsUpdateService(DatabaseBase):
             cve_data = {row['cve']: row for row in cve_rows_data}
             print(f"✅ Loaded CVSS data: {len(cve_data)} CVE")
             
-            # Получаем все ExploitDB данные одним batch запросом
+            # Получаем все ExploitDB данные одним batch запросом (исправленная логика)
             exploitdb_query = """
-                SELECT DISTINCT split_part(codes, ';', 1) as cve_id, COUNT(*) as exploit_count
-                FROM vulnanalizer.exploitdb 
-                WHERE codes IS NOT NULL AND split_part(codes, ';', 1) LIKE 'CVE-%'
-                GROUP BY split_part(codes, ';', 1)
-                ORDER BY split_part(codes, ';', 1)
+                WITH cve_exploits AS (
+                    SELECT 
+                        unnest(string_to_array(codes, ';')) as cve_id,
+                        exploit_id
+                    FROM vulnanalizer.exploitdb 
+                    WHERE codes IS NOT NULL AND codes LIKE '%CVE-%'
+                )
+                SELECT cve_id, COUNT(*) as exploit_count
+                FROM cve_exploits 
+                WHERE cve_id LIKE 'CVE-%'
+                GROUP BY cve_id
+                ORDER BY cve_id
             """
             try:
                 exploitdb_rows = await asyncio.wait_for(conn.fetch(exploitdb_query), timeout=30.0)
@@ -70,12 +77,22 @@ class HostsUpdateService(DatabaseBase):
                 print("⚠️ ExploitDB query timeout, using empty data")
                 exploitdb_data = {}
             
-            # Получаем все Metasploit данные одним batch запросом
+            # Получаем все Metasploit данные одним batch запросом (исправленная логика)
             metasploit_query = """
-                SELECT DISTINCT split_part("references", ';', 1) as cve_id, rank
-                FROM vulnanalizer.metasploit_modules 
-                WHERE "references" IS NOT NULL AND split_part("references", ';', 1) LIKE 'CVE-%'
-                ORDER BY split_part("references", ';', 1)
+                WITH cve_metasploit AS (
+                    SELECT 
+                        unnest(string_to_array("references", ',')) as cve_ref,
+                        rank
+                    FROM vulnanalizer.metasploit_modules 
+                    WHERE "references" IS NOT NULL AND "references" LIKE '%CVE-%'
+                )
+                SELECT 
+                    TRIM(cve_ref) as cve_id, 
+                    MAX(rank) as rank
+                FROM cve_metasploit 
+                WHERE TRIM(cve_ref) LIKE 'CVE-%'
+                GROUP BY TRIM(cve_ref)
+                ORDER BY TRIM(cve_ref)
             """
             try:
                 metasploit_rows = await asyncio.wait_for(conn.fetch(metasploit_query), timeout=30.0)
@@ -132,9 +149,23 @@ class HostsUpdateService(DatabaseBase):
                                     'cvss_v2_authentication': cve_data_row.get('cvss_v2_authentication')
                                 })
                             
-                            # Добавляем данные ExploitDB для ExDB_param
+                            # Добавляем данные ExploitDB для ExDB_param (исправленная логика)
                             if exploit_count > 0:
-                                exdb_query = "SELECT type FROM vulnanalizer.exploitdb WHERE codes LIKE $1 LIMIT 1"
+                                exdb_query = """
+                                    SELECT type FROM vulnanalizer.exploitdb 
+                                    WHERE codes LIKE $1 
+                                    ORDER BY 
+                                        CASE type 
+                                            WHEN 'remote' THEN 1
+                                            WHEN 'webapps' THEN 2
+                                            WHEN 'local' THEN 3
+                                            WHEN 'hardware' THEN 4
+                                            WHEN 'dos' THEN 5
+                                            ELSE 6
+                                        END,
+                                        date_published DESC
+                                    LIMIT 1
+                                """
                                 exdb_row = await conn.fetchrow(exdb_query, f'%{cve}%')
                                 if exdb_row and exdb_row['type']:
                                     cve_param_data['exploitdb_type'] = exdb_row['type']
@@ -272,14 +303,44 @@ class HostsUpdateService(DatabaseBase):
                             'cvss_v2_authentication': cve_row.get('cvss_v2_authentication')
                         })
                     
-                    # Получаем ExploitDB данные
-                    exdb_query = "SELECT type FROM vulnanalizer.exploitdb WHERE codes LIKE $1 LIMIT 1"
+                    # Получаем ExploitDB данные и подсчитываем эксплойты (исправленная логика)
+                    exdb_query = """
+                        SELECT type FROM vulnanalizer.exploitdb 
+                        WHERE codes LIKE $1 
+                        ORDER BY 
+                            CASE type 
+                                WHEN 'remote' THEN 1
+                                WHEN 'webapps' THEN 2
+                                WHEN 'local' THEN 3
+                                WHEN 'hardware' THEN 4
+                                WHEN 'dos' THEN 5
+                                ELSE 6
+                            END,
+                            date_published DESC
+                        LIMIT 1
+                    """
                     exdb_row = await conn.fetchrow(exdb_query, f'%{host_row["cve"]}%')
                     if exdb_row and exdb_row['type']:
                         cve_data['exploitdb_type'] = exdb_row['type']
                     
-                    # Получаем Metasploit данные
-                    msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" LIKE $1 LIMIT 1"
+                    # Подсчитываем количество эксплойтов с исправленной логикой
+                    exploit_count_query = """
+                        WITH cve_exploits AS (
+                            SELECT 
+                                unnest(string_to_array(codes, ';')) as cve_id,
+                                exploit_id
+                            FROM vulnanalizer.exploitdb 
+                            WHERE codes IS NOT NULL AND codes LIKE '%CVE-%'
+                        )
+                        SELECT COUNT(*) as exploit_count
+                        FROM cve_exploits 
+                        WHERE cve_id = $1
+                    """
+                    exploit_count_row = await conn.fetchrow(exploit_count_query, host_row['cve'])
+                    exploit_count = exploit_count_row['exploit_count'] if exploit_count_row else 0
+                    
+                    # Получаем Metasploit данные (исправленная логика)
+                    msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" ILIKE $1 ORDER BY rank DESC LIMIT 1"
                     msf_row = await conn.fetchrow(msf_query, f'%{host_row["cve"]}%')
                     if msf_row and msf_row['rank'] is not None:
                         cve_data['msf_rank'] = msf_row['rank']

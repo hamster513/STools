@@ -192,23 +192,17 @@ def _calculate_exdb_param(cve_data: dict = None, settings: dict = None) -> float
     if not settings:
         settings = {}
     
-    # Настройки по умолчанию
-    default_exdb = {
-        'remote': 0.8,
-        'webapps': 0.85,
-        'dos': 0.8,
-        'local': 0.9,
-        'hardware': 0.7
-    }
-    
-    # Читаем настройки из базы данных
+    # Читаем настройки из базы данных (без hardcoded значений)
     exdb_settings = {}
-    for key in default_exdb.keys():
-        setting_key = f'exploitdb_{key}'
+    exploit_types = ['remote', 'webapps', 'dos', 'local', 'hardware']
+    
+    for exdb_type in exploit_types:
+        setting_key = f'exdb_{exdb_type}'
         if setting_key in settings:
-            exdb_settings[key] = float(settings[setting_key])
+            exdb_settings[exdb_type] = float(settings[setting_key])
         else:
-            exdb_settings[key] = default_exdb[key]
+            # Если настройка не найдена, используем нейтральное значение
+            exdb_settings[exdb_type] = 1.0
     
     # Отладочный вывод для CVE-2017-0144
     if cve_data and cve_data.get('cve_id') == 'CVE-2017-0144':
@@ -230,40 +224,40 @@ def _calculate_msf_param(cve_data: dict = None, settings: dict = None) -> float:
     if not settings:
         settings = {}
     
-    # Настройки по умолчанию
-    default_msf = {
-        'excellent': 1.3,
-        'good': 1.1,
-        'normal': 1.0,
-        'average': 0.9,
-        'low': 0.8,
-        'unknown': 1.0,
-        'manual': 0.7
-    }
-    
-    # Читаем настройки из базы данных
+    # Читаем настройки из базы данных (без hardcoded значений)
     msf_settings = {}
-    for key in default_msf.keys():
-        setting_key = f'metasploit_{key}'
+    msf_types = ['excellent', 'good', 'normal', 'average', 'low', 'unknown', 'manual']
+    
+    for msf_type in msf_types:
+        setting_key = f'msf_{msf_type}'
         if setting_key in settings:
-            msf_settings[key] = float(settings[setting_key])
+            msf_settings[msf_type] = float(settings[setting_key])
         else:
-            msf_settings[key] = default_msf[key]
+            # Если настройка не найдена, используем нейтральное значение
+            msf_settings[msf_type] = 1.0
     
     # Если msf_rank - число, конвертируем в строку
     if isinstance(msf_rank, (int, float)):
         # Маппинг числовых рангов Metasploit в строковые
-        if msf_rank >= 1000:
+        if msf_rank >= 600:
             msf_rank = 'excellent'
         elif msf_rank >= 500:
             msf_rank = 'good'
-        elif msf_rank >= 300:
+        elif msf_rank >= 400:
             msf_rank = 'normal'
-        elif msf_rank >= 200:
+        elif msf_rank >= 300:
             msf_rank = 'average'
-        elif msf_rank >= 100:
+        elif msf_rank >= 200:
             msf_rank = 'low'
+        elif msf_rank >= 100:
+            msf_rank = 'manual'
         else:
             msf_rank = 'unknown'
+    
+    # Отладочный вывод для CVE-2017-0144
+    if cve_data and cve_data.get('cve_id') == 'CVE-2017-0144':
+        print(f"🔍 DEBUG _calculate_msf_param: msf_rank={msf_rank}")
+        print(f"🔍 DEBUG _calculate_msf_param: msf_settings={msf_settings}")
+        print(f"🔍 DEBUG _calculate_msf_param: result={msf_settings.get(msf_rank, 1.0)}")
     
     return msf_settings.get(msf_rank, 1.0)

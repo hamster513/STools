@@ -98,11 +98,20 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                     'cvss_v2_authentication': cve_data.get('cvss_v2_authentication')
                 }
                 
-                # Получаем реальный тип эксплойта из ExploitDB
+                # Получаем наиболее критичный тип эксплойта из ExploitDB
                 exdb_query = """
                     SELECT type FROM vulnanalizer.exploitdb 
                     WHERE codes LIKE '%' || $1 || '%' 
-                    ORDER BY date_published DESC 
+                    ORDER BY 
+                        CASE type 
+                            WHEN 'remote' THEN 1
+                            WHEN 'webapps' THEN 2
+                            WHEN 'local' THEN 3
+                            WHEN 'hardware' THEN 4
+                            WHEN 'dos' THEN 5
+                            ELSE 6
+                        END,
+                        date_published DESC
                     LIMIT 1
                 """
                 try:
@@ -118,7 +127,7 @@ async def get_risk_calculation_details(host_id: int, cve: str) -> Dict:
                 # Получаем реальный ранг Metasploit
                 msf_query = """
                     SELECT rank FROM vulnanalizer.metasploit_modules 
-                    WHERE "references" LIKE '%' || $1 || '%' 
+                    WHERE "references" ILIKE '%' || $1 || '%' 
                     ORDER BY rank DESC 
                     LIMIT 1
                 """

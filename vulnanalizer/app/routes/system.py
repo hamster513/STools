@@ -324,20 +324,8 @@ async def get_settings(request: Request):
             "impact_confidential_data_no": 0.2,
             "impact_internet_access_yes": 0.33,
             "impact_internet_access_no": 0.2,
-            # ExploitDB настройки
-            "exdb_remote": 1.3,
-            "exdb_webapps": 1.2,
-            "exdb_dos": 0.85,
-            "exdb_local": 1.05,
-            "exdb_hardware": 1.0,
-            # Metasploit настройки
-            "msf_excellent": 1.3,
-            "msf_good": 1.25,
-            "msf_normal": 1.2,
-            "msf_average": 1.1,
-            "msf_low": 0.8,
-            "msf_unknown": 0.8,
-            "msf_manual": 1.0,
+            # ExploitDB настройки (загружаются из базы данных)
+            # Metasploit настройки (загружаются из базы данных)
             "database_host": "",
             "database_port": "",
             "database_name": "",

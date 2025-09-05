@@ -753,13 +753,8 @@ class SettingsModule {
             return;
         }
 
-        const defaults = {
-            'exdb_remote': 1.3,
-            'exdb_webapps': 1.2,
-            'exdb_dos': 0.85,
-            'exdb_local': 1.05,
-            'exdb_hardware': 1.0
-        };
+        // Значения по умолчанию загружаются из базы данных
+        const defaults = {};
 
         // Устанавливаем значения по умолчанию в форму
         for (const [key, value] of Object.entries(defaults)) {
@@ -825,15 +820,8 @@ class SettingsModule {
             return;
         }
 
-        const defaults = {
-            'msf_excellent': 1.3,
-            'msf_good': 1.25,
-            'msf_normal': 1.2,
-            'msf_average': 1.1,
-            'msf_low': 0.8,
-            'msf_unknown': 0.8,
-            'msf_manual': 1.0
-        };
+        // Значения по умолчанию загружаются из базы данных
+        const defaults = {};
 
         // Устанавливаем значения по умолчанию в форму
         for (const [key, value] of Object.entries(defaults)) {

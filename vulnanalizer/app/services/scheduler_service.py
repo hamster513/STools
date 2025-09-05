@@ -781,7 +781,9 @@ class SchedulerService:
                 })
             
             # Используем специальный метод для пересчета рисков
-            await self.db.risk_calculation.recalculate_all_risks(update_progress)
+            from database.hosts_update_service import HostsUpdateService
+            hosts_update_service = HostsUpdateService()
+            await hosts_update_service.recalculate_all_risks(update_progress)
             
             # Завершаем задачу
             await self.db.update_background_task(task_id, **{
