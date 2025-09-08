@@ -22,11 +22,11 @@ BACKUP_RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', '30'))
 
 def ensure_backup_dir():
     """Создает директорию для бэкапов если она не существует"""
+    global BACKUP_DIR
     try:
         os.makedirs(BACKUP_DIR, exist_ok=True)
     except PermissionError:
         # Если нет прав на создание в текущей директории, используем /tmp
-        global BACKUP_DIR
         BACKUP_DIR = '/tmp/backups'
         os.makedirs(BACKUP_DIR, exist_ok=True)
 
