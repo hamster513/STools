@@ -145,15 +145,15 @@ class VMModule {
         try {
             const data = await this.app.api.testVMConnection(settings);
             
-            // Проверяем, что data существует и имеет ожидаемую структуру
-            if (data && typeof data === 'object' && data.success && data.data && data.data.success) {
-                this.showNotification(`Подключение успешно! ${data.data.message}`, 'success');
+            // Проверяем структуру ответа
+            if (data && typeof data === 'object' && data.success) {
+                // Успешное подключение
+                const message = data.message || 'Подключение успешно';
+                this.showNotification(message, 'success');
             } else {
-                // Более детальная обработка ошибок
+                // Обработка ошибок
                 let errorMsg = 'Неизвестная ошибка';
-                if (data && data.data && data.data.error) {
-                    errorMsg = data.data.error;
-                } else if (data && data.error) {
+                if (data && data.error) {
                     errorMsg = data.error;
                 } else if (data && data.message) {
                     errorMsg = data.message;
@@ -176,12 +176,14 @@ class VMModule {
             const data = await this.app.api.importVMHosts();
             
             if (data.success) {
-                this.showOperationComplete(operationId, 'Импорт завершен успешно', 
-                    `Импортировано: ${data.data.inserted} новых, обновлено: ${data.data.updated} существующих записей`);
+                this.showOperationComplete(operationId, 'Импорт запущен успешно', 
+                    `Задача импорта создана с ID: ${data.task_id}. Следите за прогрессом в разделе "Фоновые задачи".`);
                 this.updateStatus();
-                this.app.hosts.updateStatus(); // Обновляем статус хостов
+                
+                // Запускаем мониторинг прогресса
+                this.startProgressMonitoring();
             } else {
-                this.showOperationError(operationId, 'Ошибка импорта', data.error);
+                this.showOperationError(operationId, 'Ошибка запуска импорта', data.message);
             }
         } catch (error) {
             this.showOperationError(operationId, 'Ошибка импорта', error.message);
@@ -310,6 +312,50 @@ class VMModule {
                 ${errorHtml}
             </div>
         `;
+    }
+
+    startProgressMonitoring() {
+        // Очищаем предыдущий интервал
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+            this.progressInterval = null;
+        }
+
+        // Запускаем мониторинг каждые 2 секунды
+        this.progressInterval = setInterval(async () => {
+            try {
+                const data = await this.app.api.getBackgroundTasksStatus();
+                
+                // Ищем задачу импорта VM
+                const vmTask = data.find(task => task.task_type === 'vm_import');
+                
+                if (vmTask) {
+                    const operationId = 'vm-import';
+                    
+                    if (vmTask.status === 'completed') {
+                        this.showOperationComplete(operationId, 'Импорт завершен успешно', 
+                            `Импортировано: ${vmTask.processed_records || 0} хостов`);
+                        this.stopProgressMonitoring();
+                        this.updateStatus();
+                    } else if (vmTask.status === 'error') {
+                        this.showOperationError(operationId, 'Ошибка импорта', vmTask.error_message);
+                        this.stopProgressMonitoring();
+                    } else if (vmTask.status === 'processing' || vmTask.status === 'running') {
+                        const progress = vmTask.progress_percent || 0;
+                        this.showOperationProgress(operationId, vmTask.current_step || 'Обработка...', progress);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка мониторинга прогресса VM:', error);
+            }
+        }, 2000);
+    }
+
+    stopProgressMonitoring() {
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+            this.progressInterval = null;
+        }
     }
 }
 
