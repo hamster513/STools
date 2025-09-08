@@ -989,12 +989,14 @@
                     </div>
                     
                     <!-- Ссылки для скачивания CVE -->
-                    <div class="form-group mb-3">
-                        <button type="button" class="btn btn-outline-info btn-sm dropdown-toggle" id="toggle-cve-download-links">
-                            <i class="fas fa-link"></i> Ссылки для скачивания CVE по годам
-                            <i class="fas fa-chevron-down ms-1"></i>
-                        </button>
-                        <div class="cve-download-links" id="cve-download-links" style="display: none;">
+                    <div class="cve-download-links-container collapsible-block" style="margin-bottom: 1rem;">
+                        <div class="collapsible-header" data-target="cve-download-links">
+                            <h4><i class="fas fa-link"></i> Ссылки для скачивания CVE по годам</h4>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="cve-download-links">
                             <div id="cve-download-links-content">
                                 <!-- Ссылки будут добавлены через JavaScript -->
                             </div>

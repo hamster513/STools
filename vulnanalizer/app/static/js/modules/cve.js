@@ -47,13 +47,41 @@ class CVEModule {
             });
         }
 
-        // Кнопка ссылок для скачивания
-        const toggleCveDownloadLinks = document.getElementById('toggle-cve-download-links');
-        if (toggleCveDownloadLinks) {
-            toggleCveDownloadLinks.addEventListener('click', () => {
-                this.toggleCveDownloadLinks();
+        // Обработчик для блока ссылок CVE
+        const cveDownloadLinksHeader = document.querySelector('[data-target="cve-download-links"]');
+        if (cveDownloadLinksHeader) {
+            cveDownloadLinksHeader.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = cveDownloadLinksHeader.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                const arrow = cveDownloadLinksHeader.querySelector('.collapsible-arrow i');
+                
+                if (content) {
+                    const isCollapsed = content.style.display === 'none' || content.style.display === '';
+                    
+                    if (isCollapsed) {
+                        content.style.display = 'block';
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                        
+                        // Загружаем ссылки если еще не загружены
+                        const linksContent = document.getElementById('cve-download-links-content');
+                        if (linksContent && !linksContent.innerHTML.trim()) {
+                            this.loadCveDownloadLinks();
+                        }
+                    } else {
+                        content.style.display = 'none';
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                }
             });
         }
+
     }
 
     async updateStatus() {
@@ -83,28 +111,6 @@ class CVEModule {
         }
     }
 
-    toggleCveDownloadLinks() {
-        const content = document.getElementById('cve-download-links');
-        const button = document.getElementById('toggle-cve-download-links');
-        
-        if (!content || !button) return;
-        
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-            button.classList.add('active');
-            button.innerHTML = '<i class="fas fa-link"></i> Скрыть ссылки для скачивания <i class="fas fa-chevron-down ms-1"></i>';
-            
-            // Загружаем ссылки если еще не загружены
-            const linksContent = document.getElementById('cve-download-links-content');
-            if (linksContent && !linksContent.innerHTML.trim()) {
-                this.loadCveDownloadLinks();
-            }
-        } else {
-            content.style.display = 'none';
-            button.classList.remove('active');
-            button.innerHTML = '<i class="fas fa-link"></i> Ссылки для скачивания CVE по годам <i class="fas fa-chevron-down ms-1"></i>';
-        }
-    }
 
     async loadCveDownloadLinks() {
         const linksContent = document.getElementById('cve-download-links-content');
