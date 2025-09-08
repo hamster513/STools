@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS vulnanalizer.host_vulnerabilities (
 CREATE INDEX IF NOT EXISTS idx_hosts_cve ON vulnanalizer.hosts(cve);
 CREATE INDEX IF NOT EXISTS idx_hosts_epss_score ON vulnanalizer.hosts(epss_score);
 CREATE INDEX IF NOT EXISTS idx_hosts_hostname ON vulnanalizer.hosts(hostname);
-CREATE INDEX IF NOT EXISTS idx_hosts_hostname_cve_unique ON vulnanalizer.hosts(hostname, cve);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_hosts_hostname_cve_unique ON vulnanalizer.hosts(hostname, cve);
 CREATE INDEX IF NOT EXISTS idx_hosts_ip_address ON vulnanalizer.hosts(ip_address);
 CREATE INDEX IF NOT EXISTS idx_hosts_risk_score ON vulnanalizer.hosts(risk_score);
 CREATE INDEX IF NOT EXISTS idx_hosts_status ON vulnanalizer.hosts(status);
