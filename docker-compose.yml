@@ -38,6 +38,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db:/docker-entrypoint-initdb.d
       - ./postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./backups:/backups
     networks:
       - stools_network
     healthcheck:
@@ -109,6 +110,7 @@ services:
       - ./vulnanalizer/app:/app
       - ./templates:/shared_templates
       - ./VERSION:/app/VERSION
+      - ./backups:/app/backups
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379

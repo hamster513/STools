@@ -91,6 +91,7 @@ class MetasploitService:
     async def clear_all_data(self):
         """Очистка всех данных из таблицы"""
         try:
+            from database import get_db
             db = get_db()
             conn = await db.get_connection()
             await conn.execute("DELETE FROM vulnanalizer.metasploit_modules")

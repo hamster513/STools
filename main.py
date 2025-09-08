@@ -10,7 +10,7 @@ import sys
 # TODO: Добавить импорт auth модуля после исправления путей
 # from auth.database import AuthDatabase
 
-# Роуты бэкапов перенесены в vulnanalizer_web
+# Backup роуты перенесены в vulnanalizer/app/routes/backup.py
 
 def get_version():
     try:
@@ -84,7 +84,7 @@ async def settings_page(request: Request):
     await require_admin(request)
     return templates.TemplateResponse("settings.html", {"request": request, "version": get_version()})
 
-# Роуты бэкапов перенесены в vulnanalizer_web
+# Backup роуты подключены в vulnanalizer/app/main.py
 
 @app.get("/api/version")
 async def get_api_version():
@@ -92,10 +92,7 @@ async def get_api_version():
     return {"version": get_version(), "api": "v1"}
 
 # Тестовый роут для проверки
-@app.get("/test-backup")
-async def test_backup():
-    """Тестовый роут для проверки"""
-    return {"message": "Backup API работает!", "status": "ok"}
+# Тестовый эндпоинт удален
 
 @app.get("/simple-test")
 async def simple_test():

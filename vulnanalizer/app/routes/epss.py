@@ -49,7 +49,7 @@ async def upload_epss(file: UploadFile = File(...)):
         
         # Сохраняем в базу данных
         db = get_db()
-        await db.insert_epss_records(records)
+        await db.epss.insert_records(records)
         
         return {
             "success": True,
@@ -64,78 +64,30 @@ async def upload_epss(file: UploadFile = File(...)):
 
 @router.post("/api/epss/download")
 async def download_epss():
-    """Скачать EPSS данные с внешнего источника"""
-    url = "https://epss.empiricalsecurity.com/epss_scores-current.csv.gz"
+    """Скачать EPSS данные с внешнего источника (фоновый режим)"""
     try:
-        print("🔄 Starting EPSS download...")
+        print("🔄 Starting EPSS download in background...")
         
-        # Увеличиваем таймауты для больших файлов
-        timeout = aiohttp.ClientTimeout(total=300, connect=60)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            print(f"📥 Downloading from {url}")
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    raise Exception(f"Failed to download: {resp.status} - {resp.reason}")
-                
-                print("📦 Reading compressed content...")
-                gz_content = await resp.read()
-                print(f"📊 Downloaded {len(gz_content)} bytes")
-        
-        print("🔓 Decompressing content...")
-        with gzip.GzipFile(fileobj=io.BytesIO(gz_content)) as gz:
-            decoded = gz.read().decode('utf-8').splitlines()
-        
-        print(f"📄 Decompressed {len(decoded)} lines")
-        
-        # Ищем строку с заголовками (пропускаем метаданные)
-        header_line = None
-        for i, line in enumerate(decoded):
-            if line.startswith('cve,') or 'cve' in line.split(',')[0]:
-                header_line = i
-                break
-        
-        if header_line is None:
-            raise Exception("Could not find header line with 'cve' column")
-        
-        print(f"📋 Found header at line {header_line}")
-        
-        # Создаем CSV reader начиная с найденной строки заголовков
-        reader = csv.DictReader(decoded[header_line:])
-        
-        print("🔄 Processing CSV records...")
-        records = []
-        processed_count = 0
-        
-        for row in reader:
-            try:
-                records.append({
-                    'cve': row['cve'],
-                    'epss': float(row['epss']),
-                    'percentile': float(row['percentile']),
-                    'cvss': float(row.get('cvss', 0)) if row.get('cvss') else None,
-                    'date': row.get('date') or datetime.utcnow().date()
-                })
-                processed_count += 1
-                
-                # Показываем прогресс каждые 10000 записей
-                if processed_count % 10000 == 0:
-                    print(f"📊 Processed {processed_count} records...")
-                    
-            except (ValueError, KeyError) as e:
-                print(f"⚠️ Skipping invalid row: {e}, row data: {row}")
-                continue
-        
-        print(f"✅ Processed {len(records)} valid records")
-        print("💾 Inserting records into database...")
-        
+        # Создаем фоновую задачу
         db = get_db()
-        await db.insert_epss_records(records)
+        task_id = await db.create_background_task(
+            task_type='epss_download',
+            parameters={
+                'url': 'https://epss.empiricalsecurity.com/epss_scores-current.csv.gz',
+                'description': 'Загрузка EPSS данных с внешнего источника'
+            },
+            description='Загрузка EPSS данных с внешнего источника'
+        )
         
-        print("🎉 EPSS download and processing completed successfully")
-        return {"success": True, "count": len(records)}
+        print(f"✅ EPSS download task created with ID: {task_id}")
+        return {
+            "success": True, 
+            "message": "Задача загрузки EPSS поставлена в очередь",
+            "task_id": task_id
+        }
         
     except Exception as e:
-        error_msg = f"EPSS download error: {str(e)}"
+        error_msg = f"EPSS download task creation error: {str(e)}"
         print(error_msg)
         print('Full traceback:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=error_msg)
@@ -188,9 +140,9 @@ async def get_epss_preview():
         
         # Получаем первые 20 записей из базы данных
         query = """
-            SELECT cve, epss, percentile, cvss, date, created_at
+            SELECT cve, epss, percentile, updated_at
             FROM vulnanalizer.epss 
-            ORDER BY created_at DESC 
+            ORDER BY updated_at DESC 
             LIMIT 20
         """
         
@@ -207,9 +159,7 @@ async def get_epss_preview():
                 "cve": row['cve'],
                 "epss": float(row['epss']),
                 "percentile": float(row['percentile']),
-                "cvss": float(row['cvss']) if row['cvss'] else None,
-                "date": row['date'].isoformat() if row['date'] else None,
-                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+                "updated_at": row['updated_at'].isoformat() if row['updated_at'] else None
             })
         
         return {

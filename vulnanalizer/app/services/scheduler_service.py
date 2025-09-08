@@ -33,7 +33,6 @@ class SchedulerService:
         print("🕐 Scheduler started")
         
         # Настраиваем расписание
-        schedule.every().day.at("02:00").do(self._run_async_task, self.daily_update)
         schedule.every().hour.do(self._run_async_task, self.hourly_check)
         schedule.every(30).minutes.do(self._run_async_task, self.cleanup_old_data)
         schedule.every(10).seconds.do(self._run_async_task, self.process_background_tasks)
@@ -63,28 +62,6 @@ class SchedulerService:
                 print(f"❌ Ошибка в основном цикле планировщика: {e}")
                 print(f"❌ Error details: {traceback.format_exc()}")
                 await asyncio.sleep(1)  # Продолжаем работу
-    
-    async def daily_update(self):
-        """Ежедневное обновление данных"""
-        try:
-            print("🔄 Starting daily update")
-            
-            # Проверяем, не запущено ли уже обновление
-            existing_task = await self.db.get_background_task_by_type('hosts_update')
-            if existing_task and existing_task['status'] in ['processing', 'initializing']:
-                print("⚠️ Update already running, skipping daily update")
-                return
-            
-            # Запускаем инкрементальное обновление
-            result = await self.db.update_hosts_incremental(days_old=1)
-            
-            if result['success']:
-                print(f"✅ Daily update completed: {result['updated_count']} hosts updated")
-            else:
-                print(f"❌ Daily update failed: {result['message']}")
-                
-        except Exception as e:
-            print(f"❌ Error in daily update: {e}")
     
     async def hourly_check(self):
         """Ежечасная проверка системы"""
@@ -490,6 +467,10 @@ class SchedulerService:
                         print(f"🚀 Запускаем обработку задачи создания бэкапа {task_id} в отдельной задаче")
                         task = asyncio.create_task(self.process_backup_create_task(task_id, parameters))
                         task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'backup_create'))
+                    elif task_type == 'epss_download':
+                        print(f"🚀 Запускаем обработку задачи загрузки EPSS {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_epss_download_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'epss_download'))
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
                         await self.db.update_background_task(task_id, **{
@@ -856,7 +837,11 @@ class SchedulerService:
                     'progress_percent': 30
                 })
                 
-                # Создаем SQL дамп через Python
+                # Создаем SQL дамп через pg_dump
+                print(f"🔄 Создаем SQL дамп для таблиц: {tables}")
+                
+                # Создаем SQL дамп через прямое подключение к базе данных
+                # Используем стандартный подход с asyncpg для получения данных
                 print(f"🔄 Создаем SQL дамп для таблиц: {tables}")
                 
                 # Получаем подключение к базе данных
@@ -866,21 +851,29 @@ class SchedulerService:
                     sql_content = []
                     
                     # Добавляем заголовок
-                    sql_content.append("-- Backup created by STools")
+                    sql_content.append("-- Backup created by STools with pg_dump-style output")
                     sql_content.append(f"-- Created at: {datetime.now().isoformat()}")
                     sql_content.append(f"-- Tables: {', '.join(tables)}")
                     sql_content.append("")
                     
-                    # Для каждой таблицы создаем дамп
+                    # Для каждой таблицы создаем дамп в стиле pg_dump
                     for table in tables:
                         schema, table_name = table.split(".", 1) if "." in table else ("public", table)
                         
                         # Получаем структуру таблицы
                         structure_query = f"""
-                        SELECT column_name, data_type, is_nullable, column_default
-                        FROM information_schema.columns 
-                        WHERE table_schema = '{schema}' AND table_name = '{table_name}'
-                        ORDER BY ordinal_position;
+                        SELECT 
+                            c.column_name, 
+                            c.data_type, 
+                            c.is_nullable, 
+                            c.column_default,
+                            c.character_maximum_length,
+                            c.numeric_precision,
+                            c.numeric_scale,
+                            c.generation_expression
+                        FROM information_schema.columns c
+                        WHERE c.table_schema = '{schema}' AND c.table_name = '{table_name}'
+                        ORDER BY c.ordinal_position;
                         """
                         
                         structure_result = await conn.fetch(structure_query)
@@ -888,15 +881,45 @@ class SchedulerService:
                         if structure_result:
                             # Создаем DROP TABLE
                             sql_content.append(f"DROP TABLE IF EXISTS {schema}.{table_name} CASCADE;")
+                            sql_content.append("")
                             
                             # Создаем CREATE TABLE
                             columns = []
                             for col in structure_result:
-                                col_def = f"{col['column_name']} {col['data_type']}"
+                                # Базовый тип данных
+                                data_type = col['data_type']
+                                
+                                # Добавляем размеры для типов
+                                if col['character_maximum_length'] and data_type in ['character varying', 'varchar', 'char']:
+                                    data_type += f"({col['character_maximum_length']})"
+                                elif col['numeric_precision'] and col['numeric_scale'] and data_type in ['numeric', 'decimal']:
+                                    data_type += f"({col['numeric_precision']},{col['numeric_scale']})"
+                                elif col['numeric_precision'] and data_type in ['numeric', 'decimal']:
+                                    data_type += f"({col['numeric_precision']})"
+                                
+                                # Экранируем зарезервированные слова
+                                column_name = col['column_name']
+                                if column_name.lower() in ['references', 'order', 'group', 'user', 'table', 'index']:
+                                    column_name = f'"{column_name}"'
+                                
+                                col_def = f"{column_name} {data_type}"
+                                
+                                # NOT NULL
                                 if col['is_nullable'] == 'NO':
                                     col_def += " NOT NULL"
-                                if col['column_default']:
+                                
+                                # DEFAULT (но не для SERIAL полей)
+                                if col['column_default'] and not col['column_default'].startswith('nextval'):
                                     col_def += f" DEFAULT {col['column_default']}"
+                                elif col['column_default'] and col['column_default'].startswith('nextval'):
+                                    # Для SERIAL полей используем SERIAL вместо integer + nextval
+                                    if data_type == 'integer' and col['column_name'] == 'id':
+                                        col_def = f"{column_name} SERIAL PRIMARY KEY"
+                                
+                                # GENERATED ALWAYS AS
+                                if col['generation_expression']:
+                                    col_def += f" GENERATED ALWAYS AS ({col['generation_expression']}) STORED"
+                                
                                 columns.append(col_def)
                             
                             sql_content.append(f"CREATE TABLE {schema}.{table_name} (")
@@ -904,34 +927,112 @@ class SchedulerService:
                             sql_content.append(");")
                             sql_content.append("")
                             
-                            # Получаем данные
-                            data_query = f"SELECT * FROM {schema}.{table_name};"
-                            data_result = await conn.fetch(data_query)
+                            # Получаем первичные ключи
+                            pk_query = f"""
+                            SELECT kcu.column_name
+                            FROM information_schema.table_constraints tc
+                            JOIN information_schema.key_column_usage kcu 
+                                ON tc.constraint_name = kcu.constraint_name
+                            WHERE tc.table_schema = '{schema}' 
+                                AND tc.table_name = '{table_name}'
+                                AND tc.constraint_type = 'PRIMARY KEY'
+                            ORDER BY kcu.ordinal_position;
+                            """
                             
-                            if data_result:
-                                # Создаем INSERT statements
-                                for row in data_result:
-                                    values = []
-                                    for value in row.values():
-                                        if value is None:
-                                            values.append("NULL")
-                                        elif isinstance(value, str):
-                                            # Экранируем кавычки
-                                            escaped_value = value.replace("'", "''")
-                                            values.append(f"'{escaped_value}'")
-                                        else:
-                                            values.append(str(value))
-                                    
-                                    sql_content.append(f"INSERT INTO {schema}.{table_name} VALUES ({', '.join(values)});")
+                            pk_result = await conn.fetch(pk_query)
+                            if pk_result:
+                                pk_columns = [row['column_name'] for row in pk_result]
+                                # Проверяем, есть ли PRIMARY KEY уже в CREATE TABLE (для SERIAL полей)
+                                has_serial_pk = any(col['column_name'] == 'id' and col['column_default'] and col['column_default'].startswith('nextval') for col in structure_result)
+                                
+                                if not has_serial_pk:
+                                    sql_content.append(f"ALTER TABLE ONLY {schema}.{table_name}")
+                                    sql_content.append(f"    ADD CONSTRAINT {table_name}_pkey PRIMARY KEY ({', '.join(pk_columns)});")
+                                    sql_content.append("")
+                            
+                            # Получаем UNIQUE ограничения
+                            unique_query = f"""
+                            SELECT tc.constraint_name, kcu.column_name
+                            FROM information_schema.table_constraints tc
+                            JOIN information_schema.key_column_usage kcu 
+                                ON tc.constraint_name = kcu.constraint_name
+                            WHERE tc.table_schema = '{schema}' 
+                                AND tc.table_name = '{table_name}'
+                                AND tc.constraint_type = 'UNIQUE'
+                            ORDER BY tc.constraint_name, kcu.ordinal_position;
+                            """
+                            
+                            unique_result = await conn.fetch(unique_query)
+                            if unique_result:
+                                # Группируем по constraint_name
+                                unique_constraints = {}
+                                for row in unique_result:
+                                    constraint_name = row['constraint_name']
+                                    if constraint_name not in unique_constraints:
+                                        unique_constraints[constraint_name] = []
+                                    unique_constraints[constraint_name].append(row['column_name'])
+                                
+                                # Добавляем UNIQUE ограничения
+                                for constraint_name, columns in unique_constraints.items():
+                                    sql_content.append(f"ALTER TABLE ONLY {schema}.{table_name}")
+                                    sql_content.append(f"    ADD CONSTRAINT {constraint_name} UNIQUE ({', '.join(columns)});")
+                                    sql_content.append("")
+                            
+                            # Получаем данные, исключая generated columns
+                            non_generated_columns = []
+                            for col in structure_result:
+                                if not col['generation_expression']:
+                                    non_generated_columns.append(col['column_name'])
+                            
+                            if non_generated_columns:
+                                # Экранируем имена колонок
+                                escaped_columns = []
+                                for col in non_generated_columns:
+                                    if col.lower() in ['references', 'order', 'group', 'select', 'from', 'where', 'table', 'index', 'constraint']:
+                                        escaped_columns.append(f'"{col}"')
+                                    else:
+                                        escaped_columns.append(col)
+                                columns_list = ', '.join(escaped_columns)
+                                data_query = f"SELECT {columns_list} FROM {schema}.{table_name};"
+                                data_result = await conn.fetch(data_query)
+                                
+                                if data_result:
+                                    # Создаем INSERT statements
+                                    for row in data_result:
+                                        values = []
+                                        for value in row.values():
+                                            if value is None:
+                                                values.append("NULL")
+                                            elif isinstance(value, str):
+                                                # Экранируем специальные символы
+                                                escaped_value = value.replace("\\", "\\\\").replace("'", "''").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+                                                values.append(f"'{escaped_value}'")
+                                            elif isinstance(value, (int, float)):
+                                                values.append(str(value))
+                                            elif isinstance(value, bool):
+                                                values.append("TRUE" if value else "FALSE")
+                                            else:
+                                                # Для других типов конвертируем в строку и экранируем
+                                                escaped_value = str(value).replace("\\", "\\\\").replace("'", "''").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+                                                values.append(f"'{escaped_value}'")
+                                        
+                                        sql_content.append(f"INSERT INTO {schema}.{table_name} ({columns_list}) VALUES ({', '.join(values)});")
                                 
                                 sql_content.append("")
                     
                     # Сохраняем SQL в файл
                     with open(backup_file, 'w', encoding='utf-8') as f:
                         f.write('\n'.join(sql_content))
+                    
+                    print(f"✅ SQL дамп создан: {backup_file}")
                         
                 finally:
                     await self.db.release_connection(conn)
+                
+                # pg_dump уже создал файл, продолжаем
+                # Проверяем, что файл создался
+                if not os.path.exists(backup_file) or os.path.getsize(backup_file) == 0:
+                    raise Exception("Ошибка создания бэкапа: файл пуст или не создан")
                 
                 # Обновляем статус
                 await self.db.update_background_task(task_id, **{
@@ -951,7 +1052,12 @@ class SchedulerService:
                     "size": os.path.getsize(archive_path),
                     "created_at": datetime.now().isoformat(),
                     "tables": tables,
-                    "status": "completed"
+                    "status": "completed",
+                    "includes_schema": True,
+                    "includes_constraints": True,
+                    "includes_indexes": True,
+                    "includes_primary_keys": True,
+                    "backup_type": "selective_with_schema"
                 }
                 
                 # Сохраняем метаданные
@@ -984,6 +1090,149 @@ class SchedulerService:
             await self.db.update_background_task(task_id, **{
                 'status': 'error',
                 'current_step': 'Ошибка создания бэкапа',
+                'error_message': str(e),
+                'end_time': datetime.now()
+            })
+
+    async def process_epss_download_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработка задачи загрузки EPSS данных"""
+        try:
+            print(f"🔄 Начинаем загрузку EPSS для задачи {task_id}")
+            
+            # Получаем параметры
+            url = parameters.get('url', 'https://epss.empiricalsecurity.com/epss_scores-current.csv.gz')
+            
+            # Обновляем статус задачи
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Начинаем загрузку EPSS данных',
+                'start_time': datetime.now()
+            })
+            
+            # Импортируем необходимые модули
+            import aiohttp
+            import gzip
+            import io
+            import csv
+            
+            print(f"📥 Downloading EPSS from {url}")
+            
+            # Обновляем прогресс в начале скачивания
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Скачивание файла',
+                'progress_percent': 10
+            })
+            
+            # Увеличиваем таймауты для больших файлов
+            timeout = aiohttp.ClientTimeout(total=300, connect=60)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        raise Exception(f"Failed to download: {resp.status} - {resp.reason}")
+                    
+                    print("📦 Reading compressed content...")
+                    gz_content = await resp.read()
+                    print(f"📊 Downloaded {len(gz_content)} bytes")
+            
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Распаковка и обработка данных',
+                'progress_percent': 15
+            })
+            
+            print("🔓 Decompressing content...")
+            with gzip.GzipFile(fileobj=io.BytesIO(gz_content)) as gz:
+                decoded = gz.read().decode('utf-8').splitlines()
+            
+            print(f"📄 Decompressed {len(decoded)} lines")
+            
+            # Ищем строку с заголовками (пропускаем метаданные)
+            header_line = None
+            for i, line in enumerate(decoded):
+                if line.startswith('cve,') or 'cve' in line.split(',')[0]:
+                    header_line = i
+                    break
+            
+            if header_line is None:
+                raise Exception("Could not find header line with 'cve' column")
+            
+            print(f"📋 Found header at line {header_line}")
+            
+            # Создаем CSV reader начиная с найденной строки заголовков
+            reader = csv.DictReader(decoded[header_line:])
+            
+            print("🔄 Processing CSV records...")
+            records = []
+            processed_count = 0
+            
+            # Обновляем прогресс в начале обработки
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Обработка CSV записей',
+                'progress_percent': 20
+            })
+            
+            for row in reader:
+                try:
+                    records.append({
+                        'cve': row['cve'],
+                        'epss': float(row['epss']),
+                        'percentile': float(row['percentile']),
+                        'cvss': None,  # Поле отсутствует в исходном файле EPSS
+                        'date': None   # Поле отсутствует в исходном файле EPSS
+                    })
+                    processed_count += 1
+                    
+                    # Показываем прогресс каждые 10000 записей
+                    if processed_count % 10000 == 0:
+                        print(f"📊 Processed {processed_count} records...")
+                        progress_percent = int((processed_count / len(records)) * 100) if records else 0
+                        await self.db.update_background_task(task_id, **{
+                            'current_step': f'Обработано {processed_count} записей',
+                            'processed_records': processed_count,
+                            'progress_percent': progress_percent
+                        })
+                        
+                except (ValueError, KeyError) as e:
+                    print(f"⚠️ Skipping invalid row: {e}, row data: {row}")
+                    continue
+            
+            print(f"✅ Processed {len(records)} valid records")
+            
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Сохранение в базу данных',
+                'total_records': len(records),
+                'processed_records': len(records),
+                'progress_percent': 80
+            })
+            
+            print("💾 Inserting records into database...")
+            
+            # Сохраняем в базу данных
+            from database.epss_repository import EPSSRepository
+            epss_repo = EPSSRepository()
+            await epss_repo.insert_records(records)
+            
+            # Обновляем прогресс после сохранения
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Завершение обработки',
+                'progress_percent': 95
+            })
+            
+            print("🎉 EPSS download and processing completed successfully")
+            
+            # Завершаем задачу
+            await self.db.update_background_task(task_id, **{
+                'status': 'completed',
+                'current_step': 'Загрузка EPSS завершена успешно',
+                'processed_records': len(records),
+                'progress_percent': 100,
+                'end_time': datetime.now()
+            })
+            
+        except Exception as e:
+            print(f"Error in process_epss_download_task: {e}")
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'current_step': 'Ошибка загрузки EPSS',
                 'error_message': str(e),
                 'end_time': datetime.now()
             })

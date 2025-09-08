@@ -526,6 +526,16 @@ class SettingsManager {
             return;
         }
 
+        // Проверяем расширение файла
+        const allowedExtensions = ['.tar.gz', '.zip', '.sql'];
+        const fileName = file.name.toLowerCase();
+        const isValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+        
+        if (!isValidExtension) {
+            this.showNotification('Неподдерживаемый формат файла. Разрешены: .tar.gz, .zip, .sql', 'error');
+            return;
+        }
+
         try {
             // Показываем прогресс
             this.showRestoreProgress();

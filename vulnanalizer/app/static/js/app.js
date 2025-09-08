@@ -619,56 +619,7 @@ class VulnAnalizer {
             });
         }
         
-        // Кнопка скачивания с сайта
-        const epssDownloadBtn = document.getElementById('epss-download-btn');
-        if (epssDownloadBtn) {
-            epssDownloadBtn.addEventListener('click', async () => {
-                const btnText = epssDownloadBtn.querySelector('.btn-text');
-                const spinner = epssDownloadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Скачивание...';
-                spinner.style.display = 'inline-block';
-                epssDownloadBtn.disabled = true;
-                
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('epss', 'Подключение к серверу EPSS...', 0);
-                
-                try {
-                    this.updateOperationProgress('epss', 'Скачивание файла...', 25, 'Загрузка с empiricalsecurity.com...');
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    
-                    this.updateOperationProgress('epss', 'Обработка данных...', 50, 'Распаковка и парсинг CSV...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    this.updateOperationProgress('epss', 'Сохранение в базу...', 75, 'Запись EPSS данных...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/epss/download', { method: 'POST' });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.updateOperationProgress('epss', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('epss', 'EPSS данные успешно скачаны', `Загружено записей: ${data.count}`);
-                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
-                        this.updateEPSSStatus();
-                    } else {
-                        this.showOperationError('epss', 'Ошибка скачивания EPSS', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка скачивания EPSS', 'error');
-                    }
-                } catch (err) {
-                    console.error('EPSS download error:', err);
-                    this.showOperationError('epss', 'Ошибка скачивания EPSS', err.message);
-                    this.showNotification('Ошибка скачивания EPSS', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Скачать с сайта';
-                    spinner.style.display = 'none';
-                    epssDownloadBtn.disabled = false;
-                }
-            });
-        }
+        // Кнопка скачивания с сайта - обработчик перенесен в EPSSModule
     }
 
     setupExploitDB() {
@@ -738,56 +689,7 @@ class VulnAnalizer {
             });
         }
         
-        // Кнопка скачивания с сайта
-        const exploitdbDownloadBtn = document.getElementById('exploitdb-download-btn');
-        if (exploitdbDownloadBtn) {
-            exploitdbDownloadBtn.addEventListener('click', async () => {
-                const btnText = exploitdbDownloadBtn.querySelector('.btn-text');
-                const spinner = exploitdbDownloadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Скачивание...';
-                spinner.style.display = 'inline-block';
-                exploitdbDownloadBtn.disabled = true;
-                
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('exploitdb', 'Подключение к GitLab...', 0);
-                
-                try {
-                    this.updateOperationProgress('exploitdb', 'Скачивание файла...', 25, 'Загрузка с gitlab.com...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    this.updateOperationProgress('exploitdb', 'Обработка данных...', 50, 'Парсинг CSV файла эксплойтов...');
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                    
-                    this.updateOperationProgress('exploitdb', 'Сохранение в базу...', 75, 'Запись эксплойтов в базу данных...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/exploitdb/download', { method: 'POST' });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.updateOperationProgress('exploitdb', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('exploitdb', 'ExploitDB данные успешно скачаны', `Загружено записей: ${data.count}`);
-                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
-                        this.updateExploitDBStatus();
-                    } else {
-                        this.showOperationError('exploitdb', 'Ошибка скачивания ExploitDB', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка скачивания ExploitDB', 'error');
-                    }
-                } catch (err) {
-                    console.error('ExploitDB download error:', err);
-                    this.showOperationError('exploitdb', 'Ошибка скачивания ExploitDB', err.message);
-                    this.showNotification('Ошибка скачивания ExploitDB', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Скачать с сайта';
-                    spinner.style.display = 'none';
-                    exploitdbDownloadBtn.disabled = false;
-                }
-            });
-        }
+        // Кнопка скачивания с сайта - обработчик перенесен в ExploitDBModule
     }
 
     setupCVE() {
@@ -905,68 +807,7 @@ class VulnAnalizer {
             });
         }
         
-        // Кнопка скачивания с сайта
-        const cveDownloadBtn = document.getElementById('cve-download-btn');
-        if (cveDownloadBtn) {
-            cveDownloadBtn.addEventListener('click', async () => {
-                const btnText = cveDownloadBtn.querySelector('.btn-text');
-                const spinner = cveDownloadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Скачивание...';
-                spinner.style.display = 'inline-block';
-                cveDownloadBtn.disabled = true;
-                
-                // Показываем кнопку отмены
-                const cveCancelBtn = document.getElementById('cve-cancel-btn');
-                if (cveCancelBtn) {
-                    cveCancelBtn.style.display = 'inline-block';
-                }
-                
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('cve', 'Подключение к серверу CVE...', 0);
-                
-                try {
-                    this.updateOperationProgress('cve', 'Скачивание файла...', 25, 'Загрузка с empiricalsecurity.com...');
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    
-                    this.updateOperationProgress('cve', 'Обработка данных...', 50, 'Распаковка и парсинг CSV...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    this.updateOperationProgress('cve', 'Сохранение в базу...', 75, 'Запись CVE данных...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/cve/download', { method: 'POST' });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.updateOperationProgress('cve', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('cve', 'CVE данные успешно скачаны', `Загружено записей: ${data.count}`);
-                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
-                        this.updateCVEStatus();
-                    } else {
-                        this.showOperationError('cve', 'Ошибка скачивания CVE', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка скачивания CVE', 'error');
-                    }
-                } catch (err) {
-                    console.error('CVE download error:', err);
-                    this.showOperationError('cve', 'Ошибка скачивания CVE', err.message);
-                    this.showNotification('Ошибка скачивания CVE', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Скачать с NVD';
-                    spinner.style.display = 'none';
-                    cveDownloadBtn.disabled = false;
-                    
-                    // Скрываем кнопку отмены
-                    const cveCancelBtn = document.getElementById('cve-cancel-btn');
-                    if (cveCancelBtn) {
-                        cveCancelBtn.style.display = 'none';
-                    }
-                }
-            });
-        }
+        // Кнопка скачивания с сайта - обработчик перенесен в CVEModule
         
         // Кнопка отмены загрузки CVE
         const cveCancelBtn = document.getElementById('cve-cancel-btn');
@@ -3243,7 +3084,7 @@ class VulnAnalizer {
                         </div>
                         <div class="task-details">
                             <p><strong>Текущий шаг:</strong> ${task.current_step || 'Инициализация...'}</p>
-                            <p><strong>Обработано:</strong> ${task.processed_items}/${task.total_items}</p>
+                            <p><strong>Обработано:</strong> ${task.processed_records || task.processed_items}/${task.total_records || task.total_items}</p>
                             <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
                             <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
                         </div>
@@ -3271,7 +3112,7 @@ class VulnAnalizer {
                         </div>
                         <div class="task-details">
                             <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
-                            <p><strong>Обработано:</strong> ${task.processed_items}/${task.total_items}</p>
+                            <p><strong>Обработано:</strong> ${task.processed_records || task.processed_items}/${task.total_records || task.total_items}</p>
                             <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
                             <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
                             <p><strong>Завершено:</strong> ${task.end_time ? new Date(task.end_time).toLocaleString() : 'Неизвестно'}</p>

@@ -160,6 +160,16 @@ def calculate_task_progress(task):
                 return int(task['processed_items'] / task['total_items'] * 100)
             else:
                 return 0
+    elif task['task_type'] == 'epss_download':
+        # Для задач загрузки EPSS используем поле progress_percent из базы данных
+        if task['progress_percent'] is not None:
+            return int(task['progress_percent'])
+        else:
+            # Fallback на стандартную формулу
+            if task['total_items'] and task['total_items'] > 0:
+                return int(task['processed_items'] / task['total_items'] * 100)
+            else:
+                return 0
     else:
         # Для других задач используем стандартную формулу
         if task['total_items'] and task['total_items'] > 0:

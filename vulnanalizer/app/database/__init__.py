@@ -83,9 +83,6 @@ class NewDatabase:
             old_db = old_database.get_db()
             return await old_db.search_hosts(**kwargs)
         
-        async def insert_epss_records(self, records):
-            """Вставить записи EPSS"""
-            return await self.epss.insert_epss_records(records)
         
         async def insert_exploitdb_records(self, records):
             """Вставить записи ExploitDB"""
@@ -211,9 +208,6 @@ class NewDatabase:
             """Полное обновление хостов: EPSS, CVSS, ExploitDB, Metasploit"""
             return await self.hosts_update.update_hosts_complete(progress_callback)
 
-        async def update_hosts_incremental(self, progress_callback=None, days_old=1):
-            """Инкрементальное обновление хостов"""
-            return await self.hosts_update.update_hosts_incremental(progress_callback, days_old)
 
 # Функция get_db для обратной совместимости
 def get_db():

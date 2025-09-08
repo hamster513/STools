@@ -17,9 +17,13 @@ class EPSSRepository(DatabaseBase):
             print("No EPSS records to insert")
             return
         
+        print(f"🔄 Starting EPSS insert_records with {len(records)} records")
+        print(f"📋 First record sample: {records[0] if records else 'No records'}")
+        
         conn = await self.get_connection()
         try:
             # Очищаем старые записи
+            print("🗑️ Clearing old EPSS records...")
             await conn.execute("DELETE FROM vulnanalizer.epss")
             
             # Вставляем новые записи батчами
@@ -78,7 +82,11 @@ class EPSSRepository(DatabaseBase):
                     total_inserted += len(values)
                     print(f"Inserted {len(values)} EPSS records (batch {i//batch_size + 1})")
             
-            print(f"Successfully inserted {total_inserted} EPSS records")
+            print(f"✅ Successfully inserted {total_inserted} EPSS records")
+            
+            # Проверяем количество записей в базе
+            count_after = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.epss")
+            print(f"📊 Records in database after insert: {count_after}")
             
         except Exception as e:
             print(f"Error inserting EPSS records: {e}")
@@ -102,131 +110,15 @@ class EPSSRepository(DatabaseBase):
         """Алиас для count_records (для обратной совместимости)"""
         return await self.count_records()
     
-    async def insert_epss_records(self, records: list):
-        """Вставить записи EPSS с улучшенным управлением соединениями"""
-        conn = None
-        try:
-            # Создаем отдельное соединение для массовой вставки
-            conn = await asyncpg.connect(self.database_url)
-            
-
-            
-            # Проверяем, что соединение активно
-            await conn.execute("SELECT 1")
-            
-            # Получаем количество записей до вставки
-            count_before = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.epss")
-            print(f"EPSS records in database before insert: {count_before}")
-            
-            # Группируем записи по CVE для обработки
-            cve_groups = {}
-            for rec in records:
-                cve = rec['cve']
-                if cve not in cve_groups:
-                    cve_groups[cve] = []
-                cve_groups[cve].append(rec)
-            
-            inserted_count = 0
-            updated_count = 0
-            
-            # Обрабатываем записи батчами для избежания проблем с соединением
-            batch_size = 1000
-            cve_list = list(cve_groups.keys())
-            
-            for i in range(0, len(cve_list), batch_size):
-                batch_cves = cve_list[i:i + batch_size]
-                
-                # Проверяем соединение перед каждым батчем
-                try:
-                    await conn.execute("SELECT 1")
-                except Exception as e:
-                    print(f"Connection lost, reconnecting... Error: {e}")
-                    await conn.close()
-                    conn = await asyncpg.connect(self.database_url)
-                
-                # Обрабатываем каждую запись отдельно с повторными попытками
-                for cve in batch_cves:
-                    cve_records = cve_groups[cve]
-                    # Берем самую свежую запись для каждого CVE
-                    latest_record = max(cve_records, key=lambda x: x['date'])
-                    
-                    max_retries = 3
-                    for retry in range(max_retries):
-                        try:
-                            # Проверяем соединение перед каждой операцией
-                            await conn.execute("SELECT 1")
-                            
-                            # Проверяем, существует ли запись для этого CVE
-                            existing = await conn.fetchval("SELECT cve FROM vulnanalizer.epss WHERE cve = $1", cve)
-                            
-                            if existing:
-                                # Обновляем существующую запись
-                                query = """
-                                    UPDATE vulnanalizer.epss 
-                                    SET epss = $2, percentile = $3, cvss = $4, date = $5
-                                    WHERE cve = $1
-                                """
-                                await conn.execute(query, 
-                                    cve, latest_record['epss'], latest_record['percentile'], 
-                                    latest_record.get('cvss'), latest_record['date'])
-                                updated_count += 1
-                            else:
-                                # Вставляем новую запись
-                                query = """
-                                    INSERT INTO vulnanalizer.epss (cve, epss, percentile, cvss, date)
-                                    VALUES ($1, $2, $3, $4, $5)
-                                """
-                                await conn.execute(query, 
-                                    cve, latest_record['epss'], latest_record['percentile'], 
-                                    latest_record.get('cvss'), latest_record['date'])
-                                inserted_count += 1
-                            
-                            # Если успешно, выходим из цикла повторных попыток
-                            break
-                            
-                        except Exception as e:
-                            print(f"Error processing CVE {cve} (attempt {retry + 1}/{max_retries}): {e}")
-                            if retry < max_retries - 1:
-                                # Переподключаемся и продолжаем
-                                try:
-                                    await conn.close()
-                                except:
-                                    pass
-                                conn = await asyncpg.connect(self.database_url)
-                                await asyncio.sleep(1)  # Небольшая пауза перед повторной попыткой
-                            else:
-                                print(f"Failed to process CVE {cve} after {max_retries} attempts")
-                                continue
-                
-                print(f"Processed batch {i//batch_size + 1}/{(len(cve_list) + batch_size - 1)//batch_size}")
-            
-            # Получаем количество записей после вставки
-            count_after = await conn.fetchval("SELECT COUNT(*) FROM vulnanalizer.epss")
-            print(f"EPSS records in database after insert: {count_after}")
-            print(f"New EPSS records inserted: {inserted_count}")
-            print(f"Existing EPSS records updated: {updated_count}")
-            print(f"Total unique CVE records processed: {len(cve_groups)}")
-            print(f"Net change in EPSS database: {count_after - count_before}")
-            
-        except Exception as e:
-            print(f"Error in insert_epss_records: {e}")
-            raise e
-        finally:
-            if conn:
-                try:
-                    await conn.close()
-                except Exception as e:
-                    print(f"Error closing connection: {e}")
-
     async def get_epss_by_cve(self, cve_id: str):
         """Получить данные EPSS по CVE ID"""
         conn = await self.get_connection()
         try:
             query = """
-                SELECT cve, epss, percentile, cvss, date 
+                SELECT cve, epss, percentile, updated_at 
                 FROM vulnanalizer.epss 
                 WHERE cve = $1 
-                ORDER BY date DESC 
+                ORDER BY updated_at DESC 
                 LIMIT 1
             """
             row = await conn.fetchrow(query, cve_id)
@@ -236,8 +128,7 @@ class EPSSRepository(DatabaseBase):
                     'cve': row['cve'],
                     'epss': float(row['epss']) if row['epss'] else None,
                     'percentile': float(row['percentile']) if row['percentile'] else None,
-                    'cvss': float(row['cvss']) if row['cvss'] else None,
-                    'date': row['date'].isoformat() if row['date'] else None
+                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
                 }
             return None
         except Exception as e:
