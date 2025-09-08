@@ -2101,6 +2101,13 @@ class VulnAnalizer {
             }
 
             const data = await response.json();
+            
+            // Проверяем успешность ответа
+            if (!data.success) {
+                this.showNotification(data.error || 'Ошибка получения данных CVE', 'error');
+                return;
+            }
+            
             this.displayCVEResults(data);
             this.showNotification(`Информация о ${cveId} загружена`, 'success');
 
@@ -2114,6 +2121,13 @@ class VulnAnalizer {
     displayCVEResults(data) {
         const resultsContainer = document.getElementById('cve-results');
         if (!resultsContainer) return;
+
+        // Проверяем, что данные корректны
+        if (!data || !data.cve || !data.cve.cve_id) {
+            console.error('Invalid CVE data:', data);
+            this.showNotification('Ошибка: некорректные данные CVE', 'error');
+            return;
+        }
 
         const cve = data.cve;
         const epss = data.epss;
