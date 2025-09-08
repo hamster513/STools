@@ -6,6 +6,10 @@ import schedule
 import time
 import csv
 import json
+import os
+import tempfile
+import tarfile
+import subprocess
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from pathlib import Path
@@ -482,6 +486,10 @@ class SchedulerService:
                         print(f"🚀 Запускаем обработку задачи пересчета рисков {task_id} в отдельной задаче")
                         task = asyncio.create_task(self.process_risk_recalculation_task(task_id, parameters))
                         task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'risk_recalculation'))
+                    elif task_type == 'backup_create':
+                        print(f"🚀 Запускаем обработку задачи создания бэкапа {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_backup_create_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'backup_create'))
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
                         await self.db.update_background_task(task_id, **{
@@ -801,6 +809,176 @@ class SchedulerService:
             await self.db.update_background_task(task_id, **{
                 'status': 'error',
                 'current_step': 'Ошибка пересчета рисков',
+                'error_message': str(e),
+                'end_time': datetime.now()
+            })
+
+    async def process_backup_create_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработка задачи создания бэкапа"""
+        try:
+            print(f"🔄 Начинаем создание бэкапа для задачи {task_id}")
+            
+            # Получаем параметры
+            tables = parameters.get('tables', [])
+            include_schema = parameters.get('include_schema', True)
+            include_data = parameters.get('include_data', True)
+            
+            if not tables:
+                raise ValueError("Не выбрано ни одной таблицы для бэкапа")
+            
+            # Настройки
+            backup_dir = os.getenv('BACKUP_DIR', './backups')
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # Создаем уникальный ID для бэкапа
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_id = f"backup_{timestamp}"
+            
+            # Обновляем статус
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Подготовка к созданию бэкапа',
+                'progress_percent': 10
+            })
+            
+            # Создаем временную директорию
+            with tempfile.TemporaryDirectory() as temp_dir:
+                backup_file = os.path.join(temp_dir, f"{backup_id}.sql")
+                
+                # Обновляем статус
+                await self.db.update_background_task(task_id, **{
+                    'current_step': 'Создание SQL дампа',
+                    'progress_percent': 30
+                })
+                
+                # Создаем SQL дамп через Python
+                print(f"🔄 Создаем SQL дамп для таблиц: {tables}")
+                
+                # Получаем подключение к базе данных
+                conn = await self.db.get_connection()
+                
+                try:
+                    sql_content = []
+                    
+                    # Добавляем заголовок
+                    sql_content.append("-- Backup created by STools")
+                    sql_content.append(f"-- Created at: {datetime.now().isoformat()}")
+                    sql_content.append(f"-- Tables: {', '.join(tables)}")
+                    sql_content.append("")
+                    
+                    # Для каждой таблицы создаем дамп
+                    for table in tables:
+                        schema, table_name = table.split(".", 1) if "." in table else ("public", table)
+                        
+                        # Получаем структуру таблицы
+                        structure_query = f"""
+                        SELECT column_name, data_type, is_nullable, column_default
+                        FROM information_schema.columns 
+                        WHERE table_schema = '{schema}' AND table_name = '{table_name}'
+                        ORDER BY ordinal_position;
+                        """
+                        
+                        structure_result = await conn.fetch(structure_query)
+                        
+                        if structure_result:
+                            # Создаем DROP TABLE
+                            sql_content.append(f"DROP TABLE IF EXISTS {schema}.{table_name} CASCADE;")
+                            
+                            # Создаем CREATE TABLE
+                            columns = []
+                            for col in structure_result:
+                                col_def = f"{col['column_name']} {col['data_type']}"
+                                if col['is_nullable'] == 'NO':
+                                    col_def += " NOT NULL"
+                                if col['column_default']:
+                                    col_def += f" DEFAULT {col['column_default']}"
+                                columns.append(col_def)
+                            
+                            sql_content.append(f"CREATE TABLE {schema}.{table_name} (")
+                            sql_content.append("    " + ",\n    ".join(columns))
+                            sql_content.append(");")
+                            sql_content.append("")
+                            
+                            # Получаем данные
+                            data_query = f"SELECT * FROM {schema}.{table_name};"
+                            data_result = await conn.fetch(data_query)
+                            
+                            if data_result:
+                                # Создаем INSERT statements
+                                for row in data_result:
+                                    values = []
+                                    for value in row.values():
+                                        if value is None:
+                                            values.append("NULL")
+                                        elif isinstance(value, str):
+                                            # Экранируем кавычки
+                                            escaped_value = value.replace("'", "''")
+                                            values.append(f"'{escaped_value}'")
+                                        else:
+                                            values.append(str(value))
+                                    
+                                    sql_content.append(f"INSERT INTO {schema}.{table_name} VALUES ({', '.join(values)});")
+                                
+                                sql_content.append("")
+                    
+                    # Сохраняем SQL в файл
+                    with open(backup_file, 'w', encoding='utf-8') as f:
+                        f.write('\n'.join(sql_content))
+                        
+                finally:
+                    await self.db.release_connection(conn)
+                
+                # Обновляем статус
+                await self.db.update_background_task(task_id, **{
+                    'current_step': 'Архивация бэкапа',
+                    'progress_percent': 70
+                })
+                
+                # Создаем архив
+                archive_path = os.path.join(backup_dir, f"{backup_id}.tar.gz")
+                with tarfile.open(archive_path, "w:gz") as tar:
+                    tar.add(backup_file, arcname=f"{backup_id}.sql")
+                
+                # Создаем метаданные бэкапа
+                metadata = {
+                    "id": backup_id,
+                    "filename": f"{backup_id}.tar.gz",
+                    "size": os.path.getsize(archive_path),
+                    "created_at": datetime.now().isoformat(),
+                    "tables": tables,
+                    "status": "completed"
+                }
+                
+                # Сохраняем метаданные
+                metadata_file = os.path.join(backup_dir, f"{backup_id}.json")
+                with open(metadata_file, 'w') as f:
+                    json.dump(metadata, f, indent=2)
+                
+                # Обновляем статус
+                await self.db.update_background_task(task_id, **{
+                    'status': 'completed',
+                    'current_step': 'Бэкап создан успешно',
+                    'progress_percent': 100,
+                    'end_time': datetime.now(),
+                    'result_data': {
+                        'backup_id': backup_id,
+                        'filename': f"{backup_id}.tar.gz",
+                        'size': os.path.getsize(archive_path),
+                        'tables': tables
+                    }
+                })
+                
+                print(f"✅ Бэкап {backup_id} создан успешно")
+                print(f"📁 Файл: {archive_path}")
+                print(f"📊 Размер: {os.path.getsize(archive_path)} байт")
+                
+        except Exception as e:
+            print(f"❌ Ошибка создания бэкапа: {e}")
+            print(f"❌ Error details: {traceback.format_exc()}")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'current_step': 'Ошибка создания бэкапа',
                 'error_message': str(e),
                 'end_time': datetime.now()
             })

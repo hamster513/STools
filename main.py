@@ -10,8 +10,7 @@ import sys
 # TODO: Добавить импорт auth модуля после исправления путей
 # from auth.database import AuthDatabase
 
-# Импортируем роуты (временно отключено)
-# from routes.backup import router as backup_router
+# Роуты бэкапов перенесены в vulnanalizer_web
 
 def get_version():
     try:
@@ -44,8 +43,11 @@ async def get_current_user(request: Request) -> dict:
 
 async def require_admin(request: Request) -> dict:
     """Требовать права администратора"""
-    # Временно блокируем доступ для всех
-    raise HTTPException(status_code=403, detail="Доступ временно заблокирован")
+    # Временно разрешаем доступ для тестирования
+    user = await get_current_user(request)
+    if not user.get('is_admin', False):
+        raise HTTPException(status_code=403, detail="Требуются права администратора")
+    return user
 
 # Добавляем CORS middleware
 app.add_middleware(
@@ -82,63 +84,7 @@ async def settings_page(request: Request):
     await require_admin(request)
     return templates.TemplateResponse("settings.html", {"request": request, "version": get_version()})
 
-# Подключаем роуты (временно отключено)
-# try:
-#     app.include_router(backup_router)
-#     print("✅ Backup router подключен успешно")
-# except Exception as e:
-#     print(f"❌ Ошибка подключения backup router: {e}")
-
-# Простые роуты для бэкапа (временно)
-@app.get("/api/backup/tables")
-async def get_backup_tables(request: Request):
-    """Получить список доступных таблиц для бэкапа"""
-    # Проверяем права администратора
-    await require_admin(request)
-    
-    tables = [
-        {"schema": "auth", "name": "users", "description": "Пользователи системы"},
-        {"schema": "auth", "name": "sessions", "description": "Сессии пользователей"},
-        {"schema": "vulnanalizer", "name": "cve", "description": "Уязвимости CVE"},
-        {"schema": "vulnanalizer", "name": "hosts", "description": "Хосты"},
-                    {"schema": "vulnanalizer", "name": "metasploit_modules", "description": "Модули Metasploit"},
-        {"schema": "vulnanalizer", "name": "epss", "description": "Данные EPSS"},
-        {"schema": "vulnanalizer", "name": "exploitdb", "description": "База ExploitDB"},
-        {"schema": "vulnanalizer", "name": "background_tasks", "description": "Фоновые задачи"},
-        {"schema": "vulnanalizer", "name": "settings", "description": "Настройки"},
-        {"schema": "loganalizer", "name": "log_entries", "description": "Записи логов"},
-        {"schema": "loganalizer", "name": "log_files", "description": "Файлы логов"},
-        {"schema": "loganalizer", "name": "analysis_settings", "description": "Настройки анализа"}
-    ]
-    return {"success": True, "tables": tables}
-
-@app.get("/api/backup/list")
-async def list_backups(request: Request):
-    """Получить список бэкапов"""
-    # Проверяем права администратора
-    await require_admin(request)
-    return {"success": True, "backups": []}
-
-@app.post("/api/backup/create")
-async def create_backup(request_data: dict, request: Request):
-    """Создать бэкап выбранных таблиц"""
-    # Проверяем права администратора
-    await require_admin(request)
-    
-    try:
-        if not request_data.get('tables'):
-            raise HTTPException(status_code=400, detail="Не выбрано ни одной таблицы")
-        
-        # Здесь должна быть логика создания бэкапа
-        # Пока возвращаем заглушку
-        return {
-            "success": True, 
-            "message": "Бэкап создан успешно",
-            "backup_id": f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка создания бэкапа: {str(e)}")
+# Роуты бэкапов перенесены в vulnanalizer_web
 
 @app.get("/api/version")
 async def get_api_version():

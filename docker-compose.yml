@@ -52,6 +52,7 @@ services:
     container_name: auth_web
     volumes:
       - auth_data:/app/data
+
       - ./auth:/app
       - ./VERSION:/app/VERSION
     environment:
@@ -132,6 +133,7 @@ services:
     volumes:
       - ./templates:/app/templates
       - ./static:/app/static
+      - ./main.py:/app/main.py
     networks:
       - stools_network
     healthcheck:
