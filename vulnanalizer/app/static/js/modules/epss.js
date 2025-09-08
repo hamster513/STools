@@ -135,7 +135,6 @@ class EPSSModule {
                 }
             }
         } catch (err) {
-            console.error('EPSS upload error:', err);
             this.showOperationError('epss', 'Ошибка загрузки EPSS', err.message);
             if (this.app.notifications && this.app.notifications.show) {
                 this.app.notifications.show('Ошибка загрузки EPSS', 'error');
@@ -188,7 +187,6 @@ class EPSSModule {
                 }
             }
         } catch (err) {
-            console.error('EPSS download error:', err);
             this.showOperationError('epss', 'Ошибка скачивания EPSS', err.message);
             if (this.app.notifications && this.app.notifications.show) {
                 this.app.notifications.show('Ошибка скачивания EPSS', 'error');
@@ -306,7 +304,6 @@ class EPSSModule {
         if (this.app.epssModal) {
             this.app.epssModal.show();
         } else {
-            console.error('EPSSModal not found in app');
         }
     }
 }

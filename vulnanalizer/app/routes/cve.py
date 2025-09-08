@@ -506,12 +506,27 @@ async def get_cve_download_urls():
         current_year = datetime.now().year
         urls = []
         
-        # URL для последних 5 лет
-        for year in range(current_year - 4, current_year + 1):
+        # URL для всех лет с 2002 (когда начались CVE) до текущего года + 1
+        for year in range(2002, current_year + 2):
             urls.append({
                 "year": year,
-                "url": f"https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz"
+                "url": f"https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz",
+                "filename": f"nvdcve-2.0-{year}.json.gz"
             })
+        
+        # Добавляем также ссылки на recent и modified файлы
+        urls.extend([
+            {
+                "year": "recent",
+                "url": "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-recent.json.gz",
+                "filename": "nvdcve-2.0-recent.json.gz"
+            },
+            {
+                "year": "modified", 
+                "url": "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-modified.json.gz",
+                "filename": "nvdcve-2.0-modified.json.gz"
+            }
+        ])
         
         return {"success": True, "urls": urls}
     except Exception as e:

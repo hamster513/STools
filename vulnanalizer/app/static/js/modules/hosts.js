@@ -58,7 +58,6 @@ class HostsModule {
                 
                 // Защита от дублирования запросов
                 if (this.isUploading) {
-                    console.log('Загрузка уже выполняется, пропускаем дублирующий запрос');
                     return;
                 }
                 
@@ -142,7 +141,6 @@ class HostsModule {
                 }
             }
         } catch (err) {
-            console.error('Hosts status error:', err);
             const statusDiv = document.getElementById('hosts-status');
             if (statusDiv) {
                 statusDiv.innerHTML = `
@@ -189,7 +187,6 @@ class HostsModule {
                 window.notifications.show('Ошибка поиска хостов', 'error');
             }
         } catch (err) {
-            console.error('Hosts search error:', err);
             window.notifications.show('Ошибка поиска хостов', 'error');
         }
     }
@@ -289,7 +286,6 @@ class HostsModule {
             const cveLinks = resultsDiv.querySelectorAll('.cve-link');
             
             if (cveLinks.length === 0) {
-                console.warn('CVE ссылки не найдены в DOM после вставки!');
             }
         }, 100);
         
@@ -496,7 +492,6 @@ class HostsModule {
                         const cveLinks = resultsDiv.querySelectorAll('.cve-link');
                         
                         if (cveLinks.length === 0) {
-                            console.warn('CVE ссылки исчезли после изменения DOM!');
                         }
                     }, 50);
                 }
@@ -652,11 +647,9 @@ class HostsModule {
             } else if (response && typeof response === 'object' && response.error) {
                 window.notifications.show(`Ошибка экспорта: ${response.error}`, 'error');
             } else {
-                console.error('Unexpected response type:', response);
                 window.notifications.show('Ошибка экспорта: неожиданный тип ответа', 'error');
             }
         } catch (error) {
-            console.error('Export error:', error);
             window.notifications.show('Ошибка экспорта: ' + error.message, 'error');
         } finally {
             // Восстанавливаем кнопку
@@ -669,7 +662,6 @@ class HostsModule {
     async uploadHosts() {
         // Защита от дублирования запросов
         if (this.isUploading) {
-            console.log('Загрузка уже выполняется, пропускаем дублирующий запрос');
             return;
         }
         
@@ -747,7 +739,6 @@ class HostsModule {
                 }, 3000);
             }
         } catch (err) {
-            console.error('Hosts upload error:', err);
             let errorMessage = err.message;
             
             if (err.name === 'TypeError' && err.message.includes('JSON')) {
@@ -826,7 +817,6 @@ class HostsModule {
                 updateHostsParallelBtn.disabled = false;
             }
         } catch (err) {
-            console.error('Background update error:', err);
             window.notifications.show('Ошибка запуска обновления', 'error');
             
             // При ошибке скрываем кнопку отмены
@@ -856,7 +846,6 @@ class HostsModule {
                 window.notifications.show(data.message, 'warning');
             }
         } catch (err) {
-            console.error('Cancel update error:', err);
             window.notifications.show('Ошибка отмены обновления', 'error');
         }
     }
@@ -879,11 +868,9 @@ class HostsModule {
             if (data.success) {
                 this.renderHostRiskResult(hostId, data);
             } else {
-                console.error('API error for host', hostId, ':', data);
                 riskDiv.innerHTML = `<span class="risk-score">Ошибка</span>`;
             }
         } catch (error) {
-            console.error('Host risk calculation error for host', hostId, ':', error);
             riskDiv.innerHTML = `<span class="risk-score">Ошибка</span>`;
         }
     }
@@ -985,7 +972,6 @@ class HostsModule {
                 this.startBackgroundUpdateMonitoring();
             }
         } catch (error) {
-            console.error('Error checking monitoring status:', error);
         }
     }
 
@@ -1078,7 +1064,6 @@ class HostsModule {
                     }
                 }
             } catch (err) {
-                console.error('Import progress monitoring error:', err);
                 this.stopProgressMonitoring();
                 
                 // Скрываем прогресс-бар при ошибке
@@ -1214,7 +1199,6 @@ class HostsModule {
                     }
                 }
             } catch (err) {
-                console.error('Background update monitoring error:', err);
                 this.stopBackgroundUpdateMonitoring();
                 
                 // Скрываем прогресс-бар при ошибке
@@ -1273,7 +1257,6 @@ class HostsModule {
 
             }
         } catch (err) {
-            console.error('Error checking background update status:', err);
         }
     }
 
@@ -1318,7 +1301,6 @@ class HostsModule {
             await this.checkBackgroundUpdateStatus();
             
         } catch (err) {
-            console.error('Error checking active import tasks:', err);
         }
     }
 

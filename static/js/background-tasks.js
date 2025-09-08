@@ -1,4 +1,3 @@
-console.log('Loading background-tasks.js v1.8 - ' + new Date().toISOString());
 
 class BackgroundTasksManager {
     constructor() {
@@ -6,7 +5,6 @@ class BackgroundTasksManager {
     }
 
     init() {
-        console.log('BackgroundTasksManager initialized');
         this.checkAuth();
         this.setupEventListeners();
         this.loadBackgroundTasksData();
@@ -32,14 +30,11 @@ class BackgroundTasksManager {
 
         // Кнопка очистки задач
         const clearTasksBtn = document.getElementById('clear-tasks-btn');
-        console.log('Clear tasks button found:', clearTasksBtn);
         if (clearTasksBtn) {
             clearTasksBtn.addEventListener('click', () => {
-                console.log('Clear tasks button clicked');
                 this.clearBackgroundTasks();
             });
         } else {
-            console.error('Clear tasks button not found!');
         }
 
         // Автоматическое обновление каждые 2 секунды
@@ -220,8 +215,6 @@ class BackgroundTasksManager {
             const token = localStorage.getItem('auth_token');
             // Используем относительный URL, как и кнопка "Обновить"
             const url = '/vulnanalizer/api/background-tasks/clear';
-            console.log('Making request to:', url);
-            console.log('Current location:', window.location.href);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -240,7 +233,6 @@ class BackgroundTasksManager {
                 this.showNotification(result.message || 'Ошибка очистки задач', 'error');
             }
         } catch (err) {
-            console.error('Error clearing background tasks:', err);
             
             // Проверяем, является ли ошибка проблемой смешанного контента
             if (err.message.includes('Failed to fetch') || err.message.includes('ERR_SSL_PROTOCOL_ERROR')) {

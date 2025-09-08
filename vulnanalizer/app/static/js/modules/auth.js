@@ -64,7 +64,6 @@ class AuthModule {
                     userName.textContent = user.username;
                 }
             } catch (e) {
-                console.error('Error parsing user info:', e);
             }
         }
 

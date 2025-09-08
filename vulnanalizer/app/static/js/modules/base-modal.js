@@ -76,7 +76,6 @@ class BaseModalModule {
             
             this.loadData();
         } else {
-            console.error('Modal element not found for ID:', this.modalId);
         }
     }
 
@@ -150,7 +149,6 @@ class BaseModalModule {
                 this.showError(data.error || 'Неизвестная ошибка');
             }
         } catch (error) {
-            console.error(`Error loading ${this.title} data:`, error);
             this.showError(error.message);
         }
     }

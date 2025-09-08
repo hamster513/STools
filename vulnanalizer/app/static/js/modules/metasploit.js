@@ -106,7 +106,6 @@ class MetasploitModule {
             }
 
         } catch (error) {
-            console.error('Error uploading metasploit file:', error);
             this.showStatus(statusDiv, 
                 `❌ Ошибка загрузки: ${error.message}`, 
                 'error'
@@ -152,7 +151,6 @@ class MetasploitModule {
             }
 
         } catch (error) {
-            console.error('Error starting metasploit download:', error);
             this.showStatus(statusDiv, 
                 `❌ Ошибка запуска загрузки: ${error.message}`, 
                 'error'
@@ -192,7 +190,6 @@ class MetasploitModule {
         
         // Проверяем, что элемент существует
         if (!statusDiv) {
-            console.warn('Metasploit status div not found for progress monitoring');
             return;
         }
         
@@ -232,7 +229,6 @@ class MetasploitModule {
                     }
                 }
             } catch (error) {
-                console.error('Error checking progress:', error);
                 this.showStatus(statusDiv, 
                     `❌ Ошибка мониторинга прогресса: ${error.message}`, 
                     'error'
@@ -273,7 +269,6 @@ class MetasploitModule {
             }
 
         } catch (error) {
-            console.error('Error cancelling metasploit download:', error);
             this.showStatus(statusDiv, 
                 `❌ Ошибка отмены: ${error.message}`, 
                 'error'
@@ -304,7 +299,6 @@ class MetasploitModule {
             }
 
         } catch (error) {
-            console.error('Error clearing metasploit data:', error);
             this.app.showNotification('Ошибка очистки данных Metasploit', 'error');
         }
     }
@@ -314,7 +308,6 @@ class MetasploitModule {
         if (this.app.metasploitModal) {
             this.app.metasploitModal.show();
         } else {
-            console.error('MetasploitModal not found in app');
         }
     }
 
@@ -323,7 +316,6 @@ class MetasploitModule {
         
         // Проверяем, что элемент существует
         if (!statusDiv) {
-            console.warn('Metasploit status div not found');
             return;
         }
         
@@ -421,7 +413,6 @@ class MetasploitModule {
             }
 
         } catch (error) {
-            console.error('Error updating metasploit status:', error);
             statusDiv.innerHTML = `
                 <div class="status-info">
                     <div class="status-item">

@@ -249,7 +249,6 @@ class UtilsModule {
             await navigator.clipboard.writeText(text);
             return true;
         } catch (err) {
-            console.error('Failed to copy text: ', err);
             return false;
         }
     }
@@ -352,7 +351,6 @@ class UtilsModule {
         try {
             return JSON.parse(localStorage.getItem('app_logs') || '[]');
         } catch (err) {
-            console.error('Failed to get logs:', err);
             return [];
         }
     }
@@ -364,7 +362,6 @@ class UtilsModule {
         try {
             localStorage.removeItem('app_logs');
         } catch (err) {
-            console.error('Failed to clear logs:', err);
         }
     }
 }

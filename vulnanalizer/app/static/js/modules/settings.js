@@ -219,7 +219,6 @@ class SettingsModule {
             this.populateSettings(settings);
             
         } catch (error) {
-            console.error('Error loading database settings:', error);
         }
     }
 
@@ -245,7 +244,6 @@ class SettingsModule {
                 }
             }
         } catch (error) {
-            console.error('Error loading impact settings:', error);
         }
     }
 
@@ -302,7 +300,6 @@ class SettingsModule {
                 window.notifications.show('Ошибка сохранения настроек', 'error');
             }
         } catch (error) {
-            console.error('Error saving settings:', error);
             window.notifications.show('Ошибка сохранения настроек', 'error');
         }
     }
@@ -328,7 +325,6 @@ class SettingsModule {
                 window.notifications.show('Ошибка сохранения настроек Impact', 'error');
             }
         } catch (error) {
-            console.error('Error saving impact settings:', error);
             window.notifications.show('Ошибка сохранения настроек Impact', 'error');
         }
     }
@@ -361,7 +357,6 @@ class SettingsModule {
                 window.notifications.show('Ошибка подключения к базе данных', 'error');
             }
         } catch (error) {
-            console.error('Connection test error:', error);
             window.notifications.show('❌ Ошибка подключения к базе данных', 'error');
         } finally {
             const btn = document.getElementById('test-connection');
@@ -394,7 +389,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear hosts error:', error);
             window.notifications.show('Ошибка очистки хостов', 'error');
         } finally {
             const btn = document.getElementById('clear-hosts-btn');
@@ -425,7 +419,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear EPSS error:', error);
             window.notifications.show('Ошибка очистки EPSS', 'error');
         } finally {
             const btn = document.getElementById('clear-epss-btn');
@@ -456,7 +449,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear ExploitDB error:', error);
             window.notifications.show('Ошибка очистки ExploitDB', 'error');
         } finally {
             const btn = document.getElementById('clear-exploitdb-btn');
@@ -487,7 +479,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear CVE error:', error);
             window.notifications.show('Ошибка очистки CVE', 'error');
         } finally {
             const btn = document.getElementById('clear-cve-btn');
@@ -505,7 +496,6 @@ class SettingsModule {
                 versionElement.textContent = `v${data.version}`;
             }
         } catch (error) {
-            console.error('Error loading app version:', error);
         }
     }
 
@@ -523,7 +513,6 @@ class SettingsModule {
             this.loadThresholdSettings(settings);
             
         } catch (error) {
-            console.error('Error loading settings:', error);
         }
     }
 
@@ -632,7 +621,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
             }
         } catch (error) {
-            console.error('Save CVSS settings error:', error);
             window.notifications.show('Ошибка сохранения настроек CVSS', 'error');
         }
     }
@@ -723,7 +711,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
             }
         } catch (error) {
-            console.error('Save ExploitDB settings error:', error);
             window.notifications.show('Ошибка сохранения настроек ExploitDB', 'error');
         }
     }
@@ -744,7 +731,6 @@ class SettingsModule {
                 }
             }
         } catch (error) {
-            console.error('Load ExploitDB settings error:', error);
         }
     }
 
@@ -789,7 +775,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
             }
         } catch (error) {
-            console.error('Save Metasploit settings error:', error);
             window.notifications.show('Ошибка сохранения настроек Metasploit', 'error');
         }
     }
@@ -811,7 +796,6 @@ class SettingsModule {
                 }
             }
         } catch (error) {
-            console.error('Load Metasploit settings error:', error);
         }
     }
 
@@ -856,7 +840,6 @@ class SettingsModule {
                 window.notifications.show(`Ошибка сохранения: ${response.error}`, 'error');
             }
         } catch (error) {
-            console.error('Save threshold settings error:', error);
             window.notifications.show('Ошибка сохранения настроек порога риска', 'error');
         }
     }

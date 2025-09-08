@@ -56,7 +56,6 @@ class VMModule {
                 this.populateVMSettings(data.data);
             }
         } catch (error) {
-            console.error('Error loading VM settings:', error);
         }
     }
 
@@ -126,10 +125,11 @@ class VMModule {
         try {
             const data = await this.app.api.testVMConnection(settings);
             
-            if (data.success && data.data.success) {
+            if (data && data.success && data.data && data.data.success) {
                 this.app.notifications.show(`Подключение успешно! ${data.data.message}`, 'success');
             } else {
-                this.app.notifications.show(`Ошибка подключения: ${data.data.error || data.error}`, 'error');
+                const errorMsg = (data && data.data && data.data.error) || (data && data.error) || 'Неизвестная ошибка';
+                this.app.notifications.show(`Ошибка подключения: ${errorMsg}`, 'error');
             }
         } catch (error) {
             this.app.notifications.show(`Ошибка подключения: ${error.message}`, 'error');
@@ -164,7 +164,6 @@ class VMModule {
                 this.populateVMStatus(data.data);
             }
         } catch (error) {
-            console.error('Error updating VM status:', error);
         }
     }
 

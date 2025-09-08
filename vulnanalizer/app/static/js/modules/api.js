@@ -66,7 +66,6 @@ class ApiModule {
                 return await response.text();
             }
         } catch (error) {
-            console.error(`API request error for ${endpoint}:`, error);
             throw error;
         }
     }

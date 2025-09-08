@@ -74,11 +74,13 @@ services:
       timeout: 10s
       retries: 3
 
-  # Веб-приложение LogAnalizer
+  # Веб-приложение LogAnalizer (отключено по умолчанию)
   loganalizer_web:
     image: docker.io/hamster5133/stools-loganalizer_web:v0.7.00
     container_name: loganalizer_web
     platform: linux/amd64
+    profiles:
+      - loganalizer
     volumes:
       - loganalizer_data:/app/data
       - ./loganalizer/app:/app
@@ -162,8 +164,8 @@ services:
     depends_on:
       auth_web:
         condition: service_healthy
-      loganalizer_web:
-        condition: service_healthy
+      # loganalizer_web: # Отключено по умолчанию
+      #   condition: service_healthy
       vulnanalizer_web:
         condition: service_healthy
       main_web:

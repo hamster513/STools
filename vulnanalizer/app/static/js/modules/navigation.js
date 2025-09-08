@@ -37,7 +37,6 @@ class NavigationModule {
                 if (targetElement) {
                     targetElement.classList.add('active');
                 } else {
-                    console.error(`Page element not found: ${targetPage}-page`);
                 }
                 
                 // Обновляем заголовок страницы
@@ -105,7 +104,6 @@ class NavigationModule {
                 this.updateSidebarVisibility(false);
             }
         } catch (error) {
-            console.log('Ошибка проверки прав:', error);
             // При ошибке скрываем админские вкладки
             this.updateSidebarVisibility(false);
         }

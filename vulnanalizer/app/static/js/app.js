@@ -8,7 +8,6 @@ class VulnAnalizer {
         if (typeof UIManager !== 'undefined') {
             this.uiManager = new UIManager();
         } else {
-            console.warn('UIManager not found, UI management will be limited');
             this.uiManager = null;
         }
         
@@ -68,43 +67,36 @@ class VulnAnalizer {
         if (typeof CVEModalModule !== 'undefined') {
             this.cveModal = new CVEModalModule(this);
         } else {
-            console.warn('CVEModalModule не найден!');
         }
         
         if (typeof MetasploitModule !== 'undefined') {
             this.metasploitModule = new MetasploitModule(this);
         } else {
-            console.warn('MetasploitModule не найден!');
         }
         
         if (typeof MetasploitModalModule !== 'undefined') {
             this.metasploitModal = new MetasploitModalModule(this);
         } else {
-            console.warn('MetasploitModalModule не найден!');
         }
         
         if (typeof EPSSModalModule !== 'undefined') {
             this.epssModal = new EPSSModalModule(this);
         } else {
-            console.warn('EPSSModalModule не найден!');
         }
         
         if (typeof ExploitDBModalModule !== 'undefined') {
             this.exploitdbModal = new ExploitDBModalModule(this);
         } else {
-            console.warn('ExploitDBModalModule не найден!');
         }
         
         if (typeof CVEPreviewModalModule !== 'undefined') {
             this.cvePreviewModal = new CVEPreviewModalModule(this);
         } else {
-            console.warn('CVEPreviewModalModule не найден!');
         }
         
         if (typeof RiskModalModule !== 'undefined') {
             this.riskModal = new RiskModalModule(this);
         } else {
-            console.warn('RiskModalModule не найден!');
         }
     }
 
@@ -192,35 +184,27 @@ class VulnAnalizer {
     // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
     async checkUserPermissions() {
         try {
-            console.log('🔐 Проверяем права пользователя...');
             
             // Получаем токен из localStorage
             const token = localStorage.getItem('auth_token');
-            console.log('🎫 Токен из localStorage:', token);
             
             // Проверяем права пользователя через новый endpoint
             const response = await fetch(`/auth/api/me-simple?token=${token || 'user'}`);
-            console.log('📡 Ответ от API:', response.status, response.ok);
             
             if (response.ok) {
                 const user = await response.json();
-                console.log('👤 Данные пользователя:', user);
-                console.log('🔑 is_admin:', user.is_admin);
                 this.updateSidebarVisibility(user.is_admin);
             } else {
-                console.log('❌ API вернул ошибку, скрываем настройки');
                 // Если не авторизован, скрываем админские вкладки
                 this.updateSidebarVisibility(false);
             }
         } catch (error) {
-            console.log('💥 Ошибка проверки прав:', error);
             // При ошибке скрываем админские вкладки
             this.updateSidebarVisibility(false);
         }
     }
 
     updateSidebarVisibility(isAdmin) {
-        console.log('🎯 updateSidebarVisibility вызвана с isAdmin:', isAdmin);
         // Скрываем/показываем админские вкладки в боковом меню
         const adminTabs = [
             'settings' // Вкладка настроек
@@ -228,20 +212,16 @@ class VulnAnalizer {
         
         adminTabs.forEach(tabName => {
             const tab = document.querySelector(`[data-page="${tabName}"]`);
-            console.log(`🔍 Ищем вкладку [data-page="${tabName}"]:`, tab);
             
             if (tab) {
                 if (isAdmin) {
-                    console.log(`✅ Показываем вкладку ${tabName}`);
                     tab.classList.remove('hidden');
                     tab.classList.add('visible');
                 } else {
-                    console.log(`❌ Скрываем вкладку ${tabName}`);
                     tab.classList.remove('visible');
                     tab.classList.add('hidden');
                 }
             } else {
-                console.log(`⚠️ Вкладка ${tabName} не найдена!`);
             }
         });
     }
@@ -328,7 +308,6 @@ class VulnAnalizer {
                 if (targetElement) {
                     targetElement.classList.add('active');
                 } else {
-                    console.error(`Page element not found: ${targetPage}-page`);
                 }
                 
                 // Обновляем заголовок страницы
@@ -394,7 +373,6 @@ class VulnAnalizer {
                     userName.textContent = user.username;
                 }
             } catch (e) {
-                console.error('Error parsing user info:', e);
             }
         }
 
@@ -607,7 +585,6 @@ class VulnAnalizer {
                         this.showNotification('Ошибка загрузки EPSS', 'error');
                     }
                 } catch (err) {
-                    console.error('EPSS upload error:', err);
                     this.showOperationError('epss', 'Ошибка загрузки EPSS', err.message);
                     this.showNotification('Ошибка загрузки EPSS', 'error');
                 } finally {
@@ -677,7 +654,6 @@ class VulnAnalizer {
                         this.showNotification('Ошибка загрузки ExploitDB', 'error');
                     }
                 } catch (err) {
-                    console.error('ExploitDB upload error:', err);
                     this.showOperationError('exploitdb', 'Ошибка загрузки ExploitDB', err.message);
                     this.showNotification('Ошибка загрузки ExploitDB', 'error');
                 } finally {
@@ -697,7 +673,6 @@ class VulnAnalizer {
         if (typeof CVEManager !== 'undefined') {
             this.cveManager = new CVEManager(this);
         } else {
-            console.warn('CVEManager not found, using legacy CVE functionality');
             this.setupLegacyCVE();
         }
     }
@@ -758,7 +733,6 @@ class VulnAnalizer {
                         this.showNotification('Ошибка загрузки CVE', 'error');
                     }
                 } catch (err) {
-                    console.error('CVE upload error:', err);
                     this.showOperationError('cve', 'Ошибка загрузки CVE', err.message);
                     this.showNotification('Ошибка загрузки CVE', 'error');
                 } finally {
@@ -801,7 +775,6 @@ class VulnAnalizer {
                         this.showNotification('Ошибка получения ссылок CVE', 'error');
                     }
                 } catch (err) {
-                    console.error('CVE URLs error:', err);
                     this.showNotification('Ошибка получения ссылок CVE', 'error');
                 }
             });
@@ -838,7 +811,6 @@ class VulnAnalizer {
                         this.showNotification(data.message || 'Ошибка отмены загрузки', 'warning');
                     }
                 } catch (err) {
-                    console.error('CVE cancel error:', err);
                     this.showNotification('Ошибка отмены загрузки CVE', 'error');
                 } finally {
                     // Восстанавливаем кнопку
@@ -911,7 +883,6 @@ class VulnAnalizer {
                                 errorMessage = errorText;
                             }
                         } catch (textError) {
-                            console.error('Error reading response text:', textError);
                         }
                         
                         this.showNotification('Ошибка загрузки: ' + errorMessage, 'error');
@@ -944,7 +915,6 @@ class VulnAnalizer {
                         this.showNotification('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), 'error');
                     }
                 } catch (err) {
-                    console.error('Hosts upload error:', err);
                     let errorMessage = err.message;
                     
                     // Улучшенная обработка ошибок
@@ -1051,7 +1021,6 @@ class VulnAnalizer {
                 `;
             }
         } catch (err) {
-            console.error('ExploitDB status error:', err);
             statusDiv.innerHTML = `
                 <div class="status-error">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -1113,21 +1082,6 @@ class VulnAnalizer {
                     <div style="margin-bottom: 15px;">
                         <b>Записей в базе CVE:</b> ${data.count}
                     </div>
-                    
-                    <!-- Подсказка с ссылками для CVE -->
-                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
-                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE</h4>
-                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <a href="https://nvd.nist.gov/feeds/json/cve/1.1/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">NVD CVE Feeds (официальный сайт)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">JSON/GZ</span>
-                            </a>
-                            <a href="https://nvd.nist.gov/vuln/data-feeds" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🌐 <span style="flex: 1;">NVD Data Feeds (документация)</span>
-                            </a>
-                        </div>
-                    </div>
                 `;
             } else {
                 statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса CVE</span>';
@@ -1168,7 +1122,6 @@ class VulnAnalizer {
                 `;
             }
         } catch (err) {
-            console.error('Hosts status error:', err);
             statusDiv.innerHTML = `
                 <div class="status-error">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -1217,7 +1170,6 @@ class VulnAnalizer {
                 this.showNotification('Ошибка поиска хостов', 'error');
             }
         } catch (err) {
-            console.error('Hosts search error:', err);
             this.showNotification('Ошибка поиска хостов', 'error');
         }
     }
@@ -1592,7 +1544,6 @@ class VulnAnalizer {
                 this.showNotification(`Ошибка экспорта: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Export error:', error);
             this.showNotification('Ошибка экспорта: ' + error.message, 'error');
         } finally {
             // Восстанавливаем кнопку
@@ -1626,16 +1577,9 @@ class VulnAnalizer {
             if (data.success) {
                 this.renderHostRiskResult(hostId, data);
             } else {
-                console.error('API error for host', hostId, ':', data);
                 riskDiv.innerHTML = `<span class="risk-score">Ошибка</span>`;
             }
         } catch (error) {
-            console.error('Host risk calculation error for host', hostId, ':', error);
-            console.error('Error details:', {
-                message: error.message,
-                stack: error.stack,
-                hostId: hostId
-            });
             riskDiv.innerHTML = `<span class="risk-score">Ошибка</span>`;
         }
     }
@@ -1700,7 +1644,6 @@ class VulnAnalizer {
             // Загружаем настройки Metasploit
             await this.loadMetasploitSettings();
         } catch (error) {
-            console.error('Error loading initial data:', error);
             this.showNotification('Ошибка загрузки данных', 'error');
         }
     }
@@ -1768,7 +1711,6 @@ class VulnAnalizer {
                 this.showNotification('Ошибка сохранения настроек', 'error');
             }
         } catch (error) {
-            console.error('Error saving settings:', error);
             this.showNotification('Ошибка сохранения настроек', 'error');
         }
     }
@@ -1783,7 +1725,6 @@ class VulnAnalizer {
             this.populateSettings(settings);
             
         } catch (error) {
-            console.error('Error loading database settings:', error);
         }
     }
 
@@ -1811,7 +1752,6 @@ class VulnAnalizer {
                 }
             }
         } catch (error) {
-            console.error('Error loading impact settings:', error);
         }
     }
 
@@ -1833,7 +1773,6 @@ class VulnAnalizer {
                 }
             }
         } catch (error) {
-            console.error('Error loading ExploitDB settings:', error);
         }
     }
 
@@ -1856,7 +1795,6 @@ class VulnAnalizer {
                 }
             }
         } catch (error) {
-            console.error('Error loading Metasploit settings:', error);
         }
     }
 
@@ -1885,7 +1823,6 @@ class VulnAnalizer {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('DEBUG: Response error text:', errorText);
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
@@ -1903,7 +1840,6 @@ class VulnAnalizer {
                 this.showNotification('Ошибка сохранения настроек Impact', 'error');
             }
         } catch (error) {
-            console.error('Error saving impact settings:', error);
             this.showNotification('Ошибка сохранения настроек Impact', 'error');
         }
     }
@@ -1953,7 +1889,6 @@ class VulnAnalizer {
             this.showNotification(`Информация о ${cveId} загружена`, 'success');
 
         } catch (error) {
-            console.error('Error searching CVE:', error);
             this.showNotification('Ошибка поиска CVE', 'error');
         }
     }
@@ -1965,7 +1900,6 @@ class VulnAnalizer {
 
         // Проверяем, что данные корректны
         if (!data || !data.cve || !data.cve.cve_id) {
-            console.error('Invalid CVE data:', data);
             this.showNotification('Ошибка: некорректные данные CVE', 'error');
             return;
         }
@@ -2199,7 +2133,6 @@ class VulnAnalizer {
                 this.showNotification('Ошибка подключения к базе данных', 'error');
             }
         } catch (error) {
-            console.error('Connection test error:', error);
             this.showNotification('❌ Ошибка подключения к базе данных', 'error');
         } finally {
             const btn = document.getElementById('test-connection');
@@ -2234,7 +2167,6 @@ class VulnAnalizer {
                 this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear hosts error:', error);
             this.showNotification('Ошибка очистки хостов', 'error');
         } finally {
             const btn = document.getElementById('clear-hosts-btn');
@@ -2267,7 +2199,6 @@ class VulnAnalizer {
                 this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear EPSS error:', error);
             this.showNotification('Ошибка очистки EPSS', 'error');
         } finally {
             const btn = document.getElementById('clear-epss-btn');
@@ -2300,7 +2231,6 @@ class VulnAnalizer {
                 this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear ExploitDB error:', error);
             this.showNotification('Ошибка очистки ExploitDB', 'error');
         } finally {
             const btn = document.getElementById('clear-exploitdb-btn');
@@ -2333,7 +2263,6 @@ class VulnAnalizer {
                 this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
             }
         } catch (error) {
-            console.error('Clear CVE error:', error);
             this.showNotification('Ошибка очистки CVE', 'error');
         } finally {
             const btn = document.getElementById('clear-cve-btn');
@@ -2518,7 +2447,6 @@ class VulnAnalizer {
                 this.populateVMSettings(data.data);
             }
         } catch (error) {
-            console.error('Error loading VM settings:', error);
         }
     }
 
@@ -2647,7 +2575,6 @@ class VulnAnalizer {
                 this.populateVMStatus(data.data);
             }
         } catch (error) {
-            console.error('Error updating VM status:', error);
         }
     }
 
@@ -2661,7 +2588,6 @@ class VulnAnalizer {
                 versionElement.textContent = `v${data.version}`;
             }
         } catch (error) {
-            console.error('Error loading app version:', error);
         }
     }
 
@@ -2825,7 +2751,6 @@ class VulnAnalizer {
                     }
                 }
             } catch (err) {
-                console.error('Background task monitoring error:', err);
             }
         }, 2000); // Обновляем каждые 2 секунды
         
@@ -2945,7 +2870,6 @@ class VulnAnalizer {
                     }
                 }
             } catch (err) {
-                console.error('Background update monitoring error in main app:', err);
                 this.stopBackgroundUpdateMonitoring();
                 
                 // Скрываем прогресс-бар при ошибке
@@ -3056,11 +2980,9 @@ class VulnAnalizer {
                 
                 this.updateBackgroundTasksUI(data);
             } else {
-                console.error('Failed to load background tasks data');
                 this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
             }
         } catch (err) {
-            console.error('Error loading background tasks data:', err);
             this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
         }
     }
@@ -3175,7 +3097,6 @@ class VulnAnalizer {
                 this.showNotification('Ошибка отмены задачи', 'error');
             }
         } catch (err) {
-            console.error('Error cancelling task:', err);
             this.showNotification('Ошибка отмены задачи', 'error');
         }
     }
@@ -3248,7 +3169,6 @@ class VulnAnalizer {
                 }
             }
         } catch (err) {
-            console.error('Error checking active tasks in main app:', err);
         }
     }
 

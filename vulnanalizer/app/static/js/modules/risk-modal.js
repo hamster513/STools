@@ -105,7 +105,6 @@ class RiskModalModule {
                 this.showError(data.message || 'Ошибка загрузки данных о риске');
             }
         } catch (err) {
-            console.error('Risk data loading error:', err);
             this.showError('Ошибка загрузки данных о риске');
         }
     }
