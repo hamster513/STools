@@ -125,13 +125,25 @@ class VMModule {
         try {
             const data = await this.app.api.testVMConnection(settings);
             
-            if (data && data.success && data.data && data.data.success) {
+            // Проверяем, что data существует и имеет ожидаемую структуру
+            if (data && typeof data === 'object' && data.success && data.data && data.data.success) {
                 this.app.notifications.show(`Подключение успешно! ${data.data.message}`, 'success');
             } else {
-                const errorMsg = (data && data.data && data.data.error) || (data && data.error) || 'Неизвестная ошибка';
+                // Более детальная обработка ошибок
+                let errorMsg = 'Неизвестная ошибка';
+                if (data && data.data && data.data.error) {
+                    errorMsg = data.data.error;
+                } else if (data && data.error) {
+                    errorMsg = data.error;
+                } else if (data && data.message) {
+                    errorMsg = data.message;
+                } else if (!data) {
+                    errorMsg = 'Сервер не вернул ответ';
+                }
                 this.app.notifications.show(`Ошибка подключения: ${errorMsg}`, 'error');
             }
         } catch (error) {
+            console.error('VM connection test error:', error);
             this.app.notifications.show(`Ошибка подключения: ${error.message}`, 'error');
         }
     }
