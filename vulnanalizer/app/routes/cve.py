@@ -9,7 +9,7 @@ import aiohttp
 import asyncio
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, File, UploadFile
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -187,51 +187,90 @@ def parse_cve_json(data):
         raise
 
 
-    @router.post("/api/cve/upload")
-    async def upload_cve(file: UploadFile = File(...)):
-        """Загрузить CVE данные из файла"""
-        try:
-            content = await file.read()
-            
-            # Проверяем, является ли файл архивом
-            if file.filename.endswith('.gz'):
-                try:
-                    with gzip.GzipFile(fileobj=io.BytesIO(content)) as gz:
-                        content = gz.read()
-                except Exception as gz_error:
-                    raise Exception(f"Ошибка распаковки gzip архива: {gz_error}")
-            
-            # Декодируем контент
-            if isinstance(content, bytes):
-                try:
-                    content = content.decode('utf-8')
-                except UnicodeDecodeError as decode_error:
-                    raise Exception(f"Ошибка декодирования файла: {decode_error}")
-            
-            # Парсим JSON
-            try:
-                records = parse_cve_json(content)
-            except Exception as parse_error:
-                raise Exception(f"Ошибка парсинга JSON: {parse_error}")
-            
-            if not records:
-                raise Exception("Не удалось извлечь CVE записи из файла")
-            
-            # Сохраняем в базу данных
-            try:
-                db = get_db()
-                await db.insert_cve_records(records)
-            except Exception as db_error:
-                raise Exception(f"Ошибка сохранения в базу данных: {db_error}")
-            
-            return {
-                "success": True,
-                "count": len(records),
-                "message": f"CVE данные успешно импортированы: {len(records)} записей"
-            }
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+@router.post("/api/cve/upload")
+async def upload_cve(request: Request):
+    """Загрузить CVE данные из файла"""
+    try:
+        # Читаем сырые данные
+        body = await request.body()
+        
+        if len(body) == 0:
+            raise HTTPException(status_code=422, detail="Тело запроса пустое")
+        
+        # Пытаемся найти файл в multipart данных
+        content_type = request.headers.get('content-type', '')
+        if 'multipart/form-data' in content_type:
+            # Простой парсинг multipart
+            boundary = content_type.split('boundary=')[1] if 'boundary=' in content_type else None
+            if boundary:
+                # Ищем файл в multipart данных
+                parts = body.split(f'--{boundary}'.encode())
+                
+                for part in parts:
+                    if b'Content-Disposition: form-data' in part and b'filename=' in part:
+                        # Извлекаем имя файла
+                        lines = part.split(b'\r\n')
+                        filename = None
+                        for line in lines:
+                            if b'filename=' in line:
+                                filename = line.decode('utf-8', errors='ignore').split('filename="')[1].split('"')[0]
+                                break
+                        
+                        if filename:
+                            # Извлекаем содержимое файла (после двойного \r\n)
+                            content_start = part.find(b'\r\n\r\n')
+                            if content_start != -1:
+                                file_content = part[content_start + 4:]
+                                # Убираем лишние \r\n в конце
+                                file_content = file_content.rstrip(b'\r\n')
+                                
+                                # Обрабатываем файл
+                                if filename.endswith('.gz'):
+                                    try:
+                                        with gzip.GzipFile(fileobj=io.BytesIO(file_content)) as gz:
+                                            content = gz.read()
+                                    except Exception as gz_error:
+                                        raise HTTPException(status_code=422, detail=f"Ошибка распаковки gzip архива: {gz_error}")
+                                else:
+                                    content = file_content
+                                
+                                # Декодируем контент
+                                if isinstance(content, bytes):
+                                    try:
+                                        content = content.decode('utf-8')
+                                    except UnicodeDecodeError as decode_error:
+                                        raise HTTPException(status_code=422, detail=f"Ошибка декодирования файла: {decode_error}")
+                                
+                                # Парсим JSON
+                                try:
+                                    records = parse_cve_json(content)
+                                except Exception as parse_error:
+                                    raise HTTPException(status_code=422, detail=f"Ошибка парсинга JSON: {parse_error}")
+                                
+                                if not records:
+                                    raise HTTPException(status_code=422, detail="Не удалось извлечь CVE записи из файла")
+                                
+                                # Сохраняем в базу данных
+                                try:
+                                    db = get_db()
+                                    await db.insert_cve_records(records)
+                                except Exception as db_error:
+                                    raise HTTPException(status_code=500, detail=f"Ошибка сохранения в базу данных: {db_error}")
+                                
+                                return {
+                                    "success": True,
+                                    "count": len(records),
+                                    "message": f"CVE данные успешно импортированы: {len(records)} записей"
+                                }
+        else:
+            raise HTTPException(status_code=422, detail=f"Ожидается multipart/form-data, получен: {content_type}")
+        
+        raise HTTPException(status_code=422, detail="Файл не найден в запросе")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/api/cve/download")

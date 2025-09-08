@@ -92,11 +92,9 @@ class ApiModule {
         
         if (data) {
             if (data instanceof FormData) {
-                // Для FormData убираем Content-Type, браузер сам установит
-                if (options.headers && options.headers['Content-Type']) {
-                    delete options.headers['Content-Type'];
-                }
+                // Для FormData не устанавливаем Content-Type, браузер сам установит
                 options.body = data;
+                options.headers = {}; // Пустые заголовки для FormData
             } else {
                 options.body = JSON.stringify(data);
             }

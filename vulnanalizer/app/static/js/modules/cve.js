@@ -218,16 +218,16 @@ class CVEModule {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 this.showOperationComplete('cve', 'CVE данные успешно загружены', `Загружено записей: ${data.count}`);
-                this.app.notifications.show(`Загружено записей: ${data.count}`, 'success');
+                this.app.showNotification(`Загружено записей: ${data.count}`, 'success');
                 this.updateStatus();
                 fileInput.value = '';
             } else {
                 this.showOperationError('cve', 'Ошибка загрузки CVE', data.detail || 'Неизвестная ошибка');
-                this.app.notifications.show('Ошибка загрузки CVE', 'error');
+                this.app.showNotification('Ошибка загрузки CVE', 'error');
             }
         } catch (err) {
             this.showOperationError('cve', 'Ошибка загрузки CVE', err.message);
-            this.app.notifications.show('Ошибка загрузки CVE', 'error');
+            this.app.showNotification('Ошибка загрузки CVE', 'error');
         } finally {
             // Восстанавливаем кнопку
             btnText.textContent = 'Загрузить CSV';
@@ -271,7 +271,7 @@ class CVEModule {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 this.showOperationComplete('cve', 'CVE данные успешно скачаны', `Загружено записей: ${data.count}`);
-                this.app.notifications.show(`Загружено записей: ${data.count}`, 'success');
+                this.app.showNotification(`Загружено записей: ${data.count}`, 'success');
                 this.updateStatus();
             } else {
                 this.showOperationError('cve', 'Ошибка скачивания CVE', data.detail || 'Неизвестная ошибка');
