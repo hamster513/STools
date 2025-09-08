@@ -221,8 +221,9 @@ async def upload_cve(request: Request):
                             content_start = part.find(b'\r\n\r\n')
                             if content_start != -1:
                                 file_content = part[content_start + 4:]
-                                # Убираем лишние \r\n в конце
-                                file_content = file_content.rstrip(b'\r\n')
+                                # Убираем только последний \r\n если он есть, но не все
+                                if file_content.endswith(b'\r\n'):
+                                    file_content = file_content[:-2]
                                 
                                 # Обрабатываем файл
                                 if filename.endswith('.gz'):
