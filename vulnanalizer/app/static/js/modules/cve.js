@@ -48,40 +48,58 @@ class CVEModule {
         }
 
         // Обработчик для блока ссылок CVE
-        const cveDownloadLinksHeader = document.querySelector('[data-target="cve-download-links"]');
-        if (cveDownloadLinksHeader) {
-            cveDownloadLinksHeader.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const targetId = cveDownloadLinksHeader.getAttribute('data-target');
-                const content = document.getElementById(targetId);
+        this.setupCveDownloadLinksHandler();
+
+    }
+
+    setupCveDownloadLinksHandler() {
+        // Добавляем небольшую задержку чтобы DOM успел загрузиться
+        setTimeout(() => {
+            const cveDownloadLinksHeader = document.querySelector('[data-target="cve-download-links"]');
+            if (cveDownloadLinksHeader) {
+                // Инициализируем как свернутый
+                const content = document.getElementById('cve-download-links');
                 const arrow = cveDownloadLinksHeader.querySelector('.collapsible-arrow i');
                 
                 if (content) {
-                    const isCollapsed = content.style.display === 'none' || content.style.display === '';
-                    
-                    if (isCollapsed) {
-                        content.style.display = 'block';
-                        if (arrow) {
-                            arrow.style.transform = 'rotate(180deg)';
-                        }
-                        
-                        // Загружаем ссылки если еще не загружены
-                        const linksContent = document.getElementById('cve-download-links-content');
-                        if (linksContent && !linksContent.innerHTML.trim()) {
-                            this.loadCveDownloadLinks();
-                        }
-                    } else {
-                        content.style.display = 'none';
-                        if (arrow) {
-                            arrow.style.transform = 'rotate(0deg)';
-                        }
+                    content.style.display = 'none';
+                    if (arrow) {
+                        arrow.style.transform = 'rotate(-90deg)';
                     }
                 }
-            });
-        }
-
+                
+                cveDownloadLinksHeader.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const targetId = cveDownloadLinksHeader.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    const arrow = cveDownloadLinksHeader.querySelector('.collapsible-arrow i');
+                    
+                    if (content) {
+                        const isCollapsed = content.style.display === 'none' || content.style.display === '';
+                        
+                        if (isCollapsed) {
+                            content.style.display = 'block';
+                            if (arrow) {
+                                arrow.style.transform = 'rotate(180deg)';
+                            }
+                            
+                            // Загружаем ссылки если еще не загружены
+                            const linksContent = document.getElementById('cve-download-links-content');
+                            if (linksContent && !linksContent.innerHTML.trim()) {
+                                this.loadCveDownloadLinks();
+                            }
+                        } else {
+                            content.style.display = 'none';
+                            if (arrow) {
+                                arrow.style.transform = 'rotate(-90deg)';
+                            }
+                        }
+                    }
+                });
+            }
+        }, 100);
     }
 
     async updateStatus() {
