@@ -149,6 +149,7 @@ services:
     image: nginx:alpine
     container_name: stools_nginx
     platform: linux/arm64
+    command: ["nginx", "-g", "daemon off;"]
     ports:
       - "80:80"
       - "443:443"
