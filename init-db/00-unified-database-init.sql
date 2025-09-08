@@ -268,6 +268,13 @@ CREATE TRIGGER update_background_tasks_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
 
+-- Триггер для обновления updated_at в таблице loganalizer.settings
+DROP TRIGGER IF EXISTS update_loganalizer_settings_updated_at ON loganalizer.settings;
+CREATE TRIGGER update_loganalizer_settings_updated_at
+    BEFORE UPDATE ON loganalizer.settings
+    FOR EACH ROW
+    EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
+
 -- =====================================================
 -- НАСТРОЙКИ ПО УМОЛЧАНИЮ
 -- =====================================================
@@ -374,10 +381,81 @@ CREATE TABLE IF NOT EXISTS loganalizer.logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Таблица настроек loganalizer
+CREATE TABLE IF NOT EXISTS loganalizer.settings (
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(255) UNIQUE NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица файлов логов
+CREATE TABLE IF NOT EXISTS loganalizer.log_files (
+    id VARCHAR(255) PRIMARY KEY,
+    original_name VARCHAR(500) NOT NULL,
+    file_path TEXT NOT NULL,
+    file_type VARCHAR(50),
+    file_size BIGINT,
+    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    parent_file_id VARCHAR(255),
+    FOREIGN KEY (parent_file_id) REFERENCES loganalizer.log_files(id) ON DELETE CASCADE
+);
+
+-- Таблица пресетов анализа
+CREATE TABLE IF NOT EXISTS loganalizer.analysis_presets (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    system_context TEXT,
+    questions JSONB,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_default BOOLEAN DEFAULT FALSE
+);
+
+-- Таблица пользовательских настроек анализа
+CREATE TABLE IF NOT EXISTS loganalizer.custom_analysis_settings (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    pattern TEXT NOT NULL,
+    description TEXT,
+    enabled BOOLEAN DEFAULT TRUE,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица отфильтрованных файлов
+CREATE TABLE IF NOT EXISTS loganalizer.filtered_files (
+    id VARCHAR(255) PRIMARY KEY,
+    original_file_id VARCHAR(255) NOT NULL,
+    filtered_file_path TEXT NOT NULL,
+    filter_settings JSONB,
+    lines_count INTEGER,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (original_file_id) REFERENCES loganalizer.log_files(id) ON DELETE CASCADE
+);
+
 -- Индексы для таблицы logs
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON loganalizer.logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_logs_level ON loganalizer.logs(level);
 CREATE INDEX IF NOT EXISTS idx_logs_hostname ON loganalizer.logs(hostname);
+
+-- Индексы для таблицы settings
+CREATE INDEX IF NOT EXISTS idx_loganalizer_settings_key ON loganalizer.settings(key);
+
+-- Индексы для таблицы log_files
+CREATE INDEX IF NOT EXISTS idx_log_files_upload_date ON loganalizer.log_files(upload_date);
+CREATE INDEX IF NOT EXISTS idx_log_files_file_type ON loganalizer.log_files(file_type);
+
+-- Индексы для таблицы analysis_presets
+CREATE INDEX IF NOT EXISTS idx_analysis_presets_name ON loganalizer.analysis_presets(name);
+CREATE INDEX IF NOT EXISTS idx_analysis_presets_is_default ON loganalizer.analysis_presets(is_default);
+
+-- Индексы для таблицы custom_analysis_settings
+CREATE INDEX IF NOT EXISTS idx_custom_analysis_settings_name ON loganalizer.custom_analysis_settings(name);
+CREATE INDEX IF NOT EXISTS idx_custom_analysis_settings_enabled ON loganalizer.custom_analysis_settings(enabled);
+
+-- Индексы для таблицы filtered_files
+CREATE INDEX IF NOT EXISTS idx_filtered_files_original_file_id ON loganalizer.filtered_files(original_file_id);
+CREATE INDEX IF NOT EXISTS idx_filtered_files_created_date ON loganalizer.filtered_files(created_date);
 
 -- =====================================================
 -- ПРАВА ДОСТУПА
