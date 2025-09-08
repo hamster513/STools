@@ -1,7 +1,6 @@
 """
 Роуты для работы с VM MaxPatrol
 """
-import os
 import traceback
 from fastapi import APIRouter, HTTPException, Request
 from database import get_db
@@ -13,16 +12,11 @@ router = APIRouter()
 async def get_vm_settings():
     """Получить настройки VM MaxPatrol"""
     try:
-        with open("data/vm_settings.json", "r", encoding="utf-8") as f:
-            import json
-            return json.load(f)
-    except FileNotFoundError:
-        return {
-            "server_url": "",
-            "username": "",
-            "password": "",
-            "api_key": ""
-        }
+        db = get_db()
+        settings = await db.get_vm_settings()
+        return settings
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения настроек: {str(e)}")
 
 
 @router.post("/api/vm/settings")
@@ -30,16 +24,9 @@ async def update_vm_settings(request: Request):
     """Обновить настройки VM MaxPatrol"""
     try:
         settings = await request.json()
-        try:
-            os.makedirs("data", exist_ok=True)
-        except PermissionError:
-            # Если нет прав на создание в текущей директории, используем /tmp
-            os.makedirs("/tmp/vm_data", exist_ok=True)
-            os.chdir("/tmp")
-        with open("data/vm_settings.json", "w", encoding="utf-8") as f:
-            import json
-            json.dump(settings, f, ensure_ascii=False, indent=2)
-        return {"message": "Настройки VM MaxPatrol обновлены"}
+        db = get_db()
+        await db.update_vm_settings(settings)
+        return {"success": True, "message": "Настройки VM MaxPatrol обновлены"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка сохранения настроек: {str(e)}")
 
@@ -64,13 +51,12 @@ async def test_vm_connection(request: Request):
 async def import_vm_hosts():
     """Импортировать хосты из VM MaxPatrol"""
     try:
-        # Получаем настройки
-        try:
-            with open("data/vm_settings.json", "r", encoding="utf-8") as f:
-                import json
-                settings = json.load(f)
-        except FileNotFoundError:
-            raise HTTPException(status_code=400, detail="Настройки VM MaxPatrol не найдены")
+        # Получаем настройки из базы данных
+        db = get_db()
+        settings = await db.get_vm_settings()
+        
+        if not settings.get('vm_host') or not settings.get('vm_username'):
+            raise HTTPException(status_code=400, detail="Настройки VM MaxPatrol не настроены")
         
         # Здесь должна быть логика импорта хостов из VM MaxPatrol
         # Пока возвращаем заглушку
@@ -90,15 +76,14 @@ async def import_vm_hosts():
 async def get_vm_status():
     """Получить статус подключения к VM MaxPatrol"""
     try:
-        # Получаем настройки
-        try:
-            with open("data/vm_settings.json", "r", encoding="utf-8") as f:
-                import json
-                settings = json.load(f)
-        except FileNotFoundError:
+        # Получаем настройки из базы данных
+        db = get_db()
+        settings = await db.get_vm_settings()
+        
+        if not settings.get('vm_host') or not settings.get('vm_username'):
             return {
                 "connected": False,
-                "message": "Настройки VM MaxPatrol не найдены"
+                "message": "Настройки VM MaxPatrol не настроены"
             }
         
         # Здесь должна быть логика проверки статуса подключения
