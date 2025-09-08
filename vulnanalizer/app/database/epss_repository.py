@@ -157,7 +157,7 @@ class EPSSRepository(DatabaseBase):
                             await conn.execute("SELECT 1")
                             
                             # Проверяем, существует ли запись для этого CVE
-                            existing = await conn.fetchval("SELECT id FROM vulnanalizer.epss WHERE cve = $1", cve)
+                            existing = await conn.fetchval("SELECT cve FROM vulnanalizer.epss WHERE cve = $1", cve)
                             
                             if existing:
                                 # Обновляем существующую запись
