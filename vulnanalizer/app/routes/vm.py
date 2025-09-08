@@ -30,7 +30,12 @@ async def update_vm_settings(request: Request):
     """Обновить настройки VM MaxPatrol"""
     try:
         settings = await request.json()
-        os.makedirs("data", exist_ok=True)
+        try:
+            os.makedirs("data", exist_ok=True)
+        except PermissionError:
+            # Если нет прав на создание в текущей директории, используем /tmp
+            os.makedirs("/tmp/vm_data", exist_ok=True)
+            os.chdir("/tmp")
         with open("data/vm_settings.json", "w", encoding="utf-8") as f:
             import json
             json.dump(settings, f, ensure_ascii=False, indent=2)

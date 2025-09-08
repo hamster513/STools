@@ -20,8 +20,15 @@ router = APIRouter()
 BACKUP_DIR = os.getenv('BACKUP_DIR', './backups')
 BACKUP_RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', '30'))
 
-# Создаем директорию для бэкапов
-os.makedirs(BACKUP_DIR, exist_ok=True)
+def ensure_backup_dir():
+    """Создает директорию для бэкапов если она не существует"""
+    try:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+    except PermissionError:
+        # Если нет прав на создание в текущей директории, используем /tmp
+        global BACKUP_DIR
+        BACKUP_DIR = '/tmp/backups'
+        os.makedirs(BACKUP_DIR, exist_ok=True)
 
 class BackupRequest(BaseModel):
     tables: List[str]
@@ -81,6 +88,7 @@ async def get_available_tables():
 async def create_backup(request: BackupRequest):
     """Создать бэкап выбранных таблиц"""
     try:
+        ensure_backup_dir()  # Убеждаемся что директория существует
         if not request.tables:
             raise HTTPException(status_code=400, detail="Не выбрано ни одной таблицы")
         
@@ -156,6 +164,7 @@ async def create_backup(request: BackupRequest):
 async def list_backups():
     """Получить список всех бэкапов"""
     try:
+        ensure_backup_dir()  # Убеждаемся что директория существует
         backups = []
         
         for filename in os.listdir(BACKUP_DIR):
@@ -183,6 +192,7 @@ async def list_backups():
 async def download_backup(backup_id: str):
     """Скачать бэкап по ID"""
     try:
+        ensure_backup_dir()  # Убеждаемся что директория существует
         backup_file = os.path.join(BACKUP_DIR, f"{backup_id}.tar.gz")
         
         if not os.path.exists(backup_file):
@@ -201,6 +211,7 @@ async def download_backup(backup_id: str):
 async def delete_backup(backup_id: str):
     """Удалить бэкап по ID"""
     try:
+        ensure_backup_dir()  # Убеждаемся что директория существует
         # Удаляем файлы бэкапа
         backup_file = os.path.join(BACKUP_DIR, f"{backup_id}.tar.gz")
         metadata_file = os.path.join(BACKUP_DIR, f"{backup_id}.json")
@@ -281,6 +292,7 @@ async def restore_backup(
 async def cleanup_old_backups():
     """Очистить старые бэкапы"""
     try:
+        ensure_backup_dir()  # Убеждаемся что директория существует
         deleted_count = 0
         
         for filename in os.listdir(BACKUP_DIR):

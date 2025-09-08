@@ -828,7 +828,12 @@ class SchedulerService:
             
             # Настройки
             backup_dir = os.getenv('BACKUP_DIR', './backups')
-            os.makedirs(backup_dir, exist_ok=True)
+            try:
+                os.makedirs(backup_dir, exist_ok=True)
+            except PermissionError:
+                # Если нет прав на создание в текущей директории, используем /tmp
+                backup_dir = '/tmp/backups'
+                os.makedirs(backup_dir, exist_ok=True)
             
             # Создаем уникальный ID для бэкапа
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
