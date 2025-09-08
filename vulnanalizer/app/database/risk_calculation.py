@@ -11,7 +11,7 @@ def calculate_risk_score(epss: float, cvss: float = None, criticality: str = 'Me
     Risk = EPSS × (CVSS ÷ 10) × Impact × CVE_param × ExDB_param × MSF_param
     
     Args:
-        epss: EPSS score
+        epss: EPSS score (если None, используется 0.5 по умолчанию)
         cvss: CVSS score
         criticality: Критичность ресурса (Critical, High, Medium, Low, None)
         settings: Настройки системы
@@ -23,16 +23,8 @@ def calculate_risk_score(epss: float, cvss: float = None, criticality: str = 'Me
         dict: Результат расчета с деталями
     """
     if epss is None:
-        return {
-            'raw_risk': None,
-            'risk_score': None,
-            'calculation_possible': False,
-            'impact': None,
-            'cve_param': None,
-            'exdb_param': None,
-            'msf_param': None,
-            'formula_components': None
-        }
+        # Для CVE без EPSS данных используем значение по умолчанию 0.5
+        epss = 0.5
     
     # Конвертируем decimal в float если нужно
     if hasattr(epss, 'as_tuple'):
