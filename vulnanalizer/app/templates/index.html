@@ -841,6 +841,16 @@
                             <input type="password" id="vm-client-secret" name="vm_client_secret" placeholder="client_secret" required>
                             <small>Секретный ключ для OAuth2 аутентификации</small>
                         </div>
+                        <div class="form-group">
+                            <label for="vm-os-filter">Фильтр ОС:</label>
+                            <input type="text" id="vm-os-filter" name="vm_os_filter" placeholder="Windows, Linux, etc.">
+                            <small>Фильтр операционных систем (необязательно)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-limit">Лимит записей:</label>
+                            <input type="number" id="vm-limit" name="vm_limit" placeholder="0" value="0" min="0">
+                            <small>Максимальное количество записей для импорта (0 = без ограничений)</small>
+                        </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
                                 <i class="fas fa-save"></i> Сохранить VM

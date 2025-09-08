@@ -9,8 +9,12 @@ class VMModule {
 
     init() {
         this.setupEventListeners();
-        this.loadVMSettings();
-        this.updateStatus();
+        
+        // Загружаем настройки с небольшой задержкой, чтобы DOM был готов
+        setTimeout(() => {
+            this.loadVMSettings();
+            this.updateStatus();
+        }, 100);
     }
 
     setupEventListeners() {
@@ -52,14 +56,18 @@ class VMModule {
         try {
             const data = await this.app.api.getVMSettings();
             
-            if (data.success) {
-                this.populateVMSettings(data.data);
+            // API возвращает данные напрямую, а не в формате {success: true, data: {...}}
+            if (data && typeof data === 'object') {
+                this.populateVMSettings(data);
             }
         } catch (error) {
+            console.error('Ошибка загрузки VM настроек:', error);
         }
     }
 
     populateVMSettings(settings) {
+        console.log('Загружаем VM настройки:', settings);
+        
         const vmEnabled = document.getElementById('vm-enabled');
         const vmHost = document.getElementById('vm-host');
         const vmUsername = document.getElementById('vm-username');
@@ -68,6 +76,16 @@ class VMModule {
         const vmOsFilter = document.getElementById('vm-os-filter');
         const vmLimit = document.getElementById('vm-limit');
 
+        console.log('Найденные элементы:', {
+            vmEnabled: !!vmEnabled,
+            vmHost: !!vmHost,
+            vmUsername: !!vmUsername,
+            vmPassword: !!vmPassword,
+            vmClientSecret: !!vmClientSecret,
+            vmOsFilter: !!vmOsFilter,
+            vmLimit: !!vmLimit
+        });
+
         if (vmEnabled) vmEnabled.value = settings.vm_enabled || 'false';
         if (vmHost) vmHost.value = settings.vm_host || '';
         if (vmUsername) vmUsername.value = settings.vm_username || '';
@@ -75,6 +93,8 @@ class VMModule {
         if (vmClientSecret) vmClientSecret.value = settings.vm_client_secret || '';
         if (vmOsFilter) vmOsFilter.value = settings.vm_os_filter || '';
         if (vmLimit) vmLimit.value = settings.vm_limit || '0';
+        
+        console.log('VM настройки загружены в форму');
     }
 
     async saveVMSettings() {
@@ -92,13 +112,13 @@ class VMModule {
             const data = await this.app.api.saveVMSettings(settings);
             
             if (data.success) {
-                this.app.notifications.show('VM настройки сохранены успешно', 'success');
+                this.showNotification('VM настройки сохранены успешно', 'success');
                 this.updateStatus();
             } else {
-                this.app.notifications.show(`Ошибка сохранения: ${data.error}`, 'error');
+                this.showNotification(`Ошибка сохранения: ${data.error}`, 'error');
             }
         } catch (error) {
-            this.app.notifications.show(`Ошибка сохранения: ${error.message}`, 'error');
+            this.showNotification(`Ошибка сохранения: ${error.message}`, 'error');
         }
     }
 
@@ -117,7 +137,7 @@ class VMModule {
         const requiredFields = ['vm_host', 'vm_username', 'vm_password', 'vm_client_secret'];
         for (let field of requiredFields) {
             if (!settings[field]) {
-                this.app.notifications.show('Заполните все обязательные поля для подключения', 'error');
+                this.showNotification('Заполните все обязательные поля для подключения', 'error');
                 return;
             }
         }
@@ -127,7 +147,7 @@ class VMModule {
             
             // Проверяем, что data существует и имеет ожидаемую структуру
             if (data && typeof data === 'object' && data.success && data.data && data.data.success) {
-                this.app.notifications.show(`Подключение успешно! ${data.data.message}`, 'success');
+                this.showNotification(`Подключение успешно! ${data.data.message}`, 'success');
             } else {
                 // Более детальная обработка ошибок
                 let errorMsg = 'Неизвестная ошибка';
@@ -140,11 +160,11 @@ class VMModule {
                 } else if (!data) {
                     errorMsg = 'Сервер не вернул ответ';
                 }
-                this.app.notifications.show(`Ошибка подключения: ${errorMsg}`, 'error');
+                this.showNotification(`Ошибка подключения: ${errorMsg}`, 'error');
             }
         } catch (error) {
             console.error('VM connection test error:', error);
-            this.app.notifications.show(`Ошибка подключения: ${error.message}`, 'error');
+            this.showNotification(`Ошибка подключения: ${error.message}`, 'error');
         }
     }
 
@@ -208,6 +228,18 @@ class VMModule {
                 importStatus.textContent = 'Не настроено';
                 importStatus.className = '';
             }
+        }
+    }
+
+    // Вспомогательный метод для показа уведомлений
+    showNotification(message, type = 'info') {
+        if (this.app.uiManager && this.app.uiManager.showNotification) {
+            this.app.uiManager.showNotification(message, type);
+        } else if (this.app.showNotification) {
+            this.app.showNotification(message, type);
+        } else {
+            // Fallback - простое уведомление в консоль
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
 

@@ -98,6 +98,11 @@ class VulnAnalizer {
             this.riskModal = new RiskModalModule(this);
         } else {
         }
+        
+        if (typeof VMModule !== 'undefined') {
+            this.vmModule = new VMModule(this);
+        } else {
+        }
     }
 
     init() {
@@ -112,7 +117,6 @@ class VulnAnalizer {
         this.setupExploitDB();
         this.setupCVE();
         this.setupHosts();
-        this.setupVM();
         this.setupCollapsibleBlocks();
         
         // Инициализируем модули после настройки всех компонентов
@@ -2398,186 +2402,7 @@ class VulnAnalizer {
         `;
     }
 
-    // ===== VM MAXPATROL ИНТЕГРАЦИЯ =====
-    
-    setupVM() {
-        // Настройка формы VM настроек
-        const vmSettingsForm = document.getElementById('vm-settings-form');
-        if (vmSettingsForm) {
-            vmSettingsForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveVMSettings();
-            });
-        }
 
-        // Настройка кнопки тестирования подключения
-        const testConnectionBtn = document.getElementById('vm-test-connection-btn');
-        if (testConnectionBtn) {
-            testConnectionBtn.addEventListener('click', () => {
-                this.testVMConnection();
-            });
-        }
-
-        // Настройка кнопки импорта
-        const importBtn = document.getElementById('vm-import-btn');
-        if (importBtn) {
-            importBtn.addEventListener('click', () => {
-                this.importVMHosts();
-            });
-        }
-
-        // Настройка кнопки обновления статуса
-        const refreshStatusBtn = document.getElementById('vm-refresh-status-btn');
-        if (refreshStatusBtn) {
-            refreshStatusBtn.addEventListener('click', () => {
-                this.updateVMStatus();
-            });
-        }
-
-        // Загружаем VM настройки при инициализации
-        this.loadVMSettings();
-        this.updateVMStatus();
-    }
-
-    async loadVMSettings() {
-        try {
-            const response = await fetch(`${this.getApiBasePath()}/vm/settings`);
-            const data = await response.json();
-            
-            if (data.success) {
-                this.populateVMSettings(data.data);
-            }
-        } catch (error) {
-        }
-    }
-
-    populateVMSettings(settings) {
-        const vmEnabled = document.getElementById('vm-enabled');
-        const vmHost = document.getElementById('vm-host');
-        const vmUsername = document.getElementById('vm-username');
-        const vmPassword = document.getElementById('vm-password');
-        const vmClientSecret = document.getElementById('vm-client-secret');
-        const vmOsFilter = document.getElementById('vm-os-filter');
-        const vmLimit = document.getElementById('vm-limit');
-
-        if (vmEnabled) vmEnabled.value = settings.vm_enabled || 'false';
-        if (vmHost) vmHost.value = settings.vm_host || '';
-        if (vmUsername) vmUsername.value = settings.vm_username || '';
-        if (vmPassword) vmPassword.value = settings.vm_password || '';
-        if (vmClientSecret) vmClientSecret.value = settings.vm_client_secret || '';
-        if (vmOsFilter) vmOsFilter.value = settings.vm_os_filter || '';
-        if (vmLimit) vmLimit.value = settings.vm_limit || '0';
-    }
-
-    async saveVMSettings() {
-        const form = document.getElementById('vm-settings-form');
-        if (!form) return;
-
-        const formData = new FormData(form);
-        const settings = {};
-        
-        for (let [key, value] of formData.entries()) {
-            settings[key] = value;
-        }
-
-        try {
-            const response = await fetch(`${this.getApiBasePath()}/vm/settings`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(settings)
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showNotification('VM настройки сохранены успешно', 'success');
-                this.updateVMStatus();
-            } else {
-                this.showNotification(`Ошибка сохранения: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification(`Ошибка сохранения: ${error.message}`, 'error');
-        }
-    }
-
-    async testVMConnection() {
-        const form = document.getElementById('vm-settings-form');
-        if (!form) return;
-
-        const formData = new FormData(form);
-        const settings = {};
-        
-        for (let [key, value] of formData.entries()) {
-            settings[key] = value;
-        }
-
-        // Проверяем обязательные поля
-        const requiredFields = ['vm_host', 'vm_username', 'vm_password', 'vm_client_secret'];
-        for (let field of requiredFields) {
-            if (!settings[field]) {
-                this.showNotification('Заполните все обязательные поля для подключения', 'error');
-                return;
-            }
-        }
-
-        try {
-            const response = await fetch(`${this.getApiBasePath()}/vm/test-connection`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(settings)
-            });
-
-            const data = await response.json();
-            
-            if (data.success && data.data.success) {
-                this.showNotification(`Подключение успешно! ${data.data.message}`, 'success');
-            } else {
-                this.showNotification(`Ошибка подключения: ${data.data.error || data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification(`Ошибка подключения: ${error.message}`, 'error');
-        }
-    }
-
-    async importVMHosts() {
-        const operationId = 'vm-import';
-        this.showOperationProgress(operationId, 'Импорт хостов из VM MaxPatrol...');
-
-        try {
-            const response = await fetch(`${this.getApiBasePath()}/vm/import`, {
-                method: 'POST'
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showOperationComplete(operationId, 'Импорт завершен успешно', 
-                    `Импортировано: ${data.data.inserted} новых, обновлено: ${data.data.updated} существующих записей`);
-                this.updateVMStatus();
-                this.updateHostsStatus(); // Обновляем статус хостов
-            } else {
-                this.showOperationError(operationId, 'Ошибка импорта', data.error);
-            }
-        } catch (error) {
-            this.showOperationError(operationId, 'Ошибка импорта', error.message);
-        }
-    }
-
-    async updateVMStatus() {
-        try {
-            const response = await fetch(`${this.getApiBasePath()}/vm/status`);
-            const data = await response.json();
-            
-            if (data.success) {
-                this.populateVMStatus(data.data);
-            }
-        } catch (error) {
-        }
-    }
 
     async loadAppVersion() {
         try {
@@ -2592,37 +2417,6 @@ class VulnAnalizer {
         }
     }
 
-    populateVMStatus(data) {
-        const lastImport = document.getElementById('vm-last-import');
-        const importCount = document.getElementById('vm-import-count');
-        const importStatus = document.getElementById('vm-import-status');
-
-        if (lastImport) {
-            if (data.import_status.last_import) {
-                const date = new Date(data.import_status.last_import);
-                lastImport.textContent = date.toLocaleString('ru-RU');
-            } else {
-                lastImport.textContent = 'Не выполнялся';
-            }
-        }
-
-        if (importCount) {
-            importCount.textContent = data.import_status.last_import_count || 0;
-        }
-
-        if (importStatus) {
-            if (data.import_status.last_import_error) {
-                importStatus.textContent = `Ошибка: ${data.import_status.last_import_error}`;
-                importStatus.className = 'error-text';
-            } else if (data.settings.vm_enabled === 'true') {
-                importStatus.textContent = 'Настроено и активно';
-                importStatus.className = 'success-text';
-            } else {
-                importStatus.textContent = 'Не настроено';
-                importStatus.className = '';
-            }
-        }
-    }
 
     setupSidebar() {
         const sidebar = document.getElementById('sidebar');

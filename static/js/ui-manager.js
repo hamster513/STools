@@ -396,7 +396,11 @@ class UIManager {
             }
 
             // Проверяем права пользователя
-            const response = await fetch('/auth/api/me', {
+            // Определяем правильный путь API в зависимости от контекста
+            const path = window.location.pathname;
+            const apiPath = path.startsWith('/vulnanalizer/') ? '/vulnanalizer/api/me' : '/auth/api/me';
+            
+            const response = await fetch(apiPath, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
