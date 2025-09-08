@@ -268,12 +268,6 @@ CREATE TRIGGER update_background_tasks_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
 
--- Триггер для обновления updated_at в таблице loganalizer.settings
-DROP TRIGGER IF EXISTS update_loganalizer_settings_updated_at ON loganalizer.settings;
-CREATE TRIGGER update_loganalizer_settings_updated_at
-    BEFORE UPDATE ON loganalizer.settings
-    FOR EACH ROW
-    EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
 
 -- =====================================================
 -- НАСТРОЙКИ ПО УМОЛЧАНИЮ
@@ -456,6 +450,13 @@ CREATE INDEX IF NOT EXISTS idx_custom_analysis_settings_enabled ON loganalizer.c
 -- Индексы для таблицы filtered_files
 CREATE INDEX IF NOT EXISTS idx_filtered_files_original_file_id ON loganalizer.filtered_files(original_file_id);
 CREATE INDEX IF NOT EXISTS idx_filtered_files_created_date ON loganalizer.filtered_files(created_date);
+
+-- Триггер для обновления updated_at в таблице loganalizer.settings
+DROP TRIGGER IF EXISTS update_loganalizer_settings_updated_at ON loganalizer.settings;
+CREATE TRIGGER update_loganalizer_settings_updated_at
+    BEFORE UPDATE ON loganalizer.settings
+    FOR EACH ROW
+    EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
 
 -- =====================================================
 -- ПРАВА ДОСТУПА
