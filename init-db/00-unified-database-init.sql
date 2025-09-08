@@ -98,12 +98,11 @@ CREATE TABLE IF NOT EXISTS vulnanalizer.cve (
 );
 
 -- Таблица EPSS данных
-CREATE TABLE IF NOT EXISTS vulnanalizer.epss_data (
-    id SERIAL PRIMARY KEY,
-    cve_id VARCHAR(20) NOT NULL UNIQUE,
-    epss_score NUMERIC(10,9),
-    percentile NUMERIC(5,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS vulnanalizer.epss (
+    cve VARCHAR(20) PRIMARY KEY,
+    epss NUMERIC(10,9) NOT NULL,
+    percentile NUMERIC(5,2) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Таблица ExploitDB
@@ -217,8 +216,9 @@ CREATE INDEX IF NOT EXISTS idx_cve_cvss_v3_attack_vector ON vulnanalizer.cve(cvs
 CREATE INDEX IF NOT EXISTS idx_cve_cvss_v3_privileges_required ON vulnanalizer.cve(cvss_v3_privileges_required);
 CREATE INDEX IF NOT EXISTS idx_cve_cvss_v3_user_interaction ON vulnanalizer.cve(cvss_v3_user_interaction);
 
--- Индексы для таблицы epss_data
-CREATE INDEX IF NOT EXISTS idx_epss_data_cve_id ON vulnanalizer.epss_data(cve_id);
+-- Индексы для таблицы epss
+CREATE INDEX IF NOT EXISTS idx_epss_cve ON vulnanalizer.epss(cve);
+CREATE INDEX IF NOT EXISTS idx_epss_score ON vulnanalizer.epss(epss);
 
 -- Индексы для таблицы exploitdb
 CREATE INDEX IF NOT EXISTS idx_exploitdb_exploit_id ON vulnanalizer.exploitdb(exploit_id);
@@ -265,6 +265,13 @@ CREATE TRIGGER update_settings_updated_at
 DROP TRIGGER IF EXISTS update_background_tasks_updated_at ON vulnanalizer.background_tasks;
 CREATE TRIGGER update_background_tasks_updated_at
     BEFORE UPDATE ON vulnanalizer.background_tasks
+    FOR EACH ROW
+    EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
+
+-- Триггер для обновления updated_at в таблице epss
+DROP TRIGGER IF EXISTS update_epss_updated_at ON vulnanalizer.epss;
+CREATE TRIGGER update_epss_updated_at
+    BEFORE UPDATE ON vulnanalizer.epss
     FOR EACH ROW
     EXECUTE FUNCTION vulnanalizer.update_updated_at_column();
 
