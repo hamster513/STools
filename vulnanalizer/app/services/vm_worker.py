@@ -261,11 +261,11 @@ class VMWorker:
             settings = await self.db.get_settings()
             
             # Создаем функцию обратного вызова для обновления прогресса
-            async def update_progress(step, message, progress_percent, processed_count=None):
+            async def update_progress(step, message, progress_percent, current_step_progress=None, processed_records=None):
                 try:
                     await self.db.update_background_task(task_id, **{
                         'current_step': message,
-                        'processed_records': processed_count or 0,
+                        'processed_records': processed_records or 0,
                         'progress_percent': progress_percent
                     })
                 except Exception as e:

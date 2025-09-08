@@ -387,6 +387,13 @@ class ApiModule {
         return this.get('/vm/status');
     }
 
+    /**
+     * Получить статус фоновых задач
+     */
+    async getBackgroundTasksStatus() {
+        return this.get('/background-tasks/status');
+    }
+
     // ===== МЕТОДЫ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ =====
 
     /**
