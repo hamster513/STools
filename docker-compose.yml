@@ -48,7 +48,7 @@ services:
 
   # Сервис аутентификации
   auth_web:
-    image: hamster5133/stools-auth_web:v0.6.03
+    image: docker.io/hamster5133/stools-auth_web:v0.6.03
     container_name: auth_web
     volumes:
       - auth_data:/app/data
@@ -72,7 +72,7 @@ services:
 
   # Веб-приложение LogAnalizer
   loganalizer_web:
-    image: hamster5133/stools-loganalizer_web:v0.6.03
+    image: docker.io/hamster5133/stools-loganalizer_web:v0.6.03
     container_name: loganalizer_web
     volumes:
       - loganalizer_data:/app/data
@@ -95,7 +95,7 @@ services:
 
   # Веб-приложение VulnAnalizer
   vulnanalizer_web:
-    image: hamster5133/stools-vulnanalizer_web:v0.6.03
+    image: docker.io/hamster5133/stools-vulnanalizer_web:v0.6.03
     container_name: vulnanalizer_web
     ports:
       - "8000:8000"
@@ -120,7 +120,7 @@ services:
 
   # Основной сервер для административных страниц
   main_web:
-    image: hamster5133/stools-main_web:v0.6.03
+    image: docker.io/hamster5133/stools-main_web:v0.6.03
     container_name: main_web
     volumes:
       - ./templates:/app/templates
