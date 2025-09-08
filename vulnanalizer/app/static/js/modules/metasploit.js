@@ -34,13 +34,6 @@ class MetasploitModule {
             });
         }
 
-        // Ссылка для скачивания
-        const urlsBtn = document.getElementById('metasploit-urls-btn');
-        if (urlsBtn) {
-            urlsBtn.addEventListener('click', () => {
-                this.showMetasploitUrls();
-            });
-        }
 
         // Очистка данных
         const clearBtn = document.getElementById('clear-metasploit-btn');
@@ -252,36 +245,6 @@ class MetasploitModule {
         setTimeout(checkProgress, 1000);
     }
 
-    showMetasploitUrls() {
-        const urls = [
-            {
-                name: 'Metasploit Framework GitHub',
-                url: 'https://github.com/rapid7/metasploit-framework',
-                description: 'Основной репозиторий Metasploit Framework'
-            },
-            {
-                name: 'modules_metadata_base.json',
-                url: 'https://raw.githubusercontent.com/rapid7/metasploit-framework/master/db/modules_metadata_base.json',
-                description: 'Прямая ссылка на файл с метаданными модулей'
-            }
-        ];
-
-        let urlsHtml = '<div class="urls-list">';
-        urls.forEach(item => {
-            urlsHtml += `
-                <div class="url-item">
-                    <h4>${item.name}</h4>
-                    <p>${item.description}</p>
-                    <a href="${item.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-external-link-alt"></i> Открыть
-                    </a>
-                </div>
-            `;
-        });
-        urlsHtml += '</div>';
-
-        this.app.showModal('Ссылки для скачивания Metasploit', urlsHtml);
-    }
 
     async cancelMetasploitDownload() {
         const cancelBtn = document.getElementById('metasploit-cancel-btn');
@@ -434,6 +397,24 @@ class MetasploitModule {
                 }
                 
                 statusHtml += '</div>';
+                
+                // Добавляем ссылки для скачивания как в ExploitDB
+                statusHtml += `
+                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem; margin-top: 15px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания Metasploit</h4>
+                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <a href="https://github.com/rapid7/metasploit-framework" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                📦 <span style="flex: 1;">Metasploit Framework GitHub</span>
+                            </a>
+                            <a href="https://raw.githubusercontent.com/rapid7/metasploit-framework/master/db/modules_metadata_base.json" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
+                                🔗 <span style="flex: 1;">modules_metadata_base.json</span>
+                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
                 statusDiv.innerHTML = statusHtml;
             } else {
                 throw new Error('Ошибка получения статуса');
