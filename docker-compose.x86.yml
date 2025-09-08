@@ -1,0 +1,185 @@
+services:
+  # Redis для кэширования
+  redis:
+    image: redis:7-alpine
+    container_name: stools_redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Единая база данных для всех сервисов
+  postgres:
+    image: postgres:15
+    container_name: stools_postgres
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    environment:
+      POSTGRES_DB: stools_db
+      POSTGRES_USER: stools_user
+      POSTGRES_PASSWORD: stools_pass
+      # Увеличиваем лимиты для больших импортов
+      POSTGRES_SHARED_BUFFERS: 2GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 6GB
+      POSTGRES_WORK_MEM: 256MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 1GB
+      POSTGRES_WAL_BUFFERS: 64MB
+      POSTGRES_CHECKPOINT_SEGMENTS: 32
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.9
+      POSTGRES_WAL_KEEP_SEGMENTS: 64
+      POSTGRES_MAX_WAL_SIZE: 4GB
+      POSTGRES_MIN_WAL_SIZE: 1GB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stools_user -d stools_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Сервис аутентификации
+  auth_web:
+    image: docker.io/hamster5133/stools-auth_web:v0.6.03
+    container_name: auth_web
+    platform: linux/amd64
+    volumes:
+      - auth_data:/app/data
+      - ./auth:/app
+      - ./VERSION:/app/VERSION
+    environment:
+      - AUTH_DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - REDIS_URL=redis://redis:6379
+      - SHARED_TEMPLATES_PATH=/shared_templates
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Веб-приложение LogAnalizer
+  loganalizer_web:
+    image: docker.io/hamster5133/stools-loganalizer_web:v0.6.03
+    container_name: loganalizer_web
+    platform: linux/amd64
+    volumes:
+      - loganalizer_data:/app/data
+      - ./loganalizer/app:/app
+      - ./VERSION:/app/VERSION
+    environment:
+      - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
+      - REDIS_URL=redis://redis:6379
+      - SHARED_TEMPLATES_PATH=/shared_templates
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Веб-приложение VulnAnalizer
+  vulnanalizer_web:
+    image: docker.io/hamster5133/stools-vulnanalizer_web:v0.6.03
+    container_name: vulnanalizer_web
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    volumes:
+      - vulnanalizer_data:/app/data
+      - ./vulnanalizer/app:/app
+      - ./templates:/shared_templates
+      - ./VERSION:/app/VERSION
+    environment:
+      - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
+      - REDIS_URL=redis://redis:6379
+      - SHARED_TEMPLATES_PATH=/shared_templates
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Основной сервер для административных страниц
+  main_web:
+    image: docker.io/hamster5133/stools-main_web:v0.6.03
+    container_name: main_web
+    platform: linux/amd64
+    volumes:
+      - ./templates:/app/templates
+      - ./static:/app/static
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Единый Nginx для проксирования
+  nginx:
+    image: nginx:alpine
+    container_name: stools_nginx
+    platform: linux/amd64
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./static:/var/www/static
+    depends_on:
+      auth_web:
+        condition: service_healthy
+      loganalizer_web:
+        condition: service_healthy
+      vulnanalizer_web:
+        condition: service_healthy
+      main_web:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+  auth_data:
+  postgres_data:
+  loganalizer_data:
+  vulnanalizer_data:
+
+networks:
+  stools_network:
+    driver: bridge
