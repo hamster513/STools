@@ -130,13 +130,28 @@ async def import_vm_hosts():
         if not settings.get('vm_host') or not settings.get('vm_username'):
             raise HTTPException(status_code=400, detail="Настройки VM MaxPatrol не настроены")
         
-        # Здесь должна быть логика импорта хостов из VM MaxPatrol
-        # Пока возвращаем заглушку
+        # Проверяем, не запущена ли уже задача импорта
+        existing_task = await db.get_background_task_by_type('vm_import')
+        if existing_task and existing_task['status'] in ['processing', 'running', 'initializing', 'idle']:
+            return {"success": False, "message": "Импорт VM данных уже запущен"}
+        
+        # Создаем фоновую задачу для импорта
+        task_id = await db.create_background_task(
+            task_type="vm_import",
+            parameters={
+                "import_type": "vm_maxpatrol"
+            },
+            description="Импорт данных из VM MaxPatrol"
+        )
+        
+        print(f"✅ Фоновая задача импорта VM создана: {task_id}")
+        
         return {
             "success": True,
-            "message": "Импорт хостов из VM MaxPatrol завершен",
-            "count": 0
+            "task_id": task_id,
+            "message": "Импорт данных из VM MaxPatrol запущен в фоновом режиме"
         }
+        
     except HTTPException:
         raise
     except Exception as e:

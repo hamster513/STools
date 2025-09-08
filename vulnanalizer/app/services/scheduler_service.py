@@ -16,6 +16,7 @@ from pathlib import Path
 from database import get_db
 from utils.file_utils import split_file_by_size, extract_compressed_file
 from utils.validation_utils import is_valid_ip
+from services.vm_worker import VMWorker
 import traceback
 
 class SchedulerService:
@@ -471,6 +472,10 @@ class SchedulerService:
                         print(f"🚀 Запускаем обработку задачи загрузки EPSS {task_id} в отдельной задаче")
                         task = asyncio.create_task(self.process_epss_download_task(task_id, parameters))
                         task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'epss_download'))
+                    elif task_type == 'vm_import':
+                        print(f"🚀 Запускаем обработку задачи импорта VM {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_vm_import_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'vm_import'))
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
                         await self.db.update_background_task(task_id, **{
@@ -1233,6 +1238,33 @@ class SchedulerService:
             await self.db.update_background_task(task_id, **{
                 'status': 'error',
                 'current_step': 'Ошибка загрузки EPSS',
+                'error_message': str(e),
+                'end_time': datetime.now()
+            })
+
+    async def process_vm_import_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработать задачу импорта VM данных"""
+        try:
+            print(f"🔄 Начинаем обработку задачи импорта VM {task_id}")
+            
+            # Создаем VM Worker
+            vm_worker = VMWorker()
+            
+            # Запускаем импорт
+            result = await vm_worker.start_import(task_id, parameters)
+            
+            if result.get('success'):
+                print(f"✅ Импорт VM данных завершен успешно: {result.get('count', 0)} хостов")
+            else:
+                print(f"❌ Импорт VM данных завершен с ошибкой: {result.get('message', 'Неизвестная ошибка')}")
+                
+        except Exception as e:
+            print(f"❌ Ошибка в process_vm_import_task: {e}")
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'current_step': 'Ошибка импорта VM данных',
                 'error_message': str(e),
                 'end_time': datetime.now()
             })
