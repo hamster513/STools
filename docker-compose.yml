@@ -48,15 +48,10 @@ services:
 
   # Сервис аутентификации
   auth_web:
-    build:
-      context: ./auth
-      dockerfile: Dockerfile
-    image: stools-auth_web:v0.6.03
+    image: hamster5133/stools-auth_web:v0.6.03
     container_name: auth_web
     volumes:
       - auth_data:/app/data
-      - ./auth:/app
-      - ./VERSION:/app/VERSION
     environment:
       - AUTH_DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - JWT_SECRET_KEY=your-secret-key-change-in-production
@@ -77,15 +72,10 @@ services:
 
   # Веб-приложение LogAnalizer
   loganalizer_web:
-    build:
-      context: ./loganalizer/app
-      dockerfile: Dockerfile
-    image: stools-loganalizer_web:v0.6.03
+    image: hamster5133/stools-loganalizer_web:v0.6.03
     container_name: loganalizer_web
     volumes:
       - loganalizer_data:/app/data
-      - ./loganalizer/app:/app
-      - ./VERSION:/app/VERSION
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
@@ -105,18 +95,12 @@ services:
 
   # Веб-приложение VulnAnalizer
   vulnanalizer_web:
-    build:
-      context: ./vulnanalizer/app
-      dockerfile: Dockerfile
-    image: stools-vulnanalizer_web:v0.6.03
+    image: hamster5133/stools-vulnanalizer_web:v0.6.03
     container_name: vulnanalizer_web
     ports:
       - "8000:8000"
     volumes:
       - vulnanalizer_data:/app/data
-      - ./vulnanalizer/app:/app
-      - ./templates:/shared_templates
-      - ./VERSION:/app/VERSION
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
@@ -136,17 +120,11 @@ services:
 
   # Основной сервер для административных страниц
   main_web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: stools-main_web:v0.6.03
+    image: hamster5133/stools-main_web:v0.6.03
     container_name: main_web
     volumes:
       - ./templates:/app/templates
       - ./static:/app/static
-      - ./VERSION:/app/VERSION
-      - ./routes:/app/routes
-      - ./main.py:/app/main.py
     networks:
       - stools_network
     healthcheck:
