@@ -83,33 +83,26 @@ class CVEModule {
         }
     }
 
-    async toggleCveDownloadLinks() {
+    toggleCveDownloadLinks() {
         const content = document.getElementById('cve-download-links');
         const button = document.getElementById('toggle-cve-download-links');
-        const arrow = button.querySelector('.fa-chevron-down');
         
-        if (!content) return;
+        if (!content || !button) return;
         
-        const isCollapsed = content.style.display === 'none' || content.style.display === '';
-        
-        if (isCollapsed) {
-            // Разворачиваем и загружаем ссылки
+        if (content.style.display === 'none') {
             content.style.display = 'block';
-            if (arrow) {
-                arrow.style.transform = 'rotate(180deg)';
-            }
+            button.classList.add('active');
+            button.innerHTML = '<i class="fas fa-link"></i> Скрыть ссылки для скачивания <i class="fas fa-chevron-down ms-1"></i>';
             
             // Загружаем ссылки если еще не загружены
             const linksContent = document.getElementById('cve-download-links-content');
             if (linksContent && !linksContent.innerHTML.trim()) {
-                await this.loadCveDownloadLinks();
+                this.loadCveDownloadLinks();
             }
         } else {
-            // Сворачиваем
             content.style.display = 'none';
-            if (arrow) {
-                arrow.style.transform = 'rotate(0deg)';
-            }
+            button.classList.remove('active');
+            button.innerHTML = '<i class="fas fa-link"></i> Ссылки для скачивания CVE по годам <i class="fas fa-chevron-down ms-1"></i>';
         }
     }
 
