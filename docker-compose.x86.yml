@@ -149,6 +149,7 @@ services:
     image: nginx:alpine
     container_name: stools_nginx
     platform: linux/amd64
+    entrypoint: ["/docker-entrypoint.sh"]
     command: ["nginx", "-g", "daemon off;"]
     ports:
       - "80:80"
