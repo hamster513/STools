@@ -148,7 +148,7 @@ class UtilsModule {
      * @returns {boolean} Результат валидации
      */
     isValidCVE(cve) {
-        const cveRegex = /^CVE-\d{4}-\d{4,}$/;
+        const cveRegex = /^CVE-\d{4}-\d{1,}$/;
         return cveRegex.test(cve);
     }
 

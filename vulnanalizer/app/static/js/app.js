@@ -1854,6 +1854,7 @@ class VulnAnalizer {
 
         // Валидация формата CVE
         if (!/^CVE-\d{4}-\d+$/i.test(cveId)) {
+            console.log('CVE validation failed for:', cveId);
             this.showNotification('Неверный формат CVE ID. Используйте формат: CVE-2023-1234', 'warning');
             return;
         }
