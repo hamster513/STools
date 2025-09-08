@@ -134,7 +134,7 @@ class CVERepository(DatabaseBase):
                 if values:
                     # Массовая вставка
                     await conn.executemany("""
-                        INSERT INTO cve (
+                        INSERT INTO vulnanalizer.cve (
                             cve_id, description, cvss_v2_base_score, cvss_v3_base_score,
                             cvss_v3_base_severity, cvss_v3_attack_vector, cvss_v3_privileges_required,
                             cvss_v3_user_interaction, cvss_v3_confidentiality_impact, cvss_v3_integrity_impact,
@@ -328,7 +328,7 @@ class CVERepository(DatabaseBase):
                     conn = await asyncpg.connect(self.database_url)
                 
                 query = """
-                    INSERT INTO cve (
+                    INSERT INTO vulnanalizer.cve (
                         cve_id, description, cvss_v3_base_score, cvss_v3_base_severity,
                         cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction,
                         cvss_v3_confidentiality_impact, cvss_v3_integrity_impact, cvss_v3_availability_impact,
