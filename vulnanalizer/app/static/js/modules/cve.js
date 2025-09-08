@@ -46,6 +46,14 @@ class CVEModule {
                 this.showCVEPreview();
             });
         }
+
+        // Кнопка ссылок для скачивания
+        const toggleCveDownloadLinks = document.getElementById('toggle-cve-download-links');
+        if (toggleCveDownloadLinks) {
+            toggleCveDownloadLinks.addEventListener('click', () => {
+                this.toggleCveDownloadLinks();
+            });
+        }
     }
 
     async updateStatus() {
@@ -55,57 +63,11 @@ class CVEModule {
             if (data.success) {
                 const statusDiv = document.getElementById('cve-status');
                 if (statusDiv) {
-                    // Получаем ссылки по годам
-                    let urlsData = null;
-                    try {
-                        urlsData = await this.app.api.getCVEDownloadUrls();
-                    } catch (err) {
-                        console.warn('Failed to get CVE download URLs:', err);
-                    }
-                    
-                    let statusHtml = `
+                    statusDiv.innerHTML = `
                         <div style="margin-bottom: 15px;">
                             <b>Записей в базе CVE:</b> ${data.count}
                         </div>
-                        
-                        <!-- Сворачиваемая область со ссылками для CVE -->
-                        <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
-                            <div class="collapsible-header" data-target="cve-download-links" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                                <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE по годам</h4>
-                                <i class="fas fa-chevron-down collapsible-arrow" style="transition: transform 0.3s ease;"></i>
-                            </div>
-                            <div class="collapsible-content" id="cve-download-links" style="display: none;">
-                                <p style="margin: 0 0 8px 0; line-height: 1.4; font-size: 0.8rem;">Скачайте файлы по ссылкам ниже для offline загрузки:</p>
-                                <div style="display: flex; flex-direction: column; gap: 6px;">`;
-                    
-                    if (urlsData && urlsData.success && urlsData.urls) {
-                        urlsData.urls.forEach(urlInfo => {
-                            statusHtml += `
-                                <a href="${urlInfo.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                    🔗 <span style="flex: 1;">CVE ${urlInfo.year} (${urlInfo.filename})</span>
-                                </a>`;
-                        });
-                    } else {
-                        // Fallback ссылки если API не работает
-                        statusHtml += `
-                            <a href="https://nvd.nist.gov/feeds/json/cve/1.1/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">NVD CVE Feeds (официальный сайт)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">JSON/GZ</span>
-                            </a>
-                            <a href="https://nvd.nist.gov/vuln/data-feeds" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🌐 <span style="flex: 1;">NVD Data Feeds (документация)</span>
-                            </a>`;
-                    }
-                    
-                    statusHtml += `
-                                </div>
-                            </div>
-                        </div>`;
-                    
-                    statusDiv.innerHTML = statusHtml;
-                    
-                    // Добавляем обработчик для сворачивания
-                    this.setupCollapsibleHandler('cve-download-links');
+                    `;
                 }
             } else {
                 const statusDiv = document.getElementById('cve-status');
@@ -121,37 +83,83 @@ class CVEModule {
         }
     }
 
-    setupCollapsibleHandler(targetId) {
-        const header = document.querySelector(`[data-target="${targetId}"]`);
-        if (!header) return;
-        
-        const content = document.getElementById(targetId);
-        const arrow = header.querySelector('.collapsible-arrow i');
+    async toggleCveDownloadLinks() {
+        const content = document.getElementById('cve-download-links');
+        const button = document.getElementById('toggle-cve-download-links');
+        const arrow = button.querySelector('.fa-chevron-down');
         
         if (!content) return;
         
-        // Инициализируем как свернутый
-        content.style.display = 'none';
-        if (arrow) {
-            arrow.style.transform = 'rotate(-90deg)';
-        }
+        const isCollapsed = content.style.display === 'none' || content.style.display === '';
         
-        header.addEventListener('click', (e) => {
-            e.preventDefault();
-            const isCollapsed = content.style.display === 'none' || content.style.display === '';
-            
-            if (isCollapsed) {
-                content.style.display = 'block';
-                if (arrow) {
-                    arrow.style.transform = 'rotate(0deg)';
-                }
-            } else {
-                content.style.display = 'none';
-                if (arrow) {
-                    arrow.style.transform = 'rotate(-90deg)';
-                }
+        if (isCollapsed) {
+            // Разворачиваем и загружаем ссылки
+            content.style.display = 'block';
+            if (arrow) {
+                arrow.style.transform = 'rotate(180deg)';
             }
-        });
+            
+            // Загружаем ссылки если еще не загружены
+            const linksContent = document.getElementById('cve-download-links-content');
+            if (linksContent && !linksContent.innerHTML.trim()) {
+                await this.loadCveDownloadLinks();
+            }
+        } else {
+            // Сворачиваем
+            content.style.display = 'none';
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    async loadCveDownloadLinks() {
+        const linksContent = document.getElementById('cve-download-links-content');
+        if (!linksContent) return;
+        
+        try {
+            const data = await this.app.api.getCVEDownloadUrls();
+            
+            if (data.success && data.urls) {
+                let linksHtml = '<div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">';
+                
+                data.urls.forEach(urlInfo => {
+                    linksHtml += `
+                        <a href="${urlInfo.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                            🔗 <span style="flex: 1;">CVE ${urlInfo.year} (${urlInfo.filename})</span>
+                        </a>`;
+                });
+                
+                linksHtml += '</div>';
+                linksContent.innerHTML = linksHtml;
+            } else {
+                // Fallback ссылки если API не работает
+                linksContent.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                        <a href="https://nvd.nist.gov/feeds/json/cve/1.1/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                            🔗 <span style="flex: 1;">NVD CVE Feeds (официальный сайт)</span>
+                            <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">JSON/GZ</span>
+                        </a>
+                        <a href="https://nvd.nist.gov/vuln/data-feeds" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                            🌐 <span style="flex: 1;">NVD Data Feeds (документация)</span>
+                        </a>
+                    </div>
+                `;
+            }
+        } catch (err) {
+            console.warn('Failed to get CVE download URLs:', err);
+            linksContent.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                    <a href="https://nvd.nist.gov/feeds/json/cve/1.1/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                        🔗 <span style="flex: 1;">NVD CVE Feeds (официальный сайт)</span>
+                        <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">JSON/GZ</span>
+                    </a>
+                    <a href="https://nvd.nist.gov/vuln/data-feeds" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                        🌐 <span style="flex: 1;">NVD Data Feeds (документация)</span>
+                    </a>
+                </div>
+            `;
+        }
     }
 
     async uploadCVE() {
