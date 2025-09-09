@@ -270,15 +270,7 @@ class VMWorker:
             if self.logger:
                 await self._log('debug', f"Получен CSV контент размером {len(csv_content)} символов")
             
-            # Сохраняем CSV для анализа
-            import os
-            from datetime import datetime
-            csv_filename = f"/app/data/vm_csv_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
-            with open(csv_filename, 'w', encoding='utf-8') as f:
-                f.write(csv_content)
-            if self.logger:
-                await self._log('debug', f"CSV сохранен в файл: {csv_filename}")
+            # CSV файл больше не сохраняем для дебага
             
             csv_reader = csv.DictReader(io.StringIO(csv_content), delimiter=';')
             
@@ -375,17 +367,20 @@ class VMWorker:
                 await self._log('debug', "Получены настройки для расчета рисков", {"settings_keys": list(settings.keys())})
             
             # Создаем функцию обратного вызова для обновления прогресса
-            async def update_progress(step, message, progress_percent, processed_records=None, current_step_progress=None):
+            async def update_progress(step, message, progress_percent, processed_records=None, current_step_progress=None, processed_cves=None):
                 try:
+                    # Используем processed_cves если processed_records не передан
+                    records_count = processed_records or processed_cves or 0
+                    
                     await self.db.update_background_task(task_id, **{
                         'current_step': message,
-                        'processed_records': processed_records or 0,
+                        'processed_records': records_count,
                         'progress_percent': progress_percent
                     })
                     
                     # Логируем прогресс если включено подробное логирование
-                    if self.logger and processed_records and processed_records % 100 == 0:
-                        await self._log('debug', f"Прогресс сохранения: {processed_records}/{len(hosts)} ({progress_percent}%)")
+                    if self.logger and records_count and records_count % 100 == 0:
+                        await self._log('debug', f"Прогресс сохранения: {records_count}/{len(hosts)} ({progress_percent}%)")
                         
                 except Exception as e:
                     print(f"⚠️ Ошибка обновления прогресса: {e}")
