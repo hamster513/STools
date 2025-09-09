@@ -114,6 +114,11 @@ class HostsRepository(DatabaseBase):
             skipped_records = len(records) - total_records
             
             print(f"🚀 Начинаем импорт {total_records:,} записей с CVE (пропущено {skipped_records:,} записей без CVE)")
+            print(f"📊 Всего записей получено: {len(records)}")
+            if len(records) > 0:
+                print(f"📋 Пример первой записи: {records[0]}")
+            if len(valid_records) > 0:
+                print(f"✅ Пример первой валидной записи: {valid_records[0]}")
             
             # Этап 1: Подготовка к импорту (5%)
             if progress_callback:
@@ -167,7 +172,8 @@ class HostsRepository(DatabaseBase):
                                         processed_records=inserted_count)
                             
                         except Exception as e:
-                            print(f"Error inserting record for {rec.get('hostname', 'unknown')} ({rec.get('ip_address', 'no-ip')}): {e}")
+                            print(f"❌ Error inserting record for {rec.get('hostname', 'unknown')} ({rec.get('ip_address', 'no-ip')}): {e}")
+                            print(f"📋 Проблемная запись: {rec}")
                             continue
                 
                 progress_percent = 5 + (inserted_count / total_records) * 70
@@ -226,6 +232,7 @@ class HostsRepository(DatabaseBase):
             
             print("✅ Расчет рисков завершен")
             print(f"🎯 Метод insert_hosts_records_with_progress завершен успешно")
+            print(f"📊 Итого сохранено записей: {inserted_count}")
             
             return inserted_count
             
