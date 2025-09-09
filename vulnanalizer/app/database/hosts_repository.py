@@ -133,15 +133,6 @@ class HostsRepository(DatabaseBase):
             query = """
                 INSERT INTO vulnanalizer.hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (hostname, cve) 
-                DO UPDATE SET 
-                    ip_address = EXCLUDED.ip_address,
-                    cvss = EXCLUDED.cvss,
-                    criticality = EXCLUDED.criticality,
-                    status = EXCLUDED.status,
-                    os_name = EXCLUDED.os_name,
-                    zone = EXCLUDED.zone,
-                    updated_at = CURRENT_TIMESTAMP
             """
             
             for i in range(0, total_records, batch_size):
@@ -153,9 +144,10 @@ class HostsRepository(DatabaseBase):
                     await conn.close()
                     conn = await asyncpg.connect(self.database_url)
                 
-                async with conn.transaction():
-                    for rec in batch_records:
-                        try:
+                # Обрабатываем каждую запись в отдельной транзакции
+                for rec in batch_records:
+                    try:
+                        async with conn.transaction():
                             await conn.execute(query, 
                                 rec['hostname'], rec['ip_address'], rec['cve'], 
                                 rec['cvss'], rec['criticality'], rec['status'],
@@ -171,10 +163,10 @@ class HostsRepository(DatabaseBase):
                                         current_step_progress=inserted_count, 
                                         processed_records=inserted_count)
                             
-                        except Exception as e:
-                            print(f"❌ Error inserting record for {rec.get('hostname', 'unknown')} ({rec.get('ip_address', 'no-ip')}): {e}")
-                            print(f"📋 Проблемная запись: {rec}")
-                            continue
+                    except Exception as e:
+                        print(f"❌ Error inserting record for {rec.get('hostname', 'unknown')} ({rec.get('ip_address', 'no-ip')}): {e}")
+                        print(f"📋 Проблемная запись: {rec}")
+                        continue
                 
                 progress_percent = 5 + (inserted_count / total_records) * 70
                 if progress_callback:
