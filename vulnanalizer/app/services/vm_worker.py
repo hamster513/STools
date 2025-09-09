@@ -350,7 +350,6 @@ class VMWorker:
             import asyncio
             asyncio.create_task(self.logger.debug(f"Преобразование завершено: {len(result)} записей из {len(vm_data)} исходных"))
         
-        print(f"✅ Преобразовано {len(result)} записей из {len(vm_data)} исходных (один CVE = одна запись)")
         return result
     
     async def _save_hosts_with_risks(self, task_id: int, hosts: List[Dict[str, Any]]) -> Dict:
@@ -384,7 +383,6 @@ class VMWorker:
                         await self._log('debug', f"Прогресс сохранения: {records_count}/{len(hosts)} ({progress_percent}%)")
                         
                 except Exception as e:
-                    print(f"⚠️ Ошибка обновления прогресса: {e}")
                     if self.logger:
                         await self._log('warning', f"Ошибка обновления прогресса: {e}")
             

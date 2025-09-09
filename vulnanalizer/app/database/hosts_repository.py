@@ -113,18 +113,13 @@ class HostsRepository(DatabaseBase):
             total_records = len(valid_records)
             skipped_records = len(records) - total_records
             
-            print(f"🚀 Начинаем импорт {total_records:,} записей с CVE (пропущено {skipped_records:,} записей без CVE)")
-            print(f"📊 Всего записей получено: {len(records)}")
-            if len(records) > 0:
-                print(f"📋 Пример первой записи: {records[0]}")
-            if len(valid_records) > 0:
-                print(f"✅ Пример первой валидной записи: {valid_records[0]}")
+            # Начинаем импорт записей
             
             # Этап 1: Подготовка к импорту (5%)
             if progress_callback:
                 await progress_callback('preparing', 'Подготовка к импорту...', 5)
             
-            print("🔄 Подготовка к импорту записей")
+            # Подготовка к импорту записей
             
             # Этап 2: Вставка записей (70%)
             batch_size = 100
@@ -140,7 +135,7 @@ class HostsRepository(DatabaseBase):
                 try:
                     await conn.execute("SELECT 1")
                 except Exception as e:
-                    print(f"Connection lost, reconnecting... Error: {e}")
+                    # Connection lost, reconnecting
                     await conn.close()
                     conn = await asyncpg.connect(self.database_url)
                 
@@ -164,8 +159,7 @@ class HostsRepository(DatabaseBase):
                                         processed_records=inserted_count)
                             
                     except Exception as e:
-                        print(f"❌ Error inserting record for {rec.get('hostname', 'unknown')} ({rec.get('ip_address', 'no-ip')}): {e}")
-                        print(f"📋 Проблемная запись: {rec}")
+                        # Error inserting record, skipping
                         continue
                 
                 progress_percent = 5 + (inserted_count / total_records) * 70
@@ -222,14 +216,11 @@ class HostsRepository(DatabaseBase):
                                       current_step_progress=inserted_count, 
                                       processed_records=inserted_count)
             
-            print("✅ Расчет рисков завершен")
-            print(f"🎯 Метод insert_hosts_records_with_progress завершен успешно")
-            print(f"📊 Итого сохранено записей: {inserted_count}")
+            # Расчет рисков завершен
             
             return inserted_count
             
         except Exception as e:
-            print(f"❌ Ошибка в insert_hosts_records_with_progress: {e}")
             if progress_callback:
                 await progress_callback('error', f'Ошибка импорта: {str(e)}', 0)
             raise
