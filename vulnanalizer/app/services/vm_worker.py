@@ -64,10 +64,10 @@ class VMWorker:
             await self._log('info', "Начинаем аутентификацию в VM MaxPatrol")
             
             token = await self._get_vm_token(
-                vm_settings['vm_host'],
-                vm_settings['vm_username'],
-                vm_settings['vm_password'],
-                vm_settings['vm_client_secret']
+                vm_settings['vm_host'].strip(),
+                vm_settings['vm_username'].strip(),
+                vm_settings['vm_password'].strip(),
+                vm_settings['vm_client_secret'].strip()
             )
             await self._log('info', "Аутентификация в VM MaxPatrol успешна")
             
@@ -78,7 +78,7 @@ class VMWorker:
             await self._log('info', "Начинаем получение данных из VM API")
             
             vm_data = await self._get_vm_data(
-                vm_settings['vm_host'],
+                vm_settings['vm_host'].strip(),
                 token,
                 vm_settings
             )
@@ -241,7 +241,7 @@ class VMWorker:
             
             # Делаем запрос для получения токена экспорта
             if self.logger:
-                await self._log('debug', "Отправляем запрос для получения токена экспорта")
+                await self._log('debug', "Отправляем запрос для получения токена экспорта", {"url": url})
             
             response = requests.post(url, headers=headers, json=params, verify=False, timeout=60)
             response.raise_for_status()
@@ -260,7 +260,7 @@ class VMWorker:
             # Получаем CSV данные
             export_url = f'https://{host}/api/assets_temporal_readmodel/v1/assets_grid/export?pdqlToken={export_token}'
             if self.logger:
-                await self._log('debug', "Запрашиваем CSV данные экспорта")
+                await self._log('debug', "Запрашиваем CSV данные экспорта", {"export_url": export_url})
             
             export_response = requests.get(export_url, headers=headers, verify=False, timeout=300)
             export_response.raise_for_status()
