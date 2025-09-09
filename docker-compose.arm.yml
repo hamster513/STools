@@ -53,7 +53,7 @@ services:
     container_name: auth_web
     platform: linux/arm64
     volumes:
-      - auth_data:/app/data
+      - ./data:/app/data
       - ./auth:/app
       - ./VERSION:/app/VERSION
     environment:
@@ -82,7 +82,7 @@ services:
     profiles:
       - loganalizer
     volumes:
-      - loganalizer_data:/app/data
+      - ./data:/app/data
       - ./loganalizer/app:/app
       - ./VERSION:/app/VERSION
     environment:
@@ -110,10 +110,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - vulnanalizer_data:/app/data
+      - ./data:/app/data
       - ./vulnanalizer/app:/app
       - ./templates:/shared_templates
       - ./VERSION:/app/VERSION
+      - ./backups:/app/backups
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
@@ -139,6 +140,9 @@ services:
     volumes:
       - ./templates:/app/templates
       - ./static:/app/static
+      - ./main.py:/app/main.py
+      - ./routes:/app/routes
+      - ./data:/app/data
     networks:
       - stools_network
     healthcheck:
@@ -180,10 +184,7 @@ services:
 
 volumes:
   redis_data:
-  auth_data:
   postgres_data:
-  loganalizer_data:
-  vulnanalizer_data:
 
 networks:
   stools_network:
