@@ -368,7 +368,7 @@ class VMWorker:
                 await self._log('debug', "Получены настройки для расчета рисков", {"settings_keys": list(settings.keys())})
             
             # Создаем функцию обратного вызова для обновления прогресса
-            async def update_progress(step, message, progress_percent, processed_records=None, current_step_progress=None, processed_cves=None):
+            async def update_progress(step, message, progress_percent, processed_records=None, current_step_progress=None, processed_cves=None, updated_hosts=None):
                 try:
                     # Используем processed_cves если processed_records не передан
                     records_count = processed_records or processed_cves or 0
