@@ -35,8 +35,29 @@ apply_migration() {
         return 0
     fi
     
-    # Применяем миграцию
-    if docker-compose exec -T vulnanalizer_web psql "$DATABASE_URL" -f "$migration_path"; then
+    # Применяем миграцию через Python (psql не доступен в vulnanalizer_web)
+    if docker-compose exec -T vulnanalizer_web python3 -c "
+import asyncio
+import sys
+sys.path.append('/app')
+from database.hosts_repository import HostsRepository
+
+async def apply_migration():
+    db = HostsRepository()
+    conn = await db.get_connection()
+    try:
+        with open('$migration_path', 'r') as f:
+            sql = f.read()
+        await conn.execute(sql)
+        print('✅ Миграция $migration_file применена успешно')
+    except Exception as e:
+        print(f'❌ Ошибка: {e}')
+        sys.exit(1)
+    finally:
+        await db.release_connection(conn)
+
+asyncio.run(apply_migration())
+"; then
         echo "✅ Миграция $migration_file применена успешно"
     else
         echo "❌ Ошибка применения миграции $migration_file"
@@ -54,15 +75,30 @@ echo "🎯 Все миграции применены!"
 echo ""
 echo "📊 Проверяем статус базы данных..."
 
-# Проверяем что таблицы созданы
-docker-compose exec -T vulnanalizer_web psql "$DATABASE_URL" -c "
-SELECT 
-    schemaname,
-    tablename,
-    tableowner
-FROM pg_tables 
-WHERE schemaname IN ('auth', 'vulnanalizer', 'loganalizer')
-ORDER BY schemaname, tablename;
+# Проверяем что таблицы созданы через Python
+docker-compose exec -T vulnanalizer_web python3 -c "
+import asyncio
+import sys
+sys.path.append('/app')
+from database.hosts_repository import HostsRepository
+
+async def check_tables():
+    db = HostsRepository()
+    conn = await db.get_connection()
+    try:
+        tables = await conn.fetch('''
+            SELECT schemaname, tablename, tableowner
+            FROM pg_tables 
+            WHERE schemaname IN ('auth', 'vulnanalizer', 'loganalizer')
+            ORDER BY schemaname, tablename
+        ''')
+        print(f'📋 Найдено таблиц: {len(tables)}')
+        for table in tables:
+            print(f'  {table[\"schemaname\"]}.{table[\"tablename\"]}')
+    finally:
+        await db.release_connection(conn)
+
+asyncio.run(check_tables())
 "
 
 echo ""
