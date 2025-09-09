@@ -356,10 +356,16 @@ class VMWorker:
         # Конвертируем в список
         grouped_hosts = list(hosts_dict.values())
         
-        # Объединяем CVE в строку
+        # Объединяем CVE в строку и добавляем недостающие поля
         for host in grouped_hosts:
             host['cve'] = ','.join(host['cves'])
+            host['cvss'] = 0.0  # По умолчанию CVSS = 0
             del host['cves']  # Удаляем список CVE
+            # Удаляем поля которые не нужны для hosts_repository
+            if 'os_name' in host:
+                del host['os_name']
+            if 'groups' in host:
+                del host['groups']
         
         if self.logger:
             import asyncio
