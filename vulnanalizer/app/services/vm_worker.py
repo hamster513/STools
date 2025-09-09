@@ -270,16 +270,34 @@ class VMWorker:
             if self.logger:
                 await self._log('debug', f"Получен CSV контент размером {len(csv_content)} символов")
             
+            # Сохраняем CSV для анализа
+            import os
+            from datetime import datetime
+            csv_filename = f"/app/data/vm_csv_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
+            with open(csv_filename, 'w', encoding='utf-8') as f:
+                f.write(csv_content)
+            if self.logger:
+                await self._log('debug', f"CSV сохранен в файл: {csv_filename}")
+            
             csv_reader = csv.DictReader(io.StringIO(csv_content), delimiter=';')
             
             vm_data = []
+            row_count = 0
             for row in csv_reader:
+                row_count += 1
+                if self.logger and row_count <= 5:  # Логируем первые 5 строк для отладки
+                    await self._log('debug', f"Строка {row_count}: {dict(row)}")
+                
                 vm_data.append({
                     'host': row['@Host'].strip('"'),
                     'os_name': row['Host.OsName'].strip('"'),
                     'groups': row['Host.@Groups'].strip('"'),
                     'cve': row['Host.@Vulners.CVEs'].strip('"')
                 })
+            
+            if self.logger:
+                await self._log('debug', f"Обработано {row_count} строк CSV, создано {len(vm_data)} записей")
             
             if self.logger:
                 await self._log('info', f"Парсинг CSV завершен: {len(vm_data)} записей")
@@ -355,11 +373,14 @@ class VMWorker:
         try:
             if self.logger:
                 await self._log('debug', f"Начинаем сохранение {len(hosts)} хостов в базу данных")
+                # Логируем первые 3 хоста для отладки
+                for i, host in enumerate(hosts[:3]):
+                    await self._log('debug', f"Хост {i+1}: {host}")
             
             # Получаем настройки для расчета рисков
             settings = await self.db.get_settings()
             if self.logger:
-                await self._log('debug', "Получены настройки для расчета рисков")
+                await self._log('debug', "Получены настройки для расчета рисков", {"settings_keys": list(settings.keys())})
             
             # Создаем функцию обратного вызова для обновления прогресса
             async def update_progress(step, message, progress_percent, processed_records=None, current_step_progress=None):
@@ -380,10 +401,17 @@ class VMWorker:
                         await self._log('warning', f"Ошибка обновления прогресса: {e}")
             
             # Используем существующий метод для сохранения с расчетом рисков
+            if self.logger:
+                await self._log('debug', "Вызываем insert_hosts_records_with_progress")
+            
             result = await self.db.insert_hosts_records_with_progress(hosts, update_progress)
             
             if self.logger:
-                await self._log('info', "Сохранение хостов завершено", {"result": result})
+                await self._log('info', "Сохранение хостов завершено", {
+                    "result": result,
+                    "result_type": type(result).__name__,
+                    "result_keys": list(result.keys()) if isinstance(result, dict) else "not_dict"
+                })
             
             return result
             
