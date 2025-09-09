@@ -816,13 +816,6 @@
                     <div class="collapsible-content" id="vm-settings">
                         <form id="vm-settings-form">
                         <div class="form-group">
-                            <label for="vm-enabled">Включить интеграцию:</label>
-                            <select id="vm-enabled" name="vm_enabled" required>
-                                <option value="false">Отключено</option>
-                                <option value="true">Включено</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label for="vm-host">Хост VM:</label>
                             <input type="text" id="vm-host" name="vm_host" placeholder="msk01vm23.corp.local" required>
                             <small>Адрес сервера MaxPatrol VM</small>
@@ -851,6 +844,14 @@
                             <label for="vm-limit">Лимит записей:</label>
                             <input type="number" id="vm-limit" name="vm_limit" placeholder="0" value="0" min="0">
                             <small>Максимальное количество записей для импорта (0 = без ограничений)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-detailed-logging">Подробное логирование:</label>
+                            <select id="vm-detailed-logging" name="vm_detailed_logging" required>
+                                <option value="false">Отключено</option>
+                                <option value="true">Включено</option>
+                            </select>
+                            <small>Включить подробное логирование процесса импорта</small>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
@@ -1471,7 +1472,7 @@
     </div>
 
     <!-- Скрипты -->
-    <script src="/static/js/ui-manager.js?v=6.3"></script>
+    <script src="/static/js/ui-manager.js?v=6.4"></script>
         <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
     <script src="/vulnanalizer/static/js/modules/auth.js?v=2.1"></script>
@@ -1489,7 +1490,7 @@
         <script src="/vulnanalizer/static/js/modules/epss-modal.js?v=1.3"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb-modal.js?v=1.5"></script>
         <script src="/vulnanalizer/static/js/modules/cve-preview-modal.js?v=1.3"></script>
-<script src="/vulnanalizer/static/js/modules/vm.js?v=2.0"></script>
+<script src="/vulnanalizer/static/js/modules/vm.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/navigation.js?v=2.1"></script>
 <script src="/vulnanalizer/static/js/modules/utils.js?v=2.1"></script>
             <script src="/vulnanalizer/static/js/app.js?v=7.1"></script>

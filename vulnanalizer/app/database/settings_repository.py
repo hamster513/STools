@@ -140,9 +140,9 @@ class SettingsRepository(DatabaseBase):
                 'vm_username': '',
                 'vm_password': '',
                 'vm_client_secret': '',
-                'vm_enabled': 'false',
                 'vm_os_filter': 'Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD',
-                'vm_limit': '0'
+                'vm_limit': '0',
+                'vm_detailed_logging': 'false'
             }
             
             for key, default_value in defaults.items():

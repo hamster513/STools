@@ -394,9 +394,8 @@ class UIManager {
             const token = localStorage.getItem('auth_token');
             
             // Проверяем права пользователя
-            // Определяем правильный путь API в зависимости от контекста
-            const path = window.location.pathname;
-            const apiPath = path.startsWith('/vulnanalizer/') ? '/vulnanalizer/api/me' : '/auth/api/me-simple';
+            // Всегда используем централизованный auth API
+            const apiPath = '/auth/api/me-simple';
             
             const response = await fetch(apiPath, {
                 headers: {

@@ -12,12 +12,16 @@ import sys
 
 # Backup роуты перенесены в vulnanalizer/app/routes/backup.py
 
+# Импортируем универсальные роуты логов
+from routes.logs import router as logs_router
+
+
 def get_version():
     try:
-        with open('VERSION', 'r') as f:
+        with open('/app/VERSION', 'r') as f:
             return f.read().strip()
     except:
-        return "0.6.03"
+        return "0.7.10"
 
 app = FastAPI(title="STools Main Service", version=get_version())
 
@@ -28,6 +32,10 @@ app = FastAPI(title="STools Main Service", version=get_version())
 
 # Добавляем CORS middleware
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Подключаем универсальные роуты логов
+app.include_router(logs_router)
+
 
 # Настройка шаблонов
 templates = Jinja2Templates(directory="templates")

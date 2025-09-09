@@ -4,7 +4,7 @@
 import os
 import psutil
 import re
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
 from database import get_db
 

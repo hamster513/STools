@@ -808,7 +808,7 @@ class HostsRepository(DatabaseBase):
                 'last_import': None,
                 'last_import_count': 0,
                 'last_import_error': None,
-                'vm_enabled': False
+                'vm_enabled': False  # Будет переопределено ниже на основе наличия настроек
             }
             
             for row in rows:
@@ -819,9 +819,10 @@ class HostsRepository(DatabaseBase):
                 elif row['key'] == 'vm_last_import_error':
                     status['last_import_error'] = row['value']
             
-            # Проверяем, включен ли VM импорт
-            vm_enabled = await conn.fetchval("SELECT value FROM vulnanalizer.settings WHERE key = 'vm_enabled'")
-            status['vm_enabled'] = vm_enabled == 'true' if vm_enabled else False
+            # Проверяем, настроен ли VM импорт (есть ли хост и пользователь)
+            vm_host = await conn.fetchval("SELECT value FROM vulnanalizer.settings WHERE key = 'vm_host'")
+            vm_username = await conn.fetchval("SELECT value FROM vulnanalizer.settings WHERE key = 'vm_username'")
+            status['vm_enabled'] = bool(vm_host and vm_username)
             
             return status
         finally:

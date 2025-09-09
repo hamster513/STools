@@ -200,6 +200,53 @@
             </div>
         </div>
 
+        <!-- Управление логами -->
+        <div class="collapsible-block">
+            <div class="collapsible-header" data-target="logs-management">
+                <h3><i class="fas fa-file-alt"></i> Управление логами</h3>
+                <div class="collapsible-arrow">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+            <div class="collapsible-content" id="logs-management">
+                <!-- Статистика логов -->
+                <div class="logs-stats-section">
+                    <h4><i class="fas fa-chart-bar"></i> Статистика логов</h4>
+                    <div class="logs-stats" id="logs-stats">
+                        <div class="loading">Загрузка статистики...</div>
+                    </div>
+                </div>
+
+                <!-- Список файлов логов -->
+                <div class="logs-files-section">
+                    <h4><i class="fas fa-list"></i> Файлы логов</h4>
+                    <div class="logs-files-controls">
+                        <div class="form-group">
+                            <label for="logs-task-type-filter">Фильтр по типу задачи:</label>
+                            <select id="logs-task-type-filter">
+                                <option value="">Все типы</option>
+                                <option value="vm_import">VM Импорт</option>
+                                <option value="hosts_update">Обновление хостов</option>
+                                <option value="backup_create">Создание бэкапа</option>
+                                <option value="epss_download">Загрузка EPSS</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" id="refresh-logs-btn">
+                                <i class="fas fa-sync-alt"></i> Обновить
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" id="cleanup-logs-btn">
+                                <i class="fas fa-trash"></i> Очистить старые
+                            </button>
+                        </div>
+                    </div>
+                    <div class="logs-files-list" id="logs-files-list">
+                        <div class="loading">Загрузка файлов логов...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Информация о системе -->
         <div class="collapsible-block">
             <div class="collapsible-header" data-target="system-info">
@@ -242,4 +289,5 @@
 
 <!-- Скрипты -->
         <script src="/static/js/settings.js?v=1.1"></script>
+        <script src="/static/js/modules/logs-manager.js?v=1.4"></script>
 {% endblock %}

@@ -68,31 +68,31 @@ class VMModule {
     populateVMSettings(settings) {
         console.log('Загружаем VM настройки:', settings);
         
-        const vmEnabled = document.getElementById('vm-enabled');
         const vmHost = document.getElementById('vm-host');
         const vmUsername = document.getElementById('vm-username');
         const vmPassword = document.getElementById('vm-password');
         const vmClientSecret = document.getElementById('vm-client-secret');
         const vmOsFilter = document.getElementById('vm-os-filter');
         const vmLimit = document.getElementById('vm-limit');
+        const vmDetailedLogging = document.getElementById('vm-detailed-logging');
 
         console.log('Найденные элементы:', {
-            vmEnabled: !!vmEnabled,
             vmHost: !!vmHost,
             vmUsername: !!vmUsername,
             vmPassword: !!vmPassword,
             vmClientSecret: !!vmClientSecret,
             vmOsFilter: !!vmOsFilter,
-            vmLimit: !!vmLimit
+            vmLimit: !!vmLimit,
+            vmDetailedLogging: !!vmDetailedLogging
         });
 
-        if (vmEnabled) vmEnabled.value = settings.vm_enabled || 'false';
         if (vmHost) vmHost.value = settings.vm_host || '';
         if (vmUsername) vmUsername.value = settings.vm_username || '';
         if (vmPassword) vmPassword.value = settings.vm_password || '';
         if (vmClientSecret) vmClientSecret.value = settings.vm_client_secret || '';
         if (vmOsFilter) vmOsFilter.value = settings.vm_os_filter || '';
         if (vmLimit) vmLimit.value = settings.vm_limit || '0';
+        if (vmDetailedLogging) vmDetailedLogging.value = settings.vm_detailed_logging || 'false';
         
         console.log('VM настройки загружены в форму');
     }
@@ -223,8 +223,8 @@ class VMModule {
             if (data.import_status.last_import_error) {
                 importStatus.textContent = `Ошибка: ${data.import_status.last_import_error}`;
                 importStatus.className = 'error-text';
-            } else if (data.settings.vm_enabled === 'true') {
-                importStatus.textContent = 'Настроено и активно';
+            } else if (data.settings.vm_host && data.settings.vm_username) {
+                importStatus.textContent = 'Настроено и готово к работе';
                 importStatus.className = 'success-text';
             } else {
                 importStatus.textContent = 'Не настроено';
@@ -324,10 +324,11 @@ class VMModule {
         // Запускаем мониторинг каждые 2 секунды
         this.progressInterval = setInterval(async () => {
             try {
-                const data = await this.app.api.getBackgroundTasksStatus();
+                const response = await this.app.api.getBackgroundTasksStatus();
                 
-                // Ищем задачу импорта VM
-                const vmTask = data.find(task => task.task_type === 'vm_import');
+                // Ищем задачу импорта VM в активных и завершенных задачах
+                const allTasks = [...(response.active_tasks || []), ...(response.recent_completed_tasks || [])];
+                const vmTask = allTasks.find(task => task.task_type === 'vm_import');
                 
                 if (vmTask) {
                     const operationId = 'vm-import';

@@ -169,7 +169,7 @@ async def health_check():
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
 @app.get("/api/version")
-async def get_version():
+def get_version():
     """Get application version"""
     try:
         with open('/app/VERSION', 'r') as f:

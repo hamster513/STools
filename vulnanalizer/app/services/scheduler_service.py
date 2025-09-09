@@ -28,10 +28,14 @@ class SchedulerService:
     async def start_scheduler(self):
         """Запустить планировщик"""
         if self.running:
+            print("🕐 Scheduler already running, skipping start")
             return
         
         self.running = True
         print("🕐 Scheduler started")
+        
+        # Очищаем предыдущее расписание
+        schedule.clear()
         
         # Настраиваем расписание
         schedule.every().hour.do(self._run_async_task, self.hourly_check)
@@ -54,15 +58,26 @@ class SchedulerService:
     async def _run_scheduler(self):
         """Основной цикл планировщика"""
         print("🕐 Планировщик запущен, начинаем основной цикл")
+        error_count = 0
+        max_errors = 5
+        
         while self.running:
             try:
                 schedule.run_pending()
+                error_count = 0  # Сбрасываем счетчик ошибок при успешном выполнении
                 # Делаем цикл более отзывчивым: проверяем pending каждые 1 секунду
                 await asyncio.sleep(1)
             except Exception as e:
-                print(f"❌ Ошибка в основном цикле планировщика: {e}")
+                error_count += 1
+                print(f"❌ Ошибка в основном цикле планировщика ({error_count}/{max_errors}): {e}")
                 print(f"❌ Error details: {traceback.format_exc()}")
-                await asyncio.sleep(1)  # Продолжаем работу
+                
+                if error_count >= max_errors:
+                    print(f"❌ Слишком много ошибок ({max_errors}), останавливаем планировщик")
+                    self.running = False
+                    break
+                
+                await asyncio.sleep(5)  # Увеличиваем паузу при ошибках
     
     async def hourly_check(self):
         """Ежечасная проверка системы"""
@@ -410,6 +425,9 @@ class SchedulerService:
             # Получаем задачи в статусе 'idle'
             idle_tasks = await self.db.get_background_tasks_by_status('idle')
             print(f"📋 Найдено задач в статусе 'idle': {len(idle_tasks)}")
+            
+            if idle_tasks:
+                print(f"📋 Детали idle задач: {[(t['id'], t['task_type'], t['status']) for t in idle_tasks]}")
             
             # Проверяем зависшие задачи (processing более 10 минут)
             stuck_tasks = await self._check_stuck_tasks()
