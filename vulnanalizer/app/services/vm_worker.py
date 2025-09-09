@@ -362,7 +362,7 @@ class VMWorker:
                 await self._log('debug', "Получены настройки для расчета рисков")
             
             # Создаем функцию обратного вызова для обновления прогресса
-            async def update_progress(step, message, progress_percent, current_step_progress=None, processed_records=None):
+            async def update_progress(step, message, progress_percent, processed_records=None, current_step_progress=None):
                 try:
                     await self.db.update_background_task(task_id, **{
                         'current_step': message,
