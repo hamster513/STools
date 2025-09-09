@@ -213,9 +213,9 @@ class VMWorker:
             
             # Формируем PDQL запрос
             if vm_limit > 0:
-                pdql = f'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs) | limit({vm_limit})'
+                pdql = f'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) | limit({vm_limit})'
             else:
-                pdql = 'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs) | limit(0)'
+                pdql = 'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) | limit(0)'
             
             # Добавляем фильтр по ОС если настроен
             os_filter = settings.get('vm_os_filter', '').strip()
@@ -223,7 +223,7 @@ class VMWorker:
                 os_list = [os.strip() for os in os_filter.split(',') if os.strip()]
                 if os_list:
                     os_conditions = ' or '.join([f'Host.OsName != "{os}"' for os in os_list])
-                    pdql = f'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs) | filter({os_conditions}) | limit({vm_limit if vm_limit > 0 else 0})'
+                    pdql = f'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) | filter({os_conditions}) | limit({vm_limit if vm_limit > 0 else 0})'
             
             if self.logger:
                 await self._log('debug', "Сформирован PDQL запрос", {"pdql": pdql})
@@ -293,7 +293,9 @@ class VMWorker:
                     'host': row['@Host'].strip('"'),
                     'os_name': row['Host.OsName'].strip('"'),
                     'groups': row['Host.@Groups'].strip('"'),
-                    'cve': row['Host.@Vulners.CVEs'].strip('"')
+                    'cve': row['Host.@Vulners.CVEs'].strip('"'),
+                    'criticality': row.get('Host.UF_Criticality', '').strip('"'),
+                    'zone': row.get('Host.UF_Zone', '').strip('"')
                 })
             
             if self.logger:
@@ -317,12 +319,12 @@ class VMWorker:
             raise Exception(error_msg)
     
     def _group_vm_data_by_hosts(self, vm_data: List[Dict[str, str]]) -> List[Dict[str, Any]]:
-        """Группировать данные VM по хостам"""
-        hosts_dict = {}
+        """Преобразует данные VM в формат для hosts_repository (один CVE = одна запись)"""
+        result = []
         
         if self.logger:
             import asyncio
-            asyncio.create_task(self.logger.debug(f"Начинаем группировку {len(vm_data)} записей по хостам"))
+            asyncio.create_task(self.logger.debug(f"Начинаем преобразование {len(vm_data)} записей (один CVE = одна запись)"))
         
         for record in vm_data:
             host_info = record['host']
@@ -335,44 +337,28 @@ class VMWorker:
                 hostname = host_info
                 ip_address = ''
             
-            # Создаем ключ для группировки
-            host_key = f"{hostname}_{ip_address}"
+            # Получаем CVE
+            cve = record['cve']
+            if not cve or not cve.strip():
+                continue
             
-            if host_key not in hosts_dict:
-                hosts_dict[host_key] = {
-                    'hostname': hostname,
-                    'ip_address': ip_address,
-                    'os_name': record['os_name'],
-                    'groups': record['groups'],
-                    'cves': [],
-                    'criticality': 'Medium',  # По умолчанию
-                    'status': 'Active'
-                }
-            
-            # Добавляем CVE если он не пустой
-            if record['cve'] and record['cve'].strip():
-                hosts_dict[host_key]['cves'].append(record['cve'])
-        
-        # Конвертируем в список
-        grouped_hosts = list(hosts_dict.values())
-        
-        # Объединяем CVE в строку и добавляем недостающие поля
-        for host in grouped_hosts:
-            host['cve'] = ','.join(host['cves'])
-            host['cvss'] = 0.0  # По умолчанию CVSS = 0
-            del host['cves']  # Удаляем список CVE
-            # Удаляем поля которые не нужны для hosts_repository
-            if 'os_name' in host:
-                del host['os_name']
-            if 'groups' in host:
-                del host['groups']
+            # Создаем запись для каждого CVE
+            result.append({
+                'hostname': hostname,
+                'ip_address': ip_address,
+                'cve': cve,
+                'cvss': 0.0,  # По умолчанию CVSS = 0
+                'criticality': record.get('criticality', 'Medium'),  # Из Host.UF_Criticality
+                'zone': record.get('zone', ''),  # Из Host.UF_Zone
+                'status': 'Active'
+            })
         
         if self.logger:
             import asyncio
-            asyncio.create_task(self.logger.debug(f"Группировка завершена: {len(grouped_hosts)} хостов из {len(vm_data)} записей"))
+            asyncio.create_task(self.logger.debug(f"Преобразование завершено: {len(result)} записей из {len(vm_data)} исходных"))
         
-        print(f"✅ Сгруппировано {len(grouped_hosts)} хостов из {len(vm_data)} записей")
-        return grouped_hosts
+        print(f"✅ Преобразовано {len(result)} записей из {len(vm_data)} исходных (один CVE = одна запись)")
+        return result
     
     async def _save_hosts_with_risks(self, task_id: int, hosts: List[Dict[str, Any]]) -> Dict:
         """Сохранить хосты в базу данных с расчетом рисков"""
