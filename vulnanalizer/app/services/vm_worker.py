@@ -342,7 +342,8 @@ class VMWorker:
                 'cvss': 0.0,  # По умолчанию CVSS = 0
                 'criticality': record.get('criticality', 'Medium'),  # Из Host.UF_Criticality
                 'zone': record.get('zone', ''),  # Из Host.UF_Zone
-                'status': 'Active'
+                'status': 'Active',
+                'os_name': record.get('os_name', '')  # Добавляем os_name
             })
         
         if self.logger:
