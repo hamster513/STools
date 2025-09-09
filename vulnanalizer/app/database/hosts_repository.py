@@ -149,7 +149,7 @@ class HostsRepository(DatabaseBase):
                     try:
                         async with conn.transaction():
                             await conn.execute(query, 
-                                rec['hostname'], rec['ip_address'], 
+                                rec['hostname'], rec['ip_address'], rec['cve'],
                                 rec['cvss'], rec['criticality'], rec['status'],
                                 rec.get('os_name', ''), rec.get('zone', ''))
                             inserted_count += 1
