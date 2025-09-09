@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}OAuth/SAML провайдеры - STools Auth Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/admin.css?v=1.3">
+<link rel="stylesheet" href="/auth/static/css/admin-panel.css?v=1.0">
+{% endblock %}
+
+{% block sidebar_tabs %}
+<a href="/auth/admin/" class="sidebar-tab" data-page="dashboard">
+    <i class="fas fa-tachometer-alt"></i>
+    <span>Панель управления</span>
+</a>
+<a href="/auth/admin/users/" class="sidebar-tab" data-page="users">
+    <i class="fas fa-users"></i>
+    <span>Пользователи</span>
+</a>
+<a href="/auth/admin/roles/" class="sidebar-tab" data-page="roles">
+    <i class="fas fa-user-shield"></i>
+    <span>Роли и права</span>
+</a>
+<a href="/auth/admin/providers/" class="sidebar-tab active" data-page="providers">
+    <i class="fas fa-key"></i>
+    <span>Провайдеры</span>
+</a>
+<a href="/auth/admin/audit/" class="sidebar-tab" data-page="audit">
+    <i class="fas fa-history"></i>
+    <span>Аудит</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-key"></i> OAuth/SAML провайдеры</h1>
+    <p>Настройка внешних провайдеров аутентификации</p>
+</div>
+
+<div class="coming-soon">
+    <div class="coming-soon-icon">
+        <i class="fas fa-key"></i>
+    </div>
+    <h2>Скоро будет доступно</h2>
+    <p>Функция настройки OAuth и SAML провайдеров находится в разработке</p>
+    <div class="features-list">
+        <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>OAuth 2.0 / OpenID Connect</span>
+        </div>
+        <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>SAML 2.0 провайдеры</span>
+        </div>
+        <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>Google Workspace</span>
+        </div>
+        <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>Microsoft Azure AD</span>
+        </div>
+        <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>Keycloak</span>
+        </div>
+        <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>Okta</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

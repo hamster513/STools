@@ -331,6 +331,7 @@ class UIManager {
                 this.navigateToSystemSettings();
             });
         }
+
     }
 
     logout() {
@@ -343,8 +344,8 @@ class UIManager {
         // Закрываем выпадающее меню
         this.closeDropdown('settings-toggle');
         
-        // Переходим к странице пользователей
-        window.location.href = '/users/';
+        // Переходим к странице пользователей в auth_web
+        window.location.href = '/auth/admin/users/';
     }
 
     navigateToBackgroundTasks() {
@@ -362,6 +363,7 @@ class UIManager {
         // Переходим к странице настроек системы
         window.location.href = '/settings/';
     }
+
 
     showUsersPage() {
         // Показываем страницу пользователей (если есть такая функциональность)
@@ -390,15 +392,11 @@ class UIManager {
     async checkUserPermissions() {
         try {
             const token = localStorage.getItem('auth_token');
-            if (!token) {
-                this.updateMenuVisibility(false);
-                return;
-            }
-
+            
             // Проверяем права пользователя
             // Определяем правильный путь API в зависимости от контекста
             const path = window.location.pathname;
-            const apiPath = path.startsWith('/vulnanalizer/') ? '/vulnanalizer/api/me' : '/auth/api/me';
+            const apiPath = path.startsWith('/vulnanalizer/') ? '/vulnanalizer/api/me' : '/auth/api/me-simple';
             
             const response = await fetch(apiPath, {
                 headers: {

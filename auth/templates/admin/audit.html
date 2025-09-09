@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Аудит действий - STools Auth Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/admin.css?v=1.3">
+<link rel="stylesheet" href="/auth/static/css/admin-panel.css?v=1.0">
+<link rel="stylesheet" href="/auth/static/css/admin-audit.css?v=1.0">
+{% endblock %}
+
+{% block sidebar_tabs %}
+<a href="/auth/admin/" class="sidebar-tab" data-page="dashboard">
+    <i class="fas fa-tachometer-alt"></i>
+    <span>Панель управления</span>
+</a>
+<a href="/auth/admin/users/" class="sidebar-tab" data-page="users">
+    <i class="fas fa-users"></i>
+    <span>Пользователи</span>
+</a>
+<a href="/auth/admin/roles/" class="sidebar-tab" data-page="roles">
+    <i class="fas fa-user-shield"></i>
+    <span>Роли и права</span>
+</a>
+<a href="/auth/admin/providers/" class="sidebar-tab" data-page="providers">
+    <i class="fas fa-key"></i>
+    <span>Провайдеры</span>
+</a>
+<a href="/auth/admin/audit/" class="sidebar-tab active" data-page="audit">
+    <i class="fas fa-history"></i>
+    <span>Аудит</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-history"></i> Аудит действий</h1>
+    <p>Просмотр логов активности пользователей и системных событий</p>
+</div>
+
+<!-- Статистика -->
+<div id="audit-stats" class="audit-stats">
+    <!-- Статистика будет загружена через JavaScript -->
+</div>
+
+<!-- Вкладки -->
+<div class="audit-tabs">
+    <button class="audit-tab active" data-tab="logs">
+        <i class="fas fa-list"></i> Логи событий
+    </button>
+    <button class="audit-tab" data-tab="login-attempts">
+        <i class="fas fa-sign-in-alt"></i> Попытки входа
+    </button>
+    <button class="audit-tab" data-tab="sessions">
+        <i class="fas fa-users"></i> Активные сессии
+    </button>
+</div>
+
+<!-- Панель управления -->
+<div class="admin-panel">
+    <div class="panel-actions">
+        <button id="refresh-audit-btn" class="btn btn-secondary">
+            <i class="fas fa-sync-alt"></i> Обновить
+        </button>
+    </div>
+</div>
+
+<!-- Контент вкладки "Логи событий" -->
+<div id="logs-content" class="audit-content">
+    <div class="panel-filters">
+        <div class="filter-group">
+            <select id="log-user-filter" class="form-control">
+                <option value="">Все пользователи</option>
+                <!-- Опции будут загружены через JavaScript -->
+            </select>
+        </div>
+        <div class="filter-group">
+            <select id="log-action-filter" class="form-control">
+                <option value="">Все действия</option>
+                <option value="login">Вход</option>
+                <option value="logout">Выход</option>
+                <option value="create">Создание</option>
+                <option value="update">Обновление</option>
+                <option value="delete">Удаление</option>
+                <option value="read">Просмотр</option>
+                <option value="admin">Администрирование</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <select id="log-resource-filter" class="form-control">
+                <option value="">Все ресурсы</option>
+                <option value="auth">Аутентификация</option>
+                <option value="users">Пользователи</option>
+                <option value="roles">Роли</option>
+                <option value="permissions">Права</option>
+                <option value="system">Система</option>
+                <option value="vulnanalizer">Анализатор уязвимостей</option>
+                <option value="loganalizer">Анализатор логов</option>
+            </select>
+        </div>
+    </div>
+    
+    <div id="logs-list" class="logs-list">
+        <!-- Логи будут загружены через JavaScript -->
+    </div>
+</div>
+
+<!-- Контент вкладки "Попытки входа" -->
+<div id="login-attempts-content" class="audit-content" style="display: none;">
+    <div class="panel-filters">
+        <div class="filter-group">
+            <input type="text" id="login-username-filter" placeholder="Имя пользователя..." class="form-control">
+        </div>
+        <div class="filter-group">
+            <select id="login-success-filter" class="form-control">
+                <option value="">Все попытки</option>
+                <option value="true">Успешные</option>
+                <option value="false">Неудачные</option>
+            </select>
+        </div>
+    </div>
+    
+    <div id="login-attempts-list" class="attempts-list">
+        <!-- Попытки входа будут загружены через JavaScript -->
+    </div>
+</div>
+
+<!-- Контент вкладки "Активные сессии" -->
+<div id="sessions-content" class="audit-content" style="display: none;">
+    <div id="sessions-list" class="sessions-list">
+        <!-- Активные сессии будут загружены через JavaScript -->
+    </div>
+</div>
+
+<!-- Контейнер для уведомлений -->
+<div id="notifications" class="notifications-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/auth/static/js/admin-audit.js?v=1.0"></script>
+{% endblock %}

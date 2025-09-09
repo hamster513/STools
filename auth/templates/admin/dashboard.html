@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления - STools Auth Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/admin.css?v=1.3">
+<link rel="stylesheet" href="/auth/static/css/admin-panel.css?v=1.0">
+{% endblock %}
+
+{% block sidebar_tabs %}
+<a href="/auth/admin/" class="sidebar-tab active" data-page="dashboard">
+    <i class="fas fa-tachometer-alt"></i>
+    <span>Панель управления</span>
+</a>
+<a href="/auth/admin/users/" class="sidebar-tab" data-page="users">
+    <i class="fas fa-users"></i>
+    <span>Пользователи</span>
+</a>
+<a href="/auth/admin/roles/" class="sidebar-tab" data-page="roles">
+    <i class="fas fa-user-shield"></i>
+    <span>Роли и права</span>
+</a>
+<a href="/auth/admin/providers/" class="sidebar-tab" data-page="providers">
+    <i class="fas fa-key"></i>
+    <span>Провайдеры</span>
+</a>
+<a href="/auth/admin/audit/" class="sidebar-tab" data-page="audit">
+    <i class="fas fa-history"></i>
+    <span>Аудит</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-tachometer-alt"></i> Панель управления</h1>
+    <p>Центр управления пользователями и безопасностью STools</p>
+</div>
+
+<!-- Статистика -->
+<div class="stats-grid">
+    <div class="stat-item">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number" id="total-users">-</div>
+            <div class="stat-label">Всего пользователей</div>
+        </div>
+    </div>
+    
+    <div class="stat-item">
+        <div class="stat-icon">
+            <i class="fas fa-user-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number" id="active-users">-</div>
+            <div class="stat-label">Активных пользователей</div>
+        </div>
+    </div>
+    
+    <div class="stat-item">
+        <div class="stat-icon">
+            <i class="fas fa-user-shield"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number" id="admin-users">-</div>
+            <div class="stat-label">Администраторов</div>
+        </div>
+    </div>
+    
+    <div class="stat-item">
+        <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number" id="recent-logins">-</div>
+            <div class="stat-label">Входов за 24ч</div>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="quick-actions">
+    <h2><i class="fas fa-bolt"></i> Быстрые действия</h2>
+    <div class="actions-grid">
+        <a href="/auth/admin/users/" class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="action-content">
+                <h3>Создать пользователя</h3>
+                <p>Добавить нового пользователя в систему</p>
+            </div>
+        </a>
+        
+        <a href="/auth/admin/users/" class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-users-cog"></i>
+            </div>
+            <div class="action-content">
+                <h3>Управление пользователями</h3>
+                <p>Просмотр и редактирование пользователей</p>
+            </div>
+        </a>
+        
+        <a href="/auth/admin/roles/" class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="action-content">
+                <h3>Роли и права</h3>
+                <p>Настройка ролей и прав доступа</p>
+            </div>
+        </a>
+        
+        <a href="/auth/admin/audit/" class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="action-content">
+                <h3>Аудит действий</h3>
+                <p>Просмотр логов активности пользователей</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Последние действия -->
+<div class="recent-activity">
+    <h2><i class="fas fa-history"></i> Последние действия</h2>
+    <div class="activity-list" id="recent-activity-list">
+        <div class="loading">Загрузка последних действий...</div>
+    </div>
+</div>
+
+<!-- Системная информация -->
+<div class="system-info">
+    <h2><i class="fas fa-info-circle"></i> Системная информация</h2>
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="info-label">Версия Auth Service:</span>
+            <span class="info-value">{{ version }}</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Статус базы данных:</span>
+            <span class="info-value" id="db-status">Проверка...</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Время работы:</span>
+            <span class="info-value" id="uptime">-</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Последний бэкап:</span>
+            <span class="info-value" id="last-backup">-</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/auth/static/js/admin-dashboard.js?v=1.0"></script>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Роли и права - STools Auth Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/admin.css?v=1.3">
+<link rel="stylesheet" href="/auth/static/css/admin-panel.css?v=1.0">
+{% endblock %}
+
+{% block extra_js %}
+<script src="/auth/static/js/admin-roles.js?v=1.0"></script>
+{% endblock %}
+
+{% block sidebar_tabs %}
+<a href="/auth/admin/" class="sidebar-tab" data-page="dashboard">
+    <i class="fas fa-tachometer-alt"></i>
+    <span>Панель управления</span>
+</a>
+<a href="/auth/admin/users/" class="sidebar-tab" data-page="users">
+    <i class="fas fa-users"></i>
+    <span>Пользователи</span>
+</a>
+<a href="/auth/admin/roles/" class="sidebar-tab active" data-page="roles">
+    <i class="fas fa-user-shield"></i>
+    <span>Роли и права</span>
+</a>
+<a href="/auth/admin/providers/" class="sidebar-tab" data-page="providers">
+    <i class="fas fa-key"></i>
+    <span>Провайдеры</span>
+</a>
+<a href="/auth/admin/audit/" class="sidebar-tab" data-page="audit">
+    <i class="fas fa-history"></i>
+    <span>Аудит</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-user-shield"></i> Роли и права</h1>
+    <p>Управление ролями и правами доступа пользователей</p>
+</div>
+
+<!-- Панель управления -->
+<div class="admin-panel">
+    <div class="panel-actions">
+        <button id="create-role-btn" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Создать роль
+        </button>
+        <button id="refresh-roles-btn" class="btn btn-secondary">
+            <i class="fas fa-sync-alt"></i> Обновить
+        </button>
+    </div>
+    
+    <div class="panel-filters">
+        <div class="filter-group">
+            <input type="text" id="role-search" placeholder="Поиск ролей..." class="form-control">
+        </div>
+        <div class="filter-group">
+            <select id="system-filter" class="form-control">
+                <option value="">Все роли</option>
+                <option value="system">Системные</option>
+                <option value="custom">Пользовательские</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Список ролей -->
+<div class="roles-container">
+    <div id="roles-list" class="roles-list">
+        <!-- Роли будут загружены через JavaScript -->
+    </div>
+</div>
+
+<!-- Модальное окно создания/редактирования роли -->
+<div id="role-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Создать роль</h3>
+            <button class="modal-close" onclick="closeRoleModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="role-form" class="modal-body">
+            <input type="hidden" id="role-id" name="id">
+            <div class="form-group">
+                <label for="role-name">Название роли</label>
+                <input type="text" id="role-name" name="name" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="role-description">Описание</label>
+                <textarea id="role-description" name="description" class="form-control" rows="3"></textarea>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeRoleModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" onclick="saveRole()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно управления правами -->
+<div id="permissions-modal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h3 id="permissions-modal-title">Права роли</h3>
+            <button class="modal-close" onclick="closePermissionsModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="permissions-list" class="permissions-list">
+                <!-- Права будут загружены через JavaScript -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closePermissionsModal()">Закрыть</button>
+            <button type="button" class="btn btn-primary" onclick="savePermissions()">Сохранить права</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div id="delete-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Подтверждение удаления</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Вы уверены, что хотите удалить роль <strong id="delete-role-name"></strong>?</p>
+            <p class="text-warning">Это действие нельзя отменить.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Отмена</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDelete()">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Контейнер для уведомлений -->
+<div id="notifications" class="notifications-container"></div>
+{% endblock %}

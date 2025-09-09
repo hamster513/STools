@@ -1,0 +1,356 @@
+/* Стили для страницы аудита */
+
+.audit-stats {
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stat-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Вкладки аудита */
+.audit-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.audit-tab {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.audit-tab:hover {
+    color: var(--text-primary);
+    background: var(--hover-bg);
+}
+
+.audit-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.audit-tab i {
+    margin-right: 0.5rem;
+}
+
+/* Контент вкладок */
+.audit-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+/* Логи в одной строке */
+.logs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.log-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.log-item:hover {
+    background: var(--hover-bg);
+}
+
+.log-item.success {
+    border-left: 4px solid var(--success-color);
+}
+
+.log-item.error {
+    border-left: 4px solid var(--error-color);
+}
+
+.log-row {
+    display: grid;
+    grid-template-columns: 40px 140px 120px 120px 100px 150px 1fr;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.log-icon {
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.log-time {
+    color: var(--text-secondary);
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.log-user {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.log-ip {
+    color: var(--text-secondary);
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.log-action {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.log-resource {
+    color: var(--text-secondary);
+}
+
+.log-error {
+    color: var(--error-color);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Попытки входа */
+.attempts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.attempt-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.attempt-item:hover {
+    background: var(--hover-bg);
+}
+
+.attempt-item.success {
+    border-left: 4px solid var(--success-color);
+}
+
+.attempt-item.failed {
+    border-left: 4px solid var(--error-color);
+}
+
+.attempt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.attempt-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.attempt-status.success {
+    color: var(--success-color);
+}
+
+.attempt-status.failed {
+    color: var(--error-color);
+}
+
+.attempt-time {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+
+.attempt-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    font-size: 0.9rem;
+}
+
+.attempt-user,
+.attempt-ip,
+.attempt-reason {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.attempt-reason {
+    color: var(--error-color);
+    grid-column: 1 / -1;
+}
+
+/* Активные сессии */
+.sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.session-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.session-item:hover {
+    background: var(--hover-bg);
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.session-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background: var(--success-color);
+    color: white;
+}
+
+.session-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    font-size: 0.9rem;
+}
+
+.session-ip,
+.session-login,
+.session-activity {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .log-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .log-row > div {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .log-row > div:before {
+        content: attr(data-label) ": ";
+        font-weight: 500;
+        color: var(--text-secondary);
+        min-width: 80px;
+    }
+    
+    .attempt-details,
+    .session-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .audit-tabs {
+        flex-wrap: wrap;
+    }
+}
+
+/* Пустые состояния */
+.no-data {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.no-data:before {
+    content: "📋";
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}

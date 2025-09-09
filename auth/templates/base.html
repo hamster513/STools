@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}STools{% endblock %}</title>
+    <title>{% block title %}STools Auth Admin{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/main.css?v=6.30&nocache={{ range(1, 999999) | random }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -32,6 +32,15 @@
                     <span class="system-tab-desc">Анализ логов</span>
                 </div>
             </a>
+            <a href="/auth/admin/" class="system-tab active" id="auth-admin-tab">
+                <div class="system-tab-icon">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <div class="system-tab-info">
+                    <span class="system-tab-name">Auth Admin</span>
+                    <span class="system-tab-desc">Управление пользователями</span>
+                </div>
+            </a>
         </div>
         
         <div class="top-panel-right">
@@ -41,16 +50,24 @@
                     <i class="fas fa-cog"></i>
                 </button>
                 <div id="settings-dropdown" class="dropdown-menu">
-                    <a href="#" id="users-link" class="dropdown-item">
+                    <a href="/auth/admin/users/" class="dropdown-item">
                         <i class="fas fa-users"></i>
                         <span>Управление пользователями</span>
                     </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" id="background-tasks-link" class="dropdown-item">
-                        <i class="fas fa-tasks"></i>
-                        <span>Управление очередями</span>
+                    <a href="/auth/admin/roles/" class="dropdown-item">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Роли и права</span>
                     </a>
-                    <a href="#" id="settings-link" class="dropdown-item">
+                    <a href="/auth/admin/providers/" class="dropdown-item">
+                        <i class="fas fa-key"></i>
+                        <span>OAuth/SAML провайдеры</span>
+                    </a>
+                    <a href="/auth/admin/audit/" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>Аудит действий</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/settings/" class="dropdown-item">
                         <i class="fas fa-cogs"></i>
                         <span>Настройки системы</span>
                     </a>
@@ -73,7 +90,7 @@
                             <i class="fas fa-user"></i>
                         </div>
                         <div class="user-details">
-                            <span id="user-name" class="user-name">Пользователь</span>
+                            <span id="user-name" class="user-name">Администратор</span>
                             <span class="user-role">Администратор</span>
                         </div>
                     </div>
@@ -116,7 +133,7 @@
 
     <!-- Скрипты -->
     {% block ui_manager_js %}
-            <script src="/static/js/ui-manager.js?v=6.4"></script>
+            <script src="/static/js/ui-manager.js?v=6.5"></script>
     {% endblock %}
     {% block extra_js %}{% endblock %}
     
@@ -126,21 +143,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             window.uiManager = new UIManager();
             
-            // Устанавливаем активную вкладку в зависимости от текущей страницы
-            const currentPath = window.location.pathname;
-            if (currentPath.includes('/vulnanalizer/')) {
-                document.getElementById('vulnanalizer-tab').classList.add('active');
-            } else if (currentPath.includes('/loganalizer/')) {
-                document.getElementById('loganalizer-tab').classList.add('active');
-            }
+            // Устанавливаем активную вкладку
+            document.getElementById('auth-admin-tab').classList.add('active');
 
             // Все обработчики событий управляются через UIManager
         });
-
-        // Все обработчики событий теперь управляются через UIManager
-        // Дополнительная инициализация не требуется
-
-        // Обработчики вкладок системы управляются через UIManager
     </script>
     {% endblock %}
 </body>

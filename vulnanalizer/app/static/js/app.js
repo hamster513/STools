@@ -188,7 +188,6 @@ class VulnAnalizer {
     // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
     async checkUserPermissions() {
         try {
-            
             // Получаем токен из localStorage
             const token = localStorage.getItem('auth_token');
             
@@ -198,13 +197,16 @@ class VulnAnalizer {
             if (response.ok) {
                 const user = await response.json();
                 this.updateSidebarVisibility(user.is_admin);
+                this.updateMenuVisibility(user.is_admin);
             } else {
                 // Если не авторизован, скрываем админские вкладки
                 this.updateSidebarVisibility(false);
+                this.updateMenuVisibility(false);
             }
         } catch (error) {
             // При ошибке скрываем админские вкладки
             this.updateSidebarVisibility(false);
+            this.updateMenuVisibility(false);
         }
     }
 
@@ -225,7 +227,26 @@ class VulnAnalizer {
                     tab.classList.remove('visible');
                     tab.classList.add('hidden');
                 }
-            } else {
+            }
+        });
+    }
+
+    updateMenuVisibility(isAdmin) {
+        // Скрываем/показываем админские меню в выпадающем меню настроек
+        const adminMenus = [
+            'settings-link',
+            'users-link', 
+            'background-tasks-link'
+        ];
+        
+        adminMenus.forEach(menuId => {
+            const menuItem = document.getElementById(menuId);
+            if (menuItem) {
+                if (isAdmin) {
+                    menuItem.style.display = 'block';
+                } else {
+                    menuItem.style.display = 'none';
+                }
             }
         });
     }
@@ -415,6 +436,36 @@ class VulnAnalizer {
                 e.preventDefault();
                 userDropdown.classList.remove('show');
                 this.logout();
+            });
+        }
+
+        // Обработка кликов по ссылкам в меню настроек
+        const usersLink = document.getElementById('users-link');
+        const backgroundTasksLink = document.getElementById('background-tasks-link');
+        const settingsLink = document.getElementById('settings-link');
+
+        if (usersLink) {
+            usersLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                window.location.href = '/auth/admin/users/';
+            });
+        }
+
+
+        if (backgroundTasksLink) {
+            backgroundTasksLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                window.location.href = '/background-tasks/';
+            });
+        }
+
+        if (settingsLink) {
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                window.location.href = '/settings/';
             });
         }
     }
