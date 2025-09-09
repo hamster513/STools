@@ -294,8 +294,8 @@ class VMWorker:
                     'os_name': row['Host.OsName'].strip('"'),
                     'groups': row['Host.@Groups'].strip('"'),
                     'cve': row['Host.@Vulners.CVEs'].strip('"'),
-                    'criticality': row.get('Host.UF_Criticality', '').strip('"'),
-                    'zone': row.get('Host.UF_Zone', '').strip('"')
+                    'criticality': row['Host.UF_Criticality'].strip('"'),
+                    'zone': row['Host.UF_Zone'].strip('"')
                 })
             
             if self.logger:
