@@ -25,17 +25,17 @@ read -r response
 if [[ "$response" =~ ^[Yy]$ ]]; then
     echo "🔄 Отменяем все задачи VM импорта..."
     
-    # Отменить все задачи VM (установить статус 'cancelled')
+    # Отменить все активные задачи VM (установить статус 'cancelled')
     PGPASSWORD=stools_pass docker-compose exec -T postgres psql -U stools_user -d stools_db -c "
     UPDATE vulnanalizer.background_tasks 
     SET status = 'cancelled', 
         end_time = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
     WHERE task_type = 'vm_import' 
-    AND status IN ('idle', 'running', 'initializing');
+    AND status IN ('idle', 'running', 'initializing', 'processing');
     "
     
-    echo "✅ Задачи VM импорта отменены"
+    echo "✅ Задачи VM импорта отменены (проверьте количество обновленных записей выше)"
     
     echo ""
     echo "📊 Проверяем результат..."
