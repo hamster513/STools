@@ -1,6 +1,6 @@
 /**
  * UIManager - Менеджер пользовательского интерфейса
- * v=7.2
+ * v=7.3
  */
 class UIManager {
     constructor(app) {
@@ -121,11 +121,8 @@ class UIManager {
                 this.app.updateExploitDBStatus();
                 break;
             case 'background-tasks':
-                // Переключаемся на страницу фоновых задач через боковое меню
-                const settingsTab = document.getElementById('settings-tab');
-                if (settingsTab) {
-                    settingsTab.click();
-                }
+                // Перенаправляем на отдельную страницу фоновых задач
+                window.location.href = '/background-tasks/';
                 break;
             default:
                 break;
