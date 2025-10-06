@@ -1,40 +1,396 @@
 /**
  * VulnAnalizer - Основное приложение
- * v=6.2
+ * v=7.1
  */
+
+// Подключение модулей
+// Core modules
+if (typeof ApiManager !== 'undefined') {
+    // ApiManager уже загружен
+} else {
+    console.warn('ApiManager not loaded');
+}
+
+if (typeof StorageManager !== 'undefined') {
+    // StorageManager уже загружен
+} else {
+    console.warn('StorageManager not loaded');
+}
+
+if (typeof EventManager !== 'undefined') {
+    // EventManager уже загружен
+} else {
+    console.warn('EventManager not loaded');
+}
+
+// UI modules
+if (typeof NotificationManager !== 'undefined') {
+    // NotificationManager уже загружен
+} else {
+    console.warn('NotificationManager not loaded');
+}
+
+// Utils
+if (typeof Helpers !== 'undefined') {
+    // Helpers уже загружен
+} else {
+    console.warn('Helpers not loaded');
+}
+
 class VulnAnalizer {
+    // Константы
+    static DELAYS = {
+        SHORT: 300,
+        MEDIUM: 500,
+        LONG: 800,
+        INIT: 100
+    };
+    
+    static API_PATHS = {
+        DEFAULT: '/api',
+        VULNANALIZER: '/vulnanalizer/api'
+    };
+    
+    static PAGINATION = {
+        DEFAULT_LIMIT: 100,
+        DEFAULT_PAGE: 1
+    };
+
     constructor() {
-        // Инициализируем UIManager для управления боковой панелью и темами
-        if (typeof UIManager !== 'undefined') {
-            this.uiManager = new UIManager();
-        } else {
-            this.uiManager = null;
-        }
+        // Инициализируем основные модули
+        this.initCoreModules();
         
-        this.init();
+        // UIManager инициализируется в initCoreModules()
+        
         this.operationStatus = {}; // Хранит статус текущих операций
-        this.lastNotifiedCompletionTime = localStorage.getItem('app_last_notification_time'); // Отслеживаем последнее показанное уведомление
         this.paginationState = {
-            currentPage: 1,
+            currentPage: VulnAnalizer.PAGINATION.DEFAULT_PAGE,
             totalPages: 1,
             totalCount: 0,
-            limit: 100
+            limit: VulnAnalizer.PAGINATION.DEFAULT_LIMIT
         };
         
-        // Проверяем права пользователя сразу после инициализации
-        setTimeout(() => {
-            this.checkUserPermissions();
-        }, 100);
+        // Кэш DOM элементов
+        this.domCache = {};
+        
+        // Инициализируем только после готовности DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.init();
+            });
+        } else {
+            this.init();
+        }
     }
 
-    // Получение базового пути для API
-    getApiBasePath() {
-        // Определяем, находимся ли мы в подпути /vulnanalizer/
-        const path = window.location.pathname;
-        if (path.startsWith('/vulnanalizer/')) {
-            return '/vulnanalizer/api';
+    // Инициализация основных модулей
+    initCoreModules() {
+        // Storage Manager
+        if (typeof StorageManager !== 'undefined') {
+            this.storage = new StorageManager();
+            this.storage.migrateOldKeys(); // Миграция старых ключей
+        } else {
+            console.warn('StorageManager not available, using localStorage directly');
+            this.storage = {
+                get: (key, defaultValue) => {
+                    try {
+                        const item = localStorage.getItem(key);
+                        return item ? JSON.parse(item) : defaultValue;
+                    } catch {
+                        return localStorage.getItem(key) || defaultValue;
+                    }
+                },
+                set: (key, value) => {
+                    try {
+                        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                },
+                remove: (key) => {
+                    localStorage.removeItem(key);
+                    return true;
+                }
+            };
         }
-        return '/api';
+
+        // Event Manager
+        if (typeof EventManager !== 'undefined') {
+            this.eventManager = new EventManager();
+        } else {
+            console.warn('EventManager not available');
+            this.eventManager = {
+                on: () => {},
+                emit: () => {},
+                off: () => {}
+            };
+        }
+
+        // API Manager
+        if (typeof ApiManager !== 'undefined') {
+            this.api = new ApiManager(this);
+        } else {
+            console.warn('ApiManager not available, using fetch directly');
+            this.api = {
+                get: async (url) => {
+                    const response = await fetch(url);
+                    return response.json();
+                },
+                post: async (url, data) => {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    return response.json();
+                }
+            };
+        }
+
+        // Notification Manager
+        if (typeof NotificationManager !== 'undefined') {
+            this.notificationManager = new NotificationManager(this);
+        } else {
+            console.warn('NotificationManager not available');
+            this.notificationManager = {
+                show: (message, type) => console.log(`[${type}] ${message}`),
+                success: (message) => console.log(`[SUCCESS] ${message}`),
+                error: (message) => console.error(`[ERROR] ${message}`),
+                warning: (message) => console.warn(`[WARNING] ${message}`),
+                info: (message) => console.info(`[INFO] ${message}`)
+            };
+        }
+
+        // Инициализируем сервисы
+        this.initServices();
+
+        // Создаем debounced версии часто используемых методов
+        if (typeof Helpers !== 'undefined') {
+            this.debouncedSearchHosts = Helpers.debounce(this.searchHosts.bind(this), 500);
+            this.debouncedUpdateStatus = Helpers.debounce(this.updateHostsStatus.bind(this), 1000);
+        } else {
+            this.debouncedSearchHosts = this.searchHosts.bind(this);
+            this.debouncedUpdateStatus = this.updateHostsStatus.bind(this);
+        }
+    }
+
+    // Инициализация сервисов
+    initServices() {
+        // Hosts Service
+        if (typeof HostsService !== 'undefined') {
+            this.hostsService = new HostsService(this);
+        } else {
+            console.warn('HostsService not available');
+            this.hostsService = {
+                searchHosts: () => Promise.resolve({ hosts: [] }),
+                updateHostsStatus: () => Promise.resolve({}),
+                importHosts: () => Promise.resolve({}),
+                exportHosts: () => Promise.resolve({}),
+                calculateHostRisk: () => Promise.resolve({}),
+                checkActiveImportTasks: () => Promise.resolve({})
+            };
+        }
+
+        // CVE Service
+        if (typeof CVEService !== 'undefined') {
+            this.cveService = new CVEService(this);
+        } else {
+            console.warn('CVEService not available');
+            this.cveService = {
+                updateCVEStatus: () => Promise.resolve({}),
+                uploadCVE: () => Promise.resolve({}),
+                searchCVE: () => Promise.resolve({ results: [] }),
+                getCVEDetails: () => Promise.resolve({}),
+                clearCVEData: () => Promise.resolve({})
+            };
+        }
+
+        // EPSS Service
+        if (typeof EPSSService !== 'undefined') {
+            this.epssService = new EPSSService(this);
+        } else {
+            console.warn('EPSSService not available');
+            this.epssService = {
+                updateEPSSStatus: () => Promise.resolve({}),
+                uploadEPSS: () => Promise.resolve({}),
+                clearEPSSData: () => Promise.resolve({})
+            };
+        }
+
+        // ExploitDB Service
+        if (typeof ExploitDBService !== 'undefined') {
+            this.exploitdbService = new ExploitDBService(this);
+        } else {
+            console.warn('ExploitDBService not available');
+            this.exploitdbService = {
+                updateExploitDBStatus: () => Promise.resolve({}),
+                uploadExploitDB: () => Promise.resolve({}),
+                clearExploitDBData: () => Promise.resolve({})
+            };
+        }
+
+        // Metasploit Service
+        if (typeof MetasploitService !== 'undefined') {
+            this.metasploitService = new MetasploitService(this);
+        } else {
+            console.warn('MetasploitService not available');
+            this.metasploitService = {
+                updateMetasploitStatus: () => Promise.resolve({}),
+                uploadMetasploit: () => Promise.resolve({}),
+                searchMetasploit: () => Promise.resolve({ results: [] }),
+                getMetasploitDetails: () => Promise.resolve({}),
+                clearMetasploitData: () => Promise.resolve({})
+            };
+        }
+
+        // Metasploit Manager (для обработки UI событий)
+        if (typeof MetasploitManager !== 'undefined') {
+            this.metasploitManager = new MetasploitManager(this);
+        } else {
+            console.warn('MetasploitManager not available');
+        }
+
+        // UI Manager
+        if (typeof UIManager !== 'undefined') {
+            this.uiManager = new UIManager(this);
+        } else {
+            console.warn('UIManager not available');
+            this.uiManager = {
+                initTheme: () => {},
+                toggleTheme: () => {},
+                switchPage: () => {},
+                logout: () => {}
+            };
+        }
+
+        // Hosts UI Manager
+        if (typeof HostsUIManager !== 'undefined') {
+            this.hostsUIManager = new HostsUIManager(this);
+        } else {
+            console.warn('HostsUIManager not available');
+            this.hostsUIManager = {
+                renderHostsResults: () => {},
+                showImportProgress: () => {},
+                hideImportProgress: () => {}
+            };
+        }
+
+        // Auth Manager
+        if (typeof AuthManager !== 'undefined') {
+            this.authManager = new AuthManager(this);
+        } else {
+            console.warn('AuthManager not available');
+            this.authManager = {
+                checkAuth: () => Promise.resolve(),
+                checkUserPermissions: () => {},
+                logout: () => {},
+                isAdmin: () => false
+            };
+        }
+
+        // Setup Manager
+        if (typeof SetupManager !== 'undefined') {
+            this.setupManager = new SetupManager(this);
+        } else {
+            console.warn('SetupManager not available');
+            this.setupManager = {
+                init: () => {}
+            };
+        }
+    }
+
+    // Получение базового пути для API (делегируем в ApiManager)
+    getApiBasePath() {
+        return this.api ? this.api.getApiBasePath() : '/api';
+    }
+
+    // Утилита для задержки (делегируем в Helpers)
+    async delay(ms) {
+        if (typeof Helpers !== 'undefined') {
+            return Helpers.delay(ms);
+        }
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Утилита для показа уведомлений (делегируем в NotificationManager)
+    showNotification(message, type = 'info') {
+        if (this.notificationManager) {
+            this.notificationManager.show(message, type);
+        } else {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+    }
+
+    // Утилита для кэширования DOM элементов
+    getElement(id) {
+        if (!this.domCache[id]) {
+            this.domCache[id] = document.getElementById(id);
+        }
+        return this.domCache[id];
+    }
+
+    // Безопасная утилита для получения DOM элементов
+    getElementSafe(id) {
+        const element = this.getElement(id);
+        if (!element) {
+            console.warn(`Element with id '${id}' not found`);
+        }
+        return element;
+    }
+
+    // Утилита для кэширования querySelector
+    getElementBySelector(selector) {
+        if (!this.domCache[selector]) {
+            this.domCache[selector] = document.querySelector(selector);
+        }
+        return this.domCache[selector];
+    }
+
+    // Централизованная обработка ошибок
+    handleError(error, context = 'Unknown', showNotification = true) {
+        const errorMessage = error.message || error.toString();
+        console.error(`[${context}] Error:`, error);
+        
+        // Эмитируем событие ошибки
+        if (this.eventManager) {
+            this.eventManager.emitError(error, context);
+        }
+        
+        if (showNotification) {
+            this.showNotification(`Ошибка ${context}: ${errorMessage}`, 'error');
+        }
+        
+        return {
+            success: false,
+            error: errorMessage,
+            context
+        };
+    }
+
+    // Глобальная обработка ошибок
+    setupGlobalErrorHandling() {
+        // Обработка необработанных ошибок JavaScript
+        window.addEventListener('error', (event) => {
+            this.handleError(event.error, 'Global JavaScript Error', true);
+        });
+
+        // Обработка необработанных отклонений Promise
+        window.addEventListener('unhandledrejection', (event) => {
+            this.handleError(event.reason, 'Unhandled Promise Rejection', true);
+            event.preventDefault(); // Предотвращаем вывод в консоль браузера
+        });
+
+        // Обработка ошибок загрузки ресурсов
+        window.addEventListener('error', (event) => {
+            if (event.target !== window) {
+                this.handleError(
+                    new Error(`Failed to load resource: ${event.target.src || event.target.href}`),
+                    'Resource Loading Error',
+                    false // Не показываем уведомление для ошибок загрузки ресурсов
+                );
+            }
+        }, true);
     }
 
     initModules() {
@@ -66,67 +422,60 @@ class VulnAnalizer {
         
         if (typeof CVEModalModule !== 'undefined') {
             this.cveModal = new CVEModalModule(this);
-        } else {
         }
         
-        if (typeof MetasploitModule !== 'undefined') {
-            this.metasploitModule = new MetasploitModule(this);
-        } else {
-        }
+        // MetasploitModule заменен на MetasploitService
         
         if (typeof MetasploitModalModule !== 'undefined') {
             this.metasploitModal = new MetasploitModalModule(this);
-        } else {
         }
         
         if (typeof EPSSModalModule !== 'undefined') {
             this.epssModal = new EPSSModalModule(this);
-        } else {
         }
         
         if (typeof ExploitDBModalModule !== 'undefined') {
             this.exploitdbModal = new ExploitDBModalModule(this);
-        } else {
         }
         
         if (typeof CVEPreviewModalModule !== 'undefined') {
             this.cvePreviewModal = new CVEPreviewModalModule(this);
-        } else {
         }
         
         if (typeof RiskModalModule !== 'undefined') {
             this.riskModal = new RiskModalModule(this);
-        } else {
         }
         
         if (typeof VMModule !== 'undefined') {
             this.vmModule = new VMModule(this);
-        } else {
         }
     }
 
     init() {
-        // Проверяем авторизацию
-        this.checkAuth();
+        // Настраиваем глобальную обработку ошибок
+        this.setupGlobalErrorHandling();
         
-        this.setupNavigation();
-        this.setupSettings();
-        this.setupUserMenu();
-        this.setupForms();
-        this.setupEPSS();
-        this.setupExploitDB();
-        this.setupCVE();
-        this.setupHosts();
-        this.setupCollapsibleBlocks();
+        // Проверяем авторизацию
+        this.authManager.checkAuth();
+        
+        // Инициализируем тему
+        this.uiManager.initTheme();
+        
+        // Инициализируем боковую панель
+        this.setupSidebar();
+        
+        // Инициализируем все настройки UI через SetupManager
+        this.setupManager.init();
         
         // Инициализируем модули после настройки всех компонентов
         this.initModules();
         
         // Инициализируем активную страницу
-        this.initializeActivePage();
+        this.uiManager.initializeActivePage();
         
-        // Загружаем статус хостов при инициализации
-        setTimeout(async () => {
+        // Проверяем права пользователя и загружаем данные
+        this.delay(VulnAnalizer.DELAYS.INIT).then(async () => {
+            this.authManager.checkUserPermissions();
             this.updateHostsStatus();
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
@@ -137,2197 +486,221 @@ class VulnAnalizer {
             
             // Загружаем настройки базы данных
             await this.loadDatabaseSettings();
-        }, 100);
+        });
     }
 
     checkAuth() {
-        const token = localStorage.getItem('auth_token');
-
-        
-        if (!token) {
-            // Если нет токена, перенаправляем на страницу входа
-
-            window.location.href = '/auth/';
-            return;
-        }
-
-        // Проверяем токен через auth сервис (используем новый endpoint)
-
-        fetch(`/auth/api/me-simple?token=${token || 'user'}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        }).then(response => {
-
-            if (response.ok) {
-                return response.json();
-            } else {
-
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user_info');
-                window.location.href = '/auth/';
-                throw new Error('Auth failed');
-            }
-        }).then(userData => {
-            // Сохраняем информацию о пользователе
-
-            
-            // Сохраняем только объект пользователя, а не весь ответ API
-            if (userData.user) {
-                localStorage.setItem('user_info', JSON.stringify(userData.user));
-            } else {
-                localStorage.setItem('user_info', JSON.stringify(userData));
-            }
-        }).catch((error) => {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_info');
-            window.location.href = '/auth/';
-        });
+        return this.authManager.checkAuth();
     }
 
-    // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
-    async checkUserPermissions() {
-        try {
-            // Получаем токен из localStorage
-            const token = localStorage.getItem('auth_token');
-            
-            // Проверяем права пользователя через новый endpoint
-            const response = await fetch(`/auth/api/me-simple?token=${token || 'user'}`);
-            
-            if (response.ok) {
-                const user = await response.json();
-                this.updateSidebarVisibility(user.is_admin);
-                this.updateMenuVisibility(user.is_admin);
-            } else {
-                // Если не авторизован, скрываем админские вкладки
-                this.updateSidebarVisibility(false);
-                this.updateMenuVisibility(false);
-            }
-        } catch (error) {
-            // При ошибке скрываем админские вкладки
-            this.updateSidebarVisibility(false);
-            this.updateMenuVisibility(false);
-        }
+    checkUserPermissions() {
+        return this.authManager.checkUserPermissions();
     }
 
     updateSidebarVisibility(isAdmin) {
-        // Скрываем/показываем админские вкладки в боковом меню
-        const adminTabs = [
-            'settings' // Вкладка настроек
-        ];
-        
-        adminTabs.forEach(tabName => {
-            const tab = document.querySelector(`[data-page="${tabName}"]`);
-            
-            if (tab) {
-                if (isAdmin) {
-                    tab.classList.remove('hidden');
-                    tab.classList.add('visible');
-                } else {
-                    tab.classList.remove('visible');
-                    tab.classList.add('hidden');
-                }
-            }
-        });
+        return this.uiManager.updateSidebarVisibility(isAdmin);
     }
 
     updateMenuVisibility(isAdmin) {
-        // Скрываем/показываем админские меню в выпадающем меню настроек
-        const adminMenus = [
-            'settings-link',
-            'users-link', 
-            'background-tasks-link'
-        ];
-        
-        adminMenus.forEach(menuId => {
-            const menuItem = document.getElementById(menuId);
-            if (menuItem) {
-                if (isAdmin) {
-                    menuItem.style.display = 'block';
-                } else {
-                    menuItem.style.display = 'none';
-                }
-            }
-        });
+        return this.uiManager.updateMenuVisibility(isAdmin);
     }
 
     initTheme() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.body.className = `${savedTheme}-theme`;
-        this.updateThemeText(savedTheme);
+        return this.uiManager.initTheme();
     }
 
     updateThemeText(theme) {
-        const themeText = document.getElementById('theme-text');
-        const themeIcon = document.querySelector('#theme-link i');
-        
-        if (theme === 'dark') {
-            themeText.textContent = 'Темная';
-            themeIcon.className = 'fas fa-moon';
-        } else {
-            themeText.textContent = 'Светлая';
-            themeIcon.className = 'fas fa-sun';
-        }
+        return this.uiManager.updateThemeText(theme);
     }
 
     updateBreadcrumb(page) {
-        // Заголовки страниц больше не обновляются
-        // Функция оставлена для совместимости
+        return this.uiManager.updateBreadcrumb(page);
     }
 
     toggleTheme() {
-        const body = document.body;
-        
-        if (body.classList.contains('light-theme')) {
-            body.className = 'dark-theme';
-            localStorage.setItem('theme', 'dark');
-            this.updateThemeText('dark');
-        } else {
-            body.className = 'light-theme';
-            localStorage.setItem('theme', 'light');
-            this.updateThemeText('light');
-        }
+        return this.uiManager.toggleTheme();
     }
 
     initializeActivePage() {
-        // Скрываем все страницы
-        const allPages = document.querySelectorAll('.page-content');
-        allPages.forEach(page => {
-            page.classList.remove('active');
-        });
-        
-        // Показываем первую страницу (analysis) по умолчанию
-        const analysisPage = document.getElementById('analysis-page');
-        if (analysisPage) {
-            analysisPage.classList.add('active');
-        }
-        
-        // Устанавливаем активную вкладку
-        const analysisTab = document.querySelector('.sidebar-tab[data-page="analysis"]');
-        if (analysisTab) {
-            analysisTab.classList.add('active');
-        }
+        return this.uiManager.initializeActivePage();
     }
 
-    setupNavigation() {
-        const sidebarTabs = document.querySelectorAll('.sidebar-tab');
-        
-        sidebarTabs.forEach(tab => {
-            tab.addEventListener('click', async (e) => {
-                e.preventDefault();
-                
-                // Убираем активный класс со всех вкладок
-                sidebarTabs.forEach(t => t.classList.remove('active'));
-                
-                // Добавляем активный класс к текущей вкладке
-                tab.classList.add('active');
-                
-                // Скрываем все страницы
-                document.querySelectorAll('.page-content').forEach(page => {
-                    page.classList.remove('active');
-                });
-                
-                // Показываем нужную страницу
-                const targetPage = tab.getAttribute('data-page');
-                const targetElement = document.getElementById(`${targetPage}-page`);
-                if (targetElement) {
-                    targetElement.classList.add('active');
-                } else {
-                }
-                
-                // Обновляем заголовок страницы
-                this.switchPage(targetPage);
-                
-                // Если переключаемся на страницу настроек, загружаем настройки
-                if (targetPage === 'settings') {
-                    await this.loadDatabaseSettings();
-                    
-                    // Инициализируем CVE Manager если он еще не инициализирован
-                    if (typeof CVEManager !== 'undefined' && !this.cveManager) {
-                        this.cveManager = new CVEManager(this);
-                    }
-                }
-            });
-        });
-        
-        // Проверяем права пользователя и скрываем админские вкладки
-        this.checkUserPermissions();
-    }
+    // setupNavigation перенесен в SetupManager
 
-    setupSettings() {
-        const settingsToggle = document.getElementById('settings-toggle');
-        const settingsDropdown = document.getElementById('settings-dropdown');
+    // setupSettings перенесен в SetupManager
 
-        // Загружаем версию приложения
-        this.loadAppVersion();
-
-        // Переключение выпадающего меню настроек
-        if (settingsToggle) {
-            settingsToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Закрываем меню пользователя при открытии настроек
-                const userDropdown = document.getElementById('user-dropdown');
-                if (userDropdown) {
-                    userDropdown.classList.remove('show');
-                }
-                settingsDropdown.classList.toggle('show');
-            });
-        }
-
-        // Закрытие при клике вне меню настроек
-        document.addEventListener('click', (e) => {
-            if (settingsToggle && !settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
-                settingsDropdown.classList.remove('show');
-            }
-        });
-    }
-
-    setupUserMenu() {
-        const userToggle = document.getElementById('user-toggle');
-        const userDropdown = document.getElementById('user-dropdown');
-        const themeLink = document.getElementById('theme-link');
-        const logoutLink = document.getElementById('logout-link');
-        const userName = document.getElementById('user-name');
-
-        // Загружаем информацию о пользователе
-        const userInfo = localStorage.getItem('user_info');
-        if (userInfo) {
-            try {
-                const user = JSON.parse(userInfo);
-                if (userName) {
-                    userName.textContent = user.username;
-                }
-            } catch (e) {
-            }
-        }
-
-        // Переключение выпадающего меню пользователя
-        if (userToggle) {
-            userToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Закрываем меню настроек при открытии пользователя
-                const settingsDropdown = document.getElementById('settings-dropdown');
-                if (settingsDropdown) {
-                    settingsDropdown.classList.remove('show');
-                }
-                userDropdown.classList.toggle('show');
-            });
-        }
-
-        // Закрытие при клике вне меню пользователя
-        document.addEventListener('click', (e) => {
-            if (userToggle && !userToggle.contains(e.target) && !userDropdown.contains(e.target)) {
-                userDropdown.classList.remove('show');
-            }
-        });
-
-        // Обработка клика по пункту "Тема"
-        if (themeLink) {
-            themeLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                userDropdown.classList.remove('show');
-                this.toggleTheme();
-            });
-        }
-
-        // Обработка клика по пункту "Выйти"
-        if (logoutLink) {
-            logoutLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                userDropdown.classList.remove('show');
-                this.logout();
-            });
-        }
-
-        // Обработка кликов по ссылкам в меню настроек
-        const usersLink = document.getElementById('users-link');
-        const backgroundTasksLink = document.getElementById('background-tasks-link');
-        const settingsLink = document.getElementById('settings-link');
-
-        if (usersLink) {
-            usersLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                settingsDropdown.classList.remove('show');
-                window.location.href = '/auth/admin/users/';
-            });
-        }
-
-
-        if (backgroundTasksLink) {
-            backgroundTasksLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                settingsDropdown.classList.remove('show');
-                window.location.href = '/background-tasks/';
-            });
-        }
-
-        if (settingsLink) {
-            settingsLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                settingsDropdown.classList.remove('show');
-                window.location.href = '/settings/';
-            });
-        }
-    }
+    // setupUserMenu перенесен в SetupManager
 
     logout() {
-        // Очищаем данные пользователя
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_info');
-        
-        // Перенаправляем на страницу входа
-        window.location.href = '/auth/';
+        return this.uiManager.logout();
     }
 
     switchPage(page) {
-        // Заголовки страниц больше не обновляются
-        // Только обновляем статусы
-        
-        switch(page) {
-            case 'analysis':
-                this.updateHostsStatus();
-                break;
-            case 'hosts':
-                this.updateHostsStatus();
-                this.checkActiveImportTasks(); // Проверяем активные задачи импорта
-                break;
-            case 'settings':
-                this.updateEPSSStatus();
-                this.updateExploitDBStatus();
-                break;
-            default:
-                break;
-        }
+        return this.uiManager.switchPage(page);
     }
 
-    setupForms() {
-        // Форма настроек
-        const settingsForm = document.getElementById('settings-form');
-        if (settingsForm) {
-            settingsForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveSettings();
-            });
-        }
+    // setupForms перенесен в SetupManager
 
+    // setupEPSS перенесен в SetupManager
 
+    // setupExploitDB перенесен в SetupManager
 
-        // Обработчики для хостов перенесены в HostsModule
+    // setupCVE перенесен в SetupManager
 
-        // Форма настроек Impact
-        const impactForm = document.getElementById('impact-form');
-        if (impactForm) {
-            impactForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveImpactSettings();
-            });
-        }
-
-        // Форма поиска CVE
-        const cveSearchForm = document.getElementById('cve-search-form');
-        if (cveSearchForm) {
-            cveSearchForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.searchCVE();
-            });
-        }
-
-        // Обработка ползунка порога риска
-        const thresholdSlider = document.getElementById('risk-threshold');
-        const thresholdValue = document.getElementById('threshold-value');
-        if (thresholdSlider && thresholdValue) {
-            thresholdSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                thresholdValue.textContent = value;
-                this.updateThresholdSlider(value);
-            });
-        }
-
-        // Кнопка проверки подключения
-        const testConnectionBtn = document.getElementById('test-connection');
-        if (testConnectionBtn) {
-            testConnectionBtn.addEventListener('click', () => {
-                this.testConnection();
-            });
-        }
-
-        // Кнопки очистки таблиц
-        const clearHostsBtn = document.getElementById('clear-hosts-btn');
-        if (clearHostsBtn) {
-            clearHostsBtn.addEventListener('click', () => {
-                this.clearHosts();
-            });
-        }
-
-        const clearEPSSBtn = document.getElementById('clear-epss-btn');
-        if (clearEPSSBtn) {
-            clearEPSSBtn.addEventListener('click', () => {
-                this.clearEPSS();
-            });
-        }
-
-        const clearExploitDBBtn = document.getElementById('clear-exploitdb-btn');
-        if (clearExploitDBBtn) {
-            clearExploitDBBtn.addEventListener('click', () => {
-                this.clearExploitDB();
-            });
-        }
-
-        const clearCVEBtn = document.getElementById('clear-cve-btn');
-        if (clearCVEBtn) {
-            clearCVEBtn.addEventListener('click', () => {
-                this.clearCVE();
-            });
-        }
-
-        // Загружаем начальные данные
-        this.loadInitialData();
-    }
-
-    setupEPSS() {
-        // Загрузка CSV
-        const epssForm = document.getElementById('epss-upload-form');
-        if (epssForm) {
-            epssForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fileInput = document.getElementById('epss-file');
-                if (!fileInput.files.length) {
-                    this.showNotification('Выберите файл для загрузки', 'warning');
-                    return;
-                }
-                
-                const uploadBtn = document.getElementById('epss-upload-btn');
-                const btnText = uploadBtn.querySelector('.btn-text');
-                const spinner = uploadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Загрузка...';
-                spinner.style.display = 'inline-block';
-                uploadBtn.disabled = true;
-                
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('epss', 'Загрузка файла EPSS...', 0);
-                
-                const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-                
-                try {
-                    // Симулируем прогресс загрузки
-                    this.updateOperationProgress('epss', 'Обработка файла EPSS...', 25, 'Чтение CSV файла...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    this.updateOperationProgress('epss', 'Загрузка данных в базу...', 50, 'Валидация и подготовка данных...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    this.updateOperationProgress('epss', 'Сохранение записей...', 75, 'Запись в базу данных...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/epss/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.updateOperationProgress('epss', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('epss', 'EPSS данные успешно загружены', `Загружено записей: ${data.count}`);
-                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
-                        this.updateEPSSStatus();
-                        fileInput.value = ''; // Очищаем поле файла
-                    } else {
-                        this.showOperationError('epss', 'Ошибка загрузки EPSS', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка загрузки EPSS', 'error');
-                    }
-                } catch (err) {
-                    this.showOperationError('epss', 'Ошибка загрузки EPSS', err.message);
-                    this.showNotification('Ошибка загрузки EPSS', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Загрузить CSV';
-                    spinner.style.display = 'none';
-                    uploadBtn.disabled = false;
-                }
-            });
-        }
-        
-        // Кнопка скачивания с сайта - обработчик перенесен в EPSSModule
-    }
-
-    setupExploitDB() {
-        // Загрузка CSV
-        const exploitdbForm = document.getElementById('exploitdb-upload-form');
-        if (exploitdbForm) {
-            exploitdbForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fileInput = document.getElementById('exploitdb-file');
-                if (!fileInput.files.length) {
-                    this.showNotification('Выберите файл для загрузки', 'warning');
-                    return;
-                }
-                
-                const uploadBtn = document.getElementById('exploitdb-upload-btn');
-                const btnText = uploadBtn.querySelector('.btn-text');
-                const spinner = uploadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Загрузка...';
-                spinner.style.display = 'inline-block';
-                uploadBtn.disabled = true;
-                
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('exploitdb', 'Загрузка файла ExploitDB...', 0);
-                
-                const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-                
-                try {
-                    this.updateOperationProgress('exploitdb', 'Обработка файла ExploitDB...', 25, 'Чтение CSV файла...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    this.updateOperationProgress('exploitdb', 'Валидация данных...', 50, 'Проверка и подготовка записей...');
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    
-                    this.updateOperationProgress('exploitdb', 'Сохранение в базу...', 75, 'Запись эксплойтов в базу данных...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/exploitdb/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.updateOperationProgress('exploitdb', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('exploitdb', 'ExploitDB данные успешно загружены', `Загружено записей: ${data.count}`);
-                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
-                        this.updateExploitDBStatus();
-                        fileInput.value = ''; // Очищаем поле файла
-                    } else {
-                        this.showOperationError('exploitdb', 'Ошибка загрузки ExploitDB', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка загрузки ExploitDB', 'error');
-                    }
-                } catch (err) {
-                    this.showOperationError('exploitdb', 'Ошибка загрузки ExploitDB', err.message);
-                    this.showNotification('Ошибка загрузки ExploitDB', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Загрузить CSV';
-                    spinner.style.display = 'none';
-                    uploadBtn.disabled = false;
-                }
-            });
-        }
-        
-        // Кнопка скачивания с сайта - обработчик перенесен в ExploitDBModule
-    }
-
-    setupCVE() {
-        // Инициализируем CVE Manager если он доступен
-        if (typeof CVEManager !== 'undefined') {
-            this.cveManager = new CVEManager(this);
-        } else {
-            this.setupLegacyCVE();
-        }
-    }
-    
-    setupLegacyCVE() {
-        // Загрузка CSV
-        const cveForm = document.getElementById('cve-upload-form');
-        if (cveForm) {
-            cveForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fileInput = document.getElementById('cve-file');
-                if (!fileInput.files.length) {
-                    this.showNotification('Выберите файл для загрузки', 'warning');
-                    return;
-                }
-                
-                const uploadBtn = document.getElementById('cve-upload-btn');
-                const btnText = uploadBtn.querySelector('.btn-text');
-                const spinner = uploadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Загрузка...';
-                spinner.style.display = 'inline-block';
-                uploadBtn.disabled = true;
-                
-                // Показываем прогресс в статусбаре
-                this.showOperationProgress('cve', 'Загрузка файла CVE...', 0);
-                
-                const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-                
-                try {
-                    // Симулируем прогресс загрузки
-                    this.updateOperationProgress('cve', 'Обработка файла CVE...', 25, 'Чтение CSV файла...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    this.updateOperationProgress('cve', 'Загрузка данных в базу...', 50, 'Валидация и подготовка данных...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    this.updateOperationProgress('cve', 'Сохранение записей...', 75, 'Запись в базу данных...');
-                    
-                    const resp = await fetch(this.getApiBasePath() + '/cve/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.updateOperationProgress('cve', 'Завершение операции...', 90, 'Финальная обработка...');
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        this.showOperationComplete('cve', 'CVE данные успешно загружены', `Загружено записей: ${data.count}`);
-                        this.showNotification(`Загружено записей: ${data.count}`, 'success');
-                        this.updateCVEStatus();
-                        fileInput.value = ''; // Очищаем поле файла
-                    } else {
-                        this.showOperationError('cve', 'Ошибка загрузки CVE', data.detail || 'Неизвестная ошибка');
-                        this.showNotification('Ошибка загрузки CVE', 'error');
-                    }
-                } catch (err) {
-                    this.showOperationError('cve', 'Ошибка загрузки CVE', err.message);
-                    this.showNotification('Ошибка загрузки CVE', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Загрузить CSV';
-                    spinner.style.display = 'none';
-                    uploadBtn.disabled = false;
-                }
-            });
-        }
-        
-        // Кнопка получения ссылок для скачивания
-        const cveUrlsBtn = document.getElementById('cve-urls-btn');
-        if (cveUrlsBtn) {
-            cveUrlsBtn.addEventListener('click', async () => {
-                try {
-                    const resp = await fetch(this.getApiBasePath() + '/cve/download-urls');
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        let urlsHtml = '<div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; margin-top: 10px;">';
-                        urlsHtml += '<h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания CVE по годам</h4>';
-                        urlsHtml += '<p style="margin: 0 0 8px 0; line-height: 1.4; font-size: 0.8rem;">Скачайте файлы по ссылкам ниже для offline загрузки:</p>';
-                        
-                        data.urls.forEach(urlInfo => {
-                            urlsHtml += `<div style="margin-bottom: 6px;">`;
-                            urlsHtml += `<a href="${urlInfo.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">`;
-                            urlsHtml += `🔗 <span style="flex: 1;">CVE ${urlInfo.year} (${urlInfo.filename})</span>`;
-                            urlsHtml += `</a>`;
-                            urlsHtml += `</div>`;
-                        });
-                        
-                        urlsHtml += '</div>';
-                        
-                        const statusDiv = document.getElementById('cve-status');
-                        if (statusDiv) {
-                            statusDiv.innerHTML = urlsHtml;
-                        }
-                    } else {
-                        this.showNotification('Ошибка получения ссылок CVE', 'error');
-                    }
-                } catch (err) {
-                    this.showNotification('Ошибка получения ссылок CVE', 'error');
-                }
-            });
-        }
-        
-        // Кнопка скачивания с сайта - обработчик перенесен в CVEModule
-        
-        // Кнопка отмены загрузки CVE
-        const cveCancelBtn = document.getElementById('cve-cancel-btn');
-        if (cveCancelBtn) {
-            cveCancelBtn.addEventListener('click', async () => {
-                const btnText = cveCancelBtn.querySelector('.btn-text');
-                const spinner = cveCancelBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор
-                btnText.textContent = 'Отмена...';
-                spinner.style.display = 'inline-block';
-                cveCancelBtn.disabled = true;
-                
-                try {
-                    const resp = await fetch(this.getApiBasePath() + '/cve/cancel', { method: 'POST' });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.showNotification('Загрузка CVE отменена', 'success');
-                        // Скрываем кнопку отмены
-                        cveCancelBtn.style.display = 'none';
-                        // Показываем кнопку скачивания
-                        const cveDownloadBtn = document.getElementById('cve-download-btn');
-                        if (cveDownloadBtn) {
-                            cveDownloadBtn.disabled = false;
-                        }
-                    } else {
-                        this.showNotification(data.message || 'Ошибка отмены загрузки', 'warning');
-                    }
-                } catch (err) {
-                    this.showNotification('Ошибка отмены загрузки CVE', 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Остановить загрузку';
-                    spinner.style.display = 'none';
-                    cveCancelBtn.disabled = false;
-                }
-            });
-        }
-
-
-    }
-
-    setupHosts() {
-        // Загрузка CSV хостов с поддержкой сжатых файлов
-        const hostsForm = document.getElementById('hosts-upload-form');
-        if (hostsForm) {
-            hostsForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fileInput = document.getElementById('hosts-file');
-                if (!fileInput.files.length) {
-                    this.showNotification('Выберите файл для загрузки', 'warning');
-                    return;
-                }
-                
-                const file = fileInput.files[0];
-                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                
-                // Проверяем размер файла (максимум 2GB)
-                const maxFileSize = 2 * 1024 * 1024 * 1024; // 2GB в байтах
-                if (file.size > maxFileSize) {
-                    this.showNotification(`Файл слишком большой (${fileSizeMB} МБ). Максимальный размер: 2 ГБ.`, 'error');
-                    return;
-                }
-                
-                // Обновляем accept для поддержки сжатых файлов
-                fileInput.accept = '.csv,.zip,.gz,.gzip';
-                
-                const uploadBtn = document.getElementById('hosts-upload-btn');
-                const btnText = uploadBtn.querySelector('.btn-text');
-                const spinner = uploadBtn.querySelector('.fa-spinner');
-                
-                // Показываем индикатор загрузки
-                btnText.textContent = 'Загрузка...';
-                spinner.style.display = 'inline-block';
-                uploadBtn.disabled = true;
-                
-                // Показываем прогресс-бар
-                this.showImportProgress();
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                try {
-                    const resp = await fetch(this.getApiBasePath() + '/hosts/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    // Проверяем статус ответа
-                    if (!resp.ok) {
-                        let errorMessage = `HTTP ${resp.status}: ${resp.statusText}`;
-                        
-                        // Пытаемся получить текст ошибки
-                        try {
-                            const errorText = await resp.text();
-                            if (errorText.includes('<html>')) {
-                                errorMessage = `Ошибка сервера (${resp.status}). Возможно, файл слишком большой или произошла внутренняя ошибка.`;
-                            } else {
-                                errorMessage = errorText;
-                            }
-                        } catch (textError) {
-                        }
-                        
-                        this.showNotification('Ошибка загрузки: ' + errorMessage, 'error');
-                        return;
-                    }
-                    
-                    // Проверяем Content-Type
-                    const contentType = resp.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        const errorMessage = 'Сервер вернул неверный формат ответа. Возможно, произошла ошибка на сервере.';
-                        this.showNotification('Ошибка: ' + errorMessage, 'error');
-                        return;
-                    }
-                    
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        this.showNotification(data.message, 'success');
-                        this.updateHostsStatus();
-                        fileInput.value = ''; // Очищаем поле файла
-                        
-                        // Показываем информацию о задаче
-                        if (data.task_id) {
-                            this.showNotification(`Задача импорта создана: ${data.task_id}`, 'info');
-                            
-                            // Запускаем мониторинг прогресса фоновой задачи
-                            this.startBackgroundTaskMonitoring(data.task_id);
-                        }
-                    } else {
-                        this.showNotification('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), 'error');
-                    }
-                } catch (err) {
-                    let errorMessage = err.message;
-                    
-                    // Улучшенная обработка ошибок
-                    if (err.name === 'TypeError' && err.message.includes('JSON')) {
-                        errorMessage = 'Сервер вернул неверный формат ответа. Возможно, произошла ошибка на сервере или файл слишком большой.';
-                    } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
-                        errorMessage = 'Ошибка соединения с сервером. Проверьте подключение к интернету.';
-                    }
-                    
-                    this.showNotification('Ошибка импорта: ' + errorMessage, 'error');
-                } finally {
-                    // Восстанавливаем кнопку
-                    btnText.textContent = 'Загрузить файл';
-                    spinner.style.display = 'none';
-                    uploadBtn.disabled = false;
-                }
-            });
-        }
-        
-        // Запускаем мониторинг прогресса фонового обновления
-        this.startBackgroundUpdateMonitoring();
-        
-        // Проверяем активные задачи при загрузке страницы
-        this.checkActiveImportTasks();
-        
-        // Поиск хостов обрабатывается в HostsModule
-
-        // Обработчики пагинации
-        const prevPageBtn = document.getElementById('prev-page');
-        const nextPageBtn = document.getElementById('next-page');
-        
-        if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', () => {
-                if (this.paginationState.currentPage > 1) {
-                    this.searchHosts(this.paginationState.currentPage - 1);
-                }
-            });
-        }
-        
-        if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', () => {
-                if (this.paginationState.currentPage < this.paginationState.totalPages) {
-                    this.searchHosts(this.paginationState.currentPage + 1);
-                }
-            });
-        }
-
-        // Обработчик изменения количества записей на странице
-        const resultsPerPageSelect = document.getElementById('results-per-page');
-        if (resultsPerPageSelect) {
-            resultsPerPageSelect.addEventListener('change', (e) => {
-                this.paginationState.limit = parseInt(e.target.value);
-                this.paginationState.currentPage = 1; // Сбрасываем на первую страницу
-                this.searchHosts(1);
-            });
-        }
-    }
+    // setupHosts перенесен в SetupManager
 
     async updateExploitDBStatus() {
-        const statusDiv = document.getElementById('exploitdb-status');
-        if (!statusDiv) return;
-        
-        try {
-            const resp = await fetch(this.getApiBasePath() + '/exploitdb/status');
-            const data = await resp.json();
-            
-            if (data.success) {
-                statusDiv.innerHTML = `
-                    <div style="margin-bottom: 15px;">
-                        <div class="status-info">
-                            <i class="fas fa-database"></i>
-                            <span>Записей в базе: <strong>${data.count}</strong></span>
-                        </div>
-                    </div>
-                    
-                    <!-- Подсказка с ссылками для ExploitDB -->
-                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
-                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания ExploitDB</h4>
-                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <a href="https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">ExploitDB Files (основная база)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~10MB</span>
-                            </a>
-                            <a href="https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_shellcodes.csv" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">ExploitDB Shellcodes</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~220KB</span>
-                            </a>
-                            <a href="https://github.com/offensive-security/exploitdb" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                📦 <span style="flex: 1;">GitHub репозиторий ExploitDB</span>
-                            </a>
-                            <a href="https://www.exploit-db.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🌐 <span style="flex: 1;">Официальный сайт ExploitDB</span>
-                            </a>
-                        </div>
-                    </div>
-                `;
-            } else {
-                statusDiv.innerHTML = `
-                    <div class="status-error">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Ошибка получения статуса</span>
-                    </div>
-                `;
-            }
-        } catch (err) {
-            statusDiv.innerHTML = `
-                <div class="status-error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Ошибка получения статуса</span>
-                </div>
-            `;
-        }
+        return this.exploitdbService.updateExploitDBStatus();
     }
 
     async updateEPSSStatus() {
-        const statusDiv = document.getElementById('epss-status');
-        if (!statusDiv) return;
-        
-        try {
-            const resp = await fetch(this.getApiBasePath() + '/epss/status');
-            const data = await resp.json();
-            if (data.success) {
-                statusDiv.innerHTML = `
-                    <div style="margin-bottom: 15px;">
-                        <b>Записей в базе EPSS:</b> ${data.count}
-                    </div>
-                    
-                    <!-- Подсказка с ссылками для EPSS -->
-                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.875rem;">
-                        <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 600; color: #1e293b;">📋 Ссылки для скачивания EPSS</h4>
-                        <p style="margin: 0 0 8px 0; line-height: 1.4;">Для offline загрузки используйте следующие ссылки:</p>
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <a href="https://epss.empiricalsecurity.com/epss_scores-current.csv.gz" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">EPSS Scores (текущая версия)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB</span>
-                            </a>
-                            <a href="https://epss.empiricalsecurity.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🔗 <span style="flex: 1;">EPSS Scores (официальный сайт)</span>
-                                <span style="font-size: 0.7rem; color: #64748b; font-style: italic;">~2MB (gz)</span>
-                            </a>
-                            <a href="https://epss.cyentia.com/" target="_blank" style="display: flex; align-items: center; gap: 6px; color: #2563eb; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;">
-                                🌐 <span style="flex: 1;">Официальный сайт EPSS</span>
-                            </a>
-                        </div>
-                    </div>
-                `;
-            } else {
-                statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса EPSS</span>';
-            }
-        } catch (err) {
-            statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса EPSS</span>';
-        }
+        return this.epssService.updateEPSSStatus();
     }
 
     async updateCVEStatus() {
-        const statusDiv = document.getElementById('cve-status');
-        if (!statusDiv) return;
-        
-        try {
-            const resp = await fetch(this.getApiBasePath() + '/cve/status');
-            const data = await resp.json();
-            if (data.success) {
-                statusDiv.innerHTML = `
-                    <div style="margin-bottom: 15px;">
-                        <b>Записей в базе CVE:</b> ${data.count}
-                    </div>
-                `;
-            } else {
-                statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса CVE</span>';
-            }
-        } catch (err) {
-            statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса CVE</span>';
-        }
+        return this.cveService.updateCVEStatus();
     }
 
     async updateMetasploitStatus() {
-        // Делегируем обновление статуса в модуль Metasploit
-        if (this.metasploitModule) {
-            await this.metasploitModule.updateMetasploitStatus();
-        }
+        return this.metasploitService.updateMetasploitStatus();
     }
 
     async updateHostsStatus() {
-        const statusDiv = document.getElementById('hosts-status');
-        if (!statusDiv) return;
-        
-        try {
-            const resp = await fetch(this.getApiBasePath() + '/hosts/status');
-            const data = await resp.json();
-            
-            if (data.success) {
-                statusDiv.innerHTML = `
-                    <div class="status-info">
-                        <i class="fas fa-server"></i>
-                        <span>Хостов в базе: <strong>${data.count}</strong></span>
-                    </div>
-                `;
-            } else {
-                statusDiv.innerHTML = `
-                    <div class="status-error">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Ошибка получения статуса хостов</span>
-                    </div>
-                `;
-            }
-        } catch (err) {
-            statusDiv.innerHTML = `
-                <div class="status-error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Ошибка получения статуса хостов</span>
-                </div>
-            `;
-        }
+        return this.hostsService.updateHostsStatus();
     }
 
     async searchHosts(page = 1) {
-        // Отключаем дублирующий поиск - используем hosts.js
-        return;
-        
-        const form = document.getElementById('hosts-search-form');
-        const resultsDiv = document.getElementById('hosts-search-results');
-        
-        if (!form || !resultsDiv) return;
-        
-        const formData = new FormData(form);
-        const params = new URLSearchParams();
-        
-        // Добавляем параметры поиска
-        for (let [key, value] of formData.entries()) {
-            if (key === 'exploits_only' || key === 'epss_only') {
-                // Для чекбоксов добавляем значение только если они отмечены
-                if (value === 'on') {
-                    params.append(key, 'true');
-                }
-            } else if (value.trim()) {
-                params.append(key, value.trim());
-            }
-        }
-        
-        // Добавляем параметры пагинации
-        params.append('page', page);
-        params.append('limit', this.paginationState.limit);
-        
-        try {
-            const resp = await fetch(`${this.getApiBasePath()}/hosts/search?${params.toString()}`);
-            const data = await resp.json();
-            
-            if (data.success) {
-                const groupBy = formData.get('group_by') || '';
-                this.renderHostsResults(data.results, groupBy, data);
-            } else {
-                this.showNotification('Ошибка поиска хостов', 'error');
-            }
-        } catch (err) {
-            this.showNotification('Ошибка поиска хостов', 'error');
-        }
+        // Делегируем поиск в HostsService
+        return this.hostsService.searchHosts(page);
     }
 
     renderHostsResults(hosts, groupBy = '', paginationData = null) {
-        const resultsDiv = document.getElementById('hosts-search-results');
-        if (!resultsDiv) return;
-        
-        if (!hosts || hosts.length === 0) {
-            resultsDiv.innerHTML = `
-                <div class="no-results">
-                    <i class="fas fa-search"></i>
-                    <p>Хосты не найдены</p>
-                </div>
-            `;
-            this.hidePagination();
-            return;
-        }
-        
-        // Обновляем состояние пагинации
-        if (paginationData) {
-            this.paginationState = {
-                currentPage: paginationData.page || 1,
-                totalPages: paginationData.total_pages || 1,
-                totalCount: paginationData.total_count || hosts.length,
-                limit: paginationData.limit || 100
-            };
-        }
-        
-        // Создаем отдельный элемент для отображения количества найденных хостов
-        const resultsContainer = document.querySelector('.hosts-search-results-container');
-        const existingCountElement = resultsContainer.querySelector('.hosts-count');
-        
-        if (existingCountElement) {
-            existingCountElement.remove();
-        }
-        
-        const countElement = document.createElement('div');
-        countElement.className = 'hosts-count';
-        countElement.innerHTML = `<h4>Найдено хостов: ${this.paginationState.totalCount}</h4>`;
-        
-        // Вставляем элемент с количеством перед заголовком таблицы
-        const tableHeader = resultsContainer.querySelector('.hosts-table-header');
-        resultsContainer.insertBefore(countElement, tableHeader);
-        
-        let html = '';
-        
-        if (groupBy) {
-            // Группируем хосты
-            const grouped = this.groupHosts(hosts, groupBy);
-            
-            Object.keys(grouped).forEach(groupKey => {
-                const groupHosts = grouped[groupKey];
-                const count = this.getGroupCount(groupBy, groupHosts);
-                const countLabel = groupBy === 'cve' ? 'хостов' : 'CVE';
-                
-                html += `
-                    <div class="host-group">
-                        <h5 class="group-header">
-                            <i class="fas fa-folder"></i>
-                            ${this.getGroupTitle(groupBy, groupKey)} (${count} ${countLabel})
-                        </h5>
-                        <div class="group-content">
-                `;
-                
-                groupHosts.forEach(host => {
-                    html += this.renderHostItem(host);
-                });
-                
-                html += `
-                        </div>
-                    </div>
-                `;
-            });
-        } else {
-            // Без группировки
-            hosts.forEach(host => {
-                html += this.renderHostItem(host);
-            });
-        }
-        
-        resultsDiv.innerHTML = html;
-        
-        // Отображаем пагинацию
-        this.renderPagination();
+        return this.hostsUIManager.renderHostsResults(hosts, groupBy, paginationData);
     }
 
     groupHosts(hosts, groupBy) {
-        const grouped = {};
-        
-        hosts.forEach(host => {
-            let groupKey;
-            switch (groupBy) {
-                case 'hostname':
-                    groupKey = host.hostname;
-                    break;
-                case 'ip_address':
-                    groupKey = host.ip_address;
-                    break;
-                case 'cve':
-                    groupKey = host.cve;
-                    break;
-                default:
-                    groupKey = 'default';
-            }
-            
-            if (!grouped[groupKey]) {
-                grouped[groupKey] = [];
-            }
-            grouped[groupKey].push(host);
-        });
-        
-        return grouped;
+        return this.hostsUIManager.groupHosts(hosts, groupBy);
     }
 
     getGroupTitle(groupBy, groupKey) {
-        switch (groupBy) {
-            case 'hostname':
-                return `Hostname: ${groupKey}`;
-            case 'ip_address':
-                return `IP: ${groupKey}`;
-            case 'cve':
-                return `CVE: ${groupKey}`;
-            default:
-                return groupKey;
-        }
+        return this.hostsUIManager.getGroupTitle(groupBy, groupKey);
     }
 
     getGroupCount(groupBy, hosts) {
-        switch (groupBy) {
-            case 'hostname':
-                // Для группировки по hostname считаем уникальные CVE
-                const uniqueCves = new Set(hosts.map(host => host.cve));
-                return uniqueCves.size;
-            case 'ip_address':
-                // Для группировки по IP считаем уникальные CVE
-                const uniqueCvesByIp = new Set(hosts.map(host => host.cve));
-                return uniqueCvesByIp.size;
-            case 'cve':
-                // Для группировки по CVE считаем количество хостов
-                return hosts.length;
-            default:
-                return hosts.length;
-        }
+        return this.hostsUIManager.getGroupCount(groupBy, hosts);
     }
 
     renderHostItem(host) {
-        const criticalityClass = `criticality-${host.criticality.toLowerCase()}`;
-        
-        // Индикация эксплойтов
-        let exploitsIndicator = '';
-        if (host.has_exploits) {
-            exploitsIndicator = `
-                <div class="host-exploits">
-                    <span class="exploit-badge" title="Есть эксплойты: ${host.exploits_count}">
-                        <i class="fas fa-bug"></i> ${host.exploits_count}
-                    </span>
-                </div>
-            `;
-        } else {
-            exploitsIndicator = '<div class="host-exploits"></div>';
-        }
-        
-        // Отображение риска
-        let riskDisplay = '';
-        
-        if (host.risk_score !== null && host.risk_score !== undefined) {
-            const riskClass = host.risk_score >= 70 ? 'high-risk' : 
-                             host.risk_score >= 40 ? 'medium-risk' : 'low-risk';
-            
-            // Форматируем риск в зависимости от величины
-            let riskText;
-            if (host.risk_score < 0.1) {
-                riskText = host.risk_score.toFixed(2); // Показываем 2 знака для очень маленьких значений
-            } else if (host.risk_score < 1) {
-                riskText = host.risk_score.toFixed(1); // Показываем 1 знак для маленьких значений
-            } else {
-                riskText = Math.round(host.risk_score); // Округляем для больших значений
-            }
-            
-            riskDisplay = `<span class="risk-score ${riskClass}">${riskText}%</span>`;
-        } else {
-            riskDisplay = '<span class="risk-score">N/A</span>';
-        }
-        
-        return `
-            <div class="host-item single-line">
-                <div class="host-name">${host.hostname}</div>
-                <div class="host-ip">${host.ip_address}</div>
-                <div class="host-criticality">
-                    <span class="${criticalityClass}">${host.criticality}</span>
-                </div>
-                <div class="host-cve">${host.cve}</div>
-                <div class="host-cvss">
-                    ${host.cvss ? 
-                        (host.cvss_source && host.cvss_source.includes('v2') ? 
-                            `v2: ${host.cvss}` : 
-                            (host.cvss_source && host.cvss_source.includes('v3') ? 
-                                `v3: ${host.cvss}` : 
-                                `${host.cvss}`
-                            )
-                        ) : 
-                        'N/A'
-                    }
-                </div>
-                <div class="host-status">
-                    ${host.epss_score !== null && host.epss_score !== undefined ? 
-                        `${(host.epss_score * 100).toFixed(2)}%` : 
-                        'N/A'
-                    }
-                </div>
-                ${exploitsIndicator}
-                <div class="host-risk" id="host-risk-${host.id}">${riskDisplay}</div>
-            </div>
-        `;
+        return this.hostsUIManager.renderHostItem(host);
     }
 
     // clearHostsResults перенесен в HostsModule
 
     renderPagination() {
-        const paginationDiv = document.getElementById('hosts-pagination');
-        if (!paginationDiv) return;
-
-        if (this.paginationState.totalPages <= 1) {
-            this.hidePagination();
-            return;
-        }
-
-        // Обновляем информацию о пагинации
-        const startRecord = (this.paginationState.currentPage - 1) * this.paginationState.limit + 1;
-        const endRecord = Math.min(this.paginationState.currentPage * this.paginationState.limit, this.paginationState.totalCount);
-        
-        const paginationInfo = document.getElementById('pagination-info');
-        if (paginationInfo) {
-            paginationInfo.textContent = `Показано ${startRecord}-${endRecord} из ${this.paginationState.totalCount} записей`;
-        }
-
-        // Обновляем кнопки навигации
-        const prevBtn = document.getElementById('prev-page');
-        const nextBtn = document.getElementById('next-page');
-        
-        if (prevBtn) {
-            prevBtn.disabled = this.paginationState.currentPage <= 1;
-        }
-        
-        if (nextBtn) {
-            nextBtn.disabled = this.paginationState.currentPage >= this.paginationState.totalPages;
-        }
-
-        // Генерируем номера страниц
-        this.renderPageNumbers();
-
-        // Показываем пагинацию
-        paginationDiv.style.display = 'block';
+        return this.hostsUIManager.renderPagination();
     }
 
     renderPageNumbers() {
-        const pageNumbersDiv = document.getElementById('page-numbers');
-        if (!pageNumbersDiv) return;
-
-        const { currentPage, totalPages } = this.paginationState;
-        let html = '';
-
-        // Показываем максимум 5 страниц вокруг текущей
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, currentPage + 2);
-
-        // Добавляем первую страницу если нужно
-        if (startPage > 1) {
-            html += `<span class="page-number" data-page="1">1</span>`;
-            if (startPage > 2) {
-                html += `<span class="page-number disabled">...</span>`;
-            }
-        }
-
-        // Добавляем страницы в диапазоне
-        for (let i = startPage; i <= endPage; i++) {
-            const isActive = i === currentPage;
-            html += `<span class="page-number ${isActive ? 'active' : ''}" data-page="${i}">${i}</span>`;
-        }
-
-        // Добавляем последнюю страницу если нужно
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                html += `<span class="page-number disabled">...</span>`;
-            }
-            html += `<span class="page-number" data-page="${totalPages}">${totalPages}</span>`;
-        }
-
-        pageNumbersDiv.innerHTML = html;
-
-        // Добавляем обработчики событий
-        pageNumbersDiv.querySelectorAll('.page-number:not(.disabled)').forEach(span => {
-            span.addEventListener('click', (e) => {
-                const page = parseInt(e.target.dataset.page);
-                if (page && page !== currentPage) {
-                    this.searchHosts(page);
-                }
-            });
-        });
+        return this.hostsUIManager.renderPageNumbers();
     }
 
     hidePagination() {
-        const paginationDiv = document.getElementById('hosts-pagination');
-        if (paginationDiv) {
-            paginationDiv.style.display = 'none';
-        }
+        return this.hostsUIManager.hidePagination();
     }
 
     async exportHosts() {
-        const form = document.getElementById('hosts-search-form');
-        if (!form) return;
-        
-        const formData = new FormData(form);
-        const params = new URLSearchParams();
-        
-        // Добавляем только заполненные параметры
-        for (let [key, value] of formData.entries()) {
-            if (key === 'exploits_only' || key === 'epss_only') {
-                // Для чекбоксов добавляем значение только если они отмечены
-                if (value === 'on') {
-                    params.append(key, 'true');
-                }
-            } else if (value.trim()) {
-                params.append(key, value.trim());
-            }
-        }
-        
-        try {
-            // Показываем индикатор загрузки
-            const exportBtn = document.getElementById('export-hosts');
-            const originalText = exportBtn.innerHTML;
-            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Экспорт...';
-            exportBtn.disabled = true;
-            
-            const response = await fetch(`${this.getApiBasePath()}/hosts/export?${params.toString()}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            // Проверяем тип ответа
-            const contentType = response.headers.get('content-type');
-            
-            if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-                // Это Excel файл, скачиваем его
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                
-                // Получаем имя файла из заголовка
-                const contentDisposition = response.headers.get('content-disposition');
-                let filename = 'hosts_export.xlsx';
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename=(.+)/);
-                    if (filenameMatch) {
-                        filename = filenameMatch[1];
-                    }
-                }
-                
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                this.showNotification('Экспорт завершен успешно!', 'success');
-            } else {
-                // Это JSON ответ с ошибкой
-                const data = await response.json();
-                this.showNotification(`Ошибка экспорта: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка экспорта: ' + error.message, 'error');
-        } finally {
-            // Восстанавливаем кнопку
-            const exportBtn = document.getElementById('export-hosts');
-            exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Экспорт в Excel';
-            exportBtn.disabled = false;
-        }
+        return this.hostsService.exportHosts();
     }
 
     async calculateHostRisk(hostId) {
-        const riskDiv = document.getElementById(`host-risk-${hostId}`);
-        if (!riskDiv) return;
-        
-        // Показываем индикатор загрузки
-        riskDiv.innerHTML = `
-            <div class="loading">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Расчет риска...</p>
-            </div>
-        `;
-        
-        try {
-            const response = await fetch(`${this.getApiBasePath()}/hosts/${hostId}/risk`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.renderHostRiskResult(hostId, data);
-            } else {
-                riskDiv.innerHTML = `<span class="risk-score">Ошибка</span>`;
-            }
-        } catch (error) {
-            riskDiv.innerHTML = `<span class="risk-score">Ошибка</span>`;
-        }
+        return this.hostsService.calculateHostRisk(hostId);
     }
 
     renderHostRiskResult(hostId, data) {
-        const riskDiv = document.getElementById(`host-risk-${hostId}`);
-        if (!riskDiv) return;
-        
-        let html = '';
-        
-        // Отображаем EPSS (в процентах)
-        if (data.epss && data.epss.epss !== null) {
-            const epssValue = (data.epss.epss * 100).toFixed(2);
-            html += `<div class="epss-info">
-                <i class="fas fa-chart-line"></i>
-                <span class="epss-label">EPSS:</span>
-                <span class="epss-value">${epssValue}%</span>
-            </div>`;
-        }
-        
-        // Отображаем риск
-        if (data.risk && data.risk.calculation_possible) {
-            const threshold = parseFloat(localStorage.getItem('risk_threshold') || '75');
-            const riskScore = data.risk.risk_score;
-            const isHighRisk = riskScore >= threshold;
-            const riskClass = isHighRisk ? 'risk-score-high' : 'risk-score-low';
-            
-            html += `<div class="risk-score ${riskClass}">
-                <span class="risk-label">Risk:</span>
-                <span class="risk-value">${data.risk.risk_score.toFixed(1)}%</span>
-            </div>`;
-        } else {
-            html += `<div class="risk-score">
-                <span class="risk-label">Risk:</span>
-                <span class="risk-value">N/A</span>
-            </div>`;
-        }
-        
-        // Отображаем информацию об эксплойтах
-        if (data.exploitdb && data.exploitdb.length > 0) {
-            const exploitCount = data.exploitdb.length;
-            const verifiedCount = data.exploitdb.filter(e => e.verified).length;
-            
-            html += `
-                <div class="exploit-info">
-                    <i class="fas fa-bug"></i>
-                    <span class="exploit-count">${exploitCount}</span>
-                    ${verifiedCount > 0 ? `<span class="verified-count" title="Проверенных: ${verifiedCount}">✓</span>` : ''}
-                </div>`;
-        }
-        
-        riskDiv.innerHTML = html;
+        return this.hostsUIManager.renderHostRiskResult(hostId, data);
     }
 
-    // Загрузка начальных данных
     async loadInitialData() {
-        try {
-            // Загружаем настройки Impact
-            await this.loadImpactSettings();
-            // Загружаем настройки ExploitDB
-            await this.loadExploitDBSettings();
-            // Загружаем настройки Metasploit
-            await this.loadMetasploitSettings();
-        } catch (error) {
-            this.showNotification('Ошибка загрузки данных', 'error');
-        }
+        return this.setupManager.loadInitialData();
     }
 
-    // Заполнение формы настроек
     populateSettings(settings) {
-        const form = document.getElementById('settings-form');
-        if (!form) return;
-
-        Object.keys(settings).forEach(key => {
-            const input = form.querySelector(`[name="${key}"]`);
-            if (input) {
-                input.value = settings[key];
-            }
-        });
-
-        // Заполняем также форму Impact
-        const impactForm = document.getElementById('impact-form');
-        if (impactForm) {
-            Object.keys(settings).forEach(key => {
-                const input = impactForm.querySelector(`[name="${key}"]`);
-                if (input) {
-                    input.value = settings[key];
-                }
-            });
-            
-            // Инициализируем ползунок порога риска
-            const thresholdSlider = document.getElementById('risk-threshold');
-            const thresholdValue = document.getElementById('threshold-value');
-            if (thresholdSlider && thresholdValue) {
-                const threshold = settings['risk_threshold'] || '75';
-                thresholdSlider.value = threshold;
-                thresholdValue.textContent = threshold;
-                this.updateThresholdSlider(threshold);
-                // Сохраняем в localStorage
-                localStorage.setItem('risk_threshold', threshold);
-            }
-        }
+        return this.setupManager.populateSettings(settings);
     }
 
-    // Сохранение настроек
     async saveSettings() {
-        const form = document.getElementById('settings-form');
-        const formData = new FormData(form);
-        const settings = {};
-
-        for (let [key, value] of formData.entries()) {
-            settings[key] = value;
-        }
-
-        try {
-            const response = await fetch(this.getApiBasePath() + '/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(settings)
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showNotification('Настройки успешно сохранены', 'success');
-            } else {
-                this.showNotification('Ошибка сохранения настроек', 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка сохранения настроек', 'error');
-        }
+        return this.setupManager.saveSettings();
     }
 
-    // Загрузка настроек базы данных
     async loadDatabaseSettings() {
-        try {
-            const response = await fetch(this.getApiBasePath() + '/settings');
-            const settings = await response.json();
-            
-            // Заполняем форму настроек базы данных
-            this.populateSettings(settings);
-            
-        } catch (error) {
-        }
+        return this.setupManager.loadDatabaseSettings();
     }
 
-    // Загрузка настроек Impact
     async loadImpactSettings() {
-        try {
-            const response = await fetch(this.getApiBasePath() + '/settings');
-            const settings = await response.json();
-            
-            // Устанавливаем значения в форму
-            const form = document.getElementById('impact-form');
-            if (form) {
-                const resourceCriticality = document.getElementById('impact-resource-criticality');
-                const confidentialData = document.getElementById('impact-confidential-data');
-                const internetAccess = document.getElementById('impact-internet-access');
-                
-                if (resourceCriticality) {
-                    resourceCriticality.value = settings.impact_resource_criticality || 'Medium';
-                }
-                if (confidentialData) {
-                    confidentialData.value = settings.impact_confidential_data || 'Отсутствуют';
-                }
-                if (internetAccess) {
-                    internetAccess.value = settings.impact_internet_access || 'Недоступен';
-                }
-            }
-        } catch (error) {
-        }
+        return this.setupManager.loadImpactSettings();
     }
 
-    // Загрузка настроек ExploitDB
     async loadExploitDBSettings() {
-        try {
-            const response = await fetch(this.getApiBasePath() + '/settings');
-            const settings = await response.json();
-            
-            // Устанавливаем значения в форму ExploitDB
-            const exdbFields = [
-                'exdb_remote', 'exdb_webapps', 'exdb_dos', 'exdb_local', 'exdb_hardware'
-            ];
-            
-            for (const field of exdbFields) {
-                const input = document.querySelector(`[name="${field}"]`);
-                if (input && settings[field] !== undefined) {
-                    input.value = settings[field];
-                }
-            }
-        } catch (error) {
-        }
+        return this.setupManager.loadExploitDBSettings();
     }
 
-    // Загрузка настроек Metasploit
     async loadMetasploitSettings() {
-        try {
-            const response = await fetch(this.getApiBasePath() + '/settings');
-            const settings = await response.json();
-            
-            // Устанавливаем значения в форму Metasploit
-            const msfFields = [
-                'msf_excellent', 'msf_good', 'msf_normal', 'msf_average', 
-                'msf_low', 'msf_unknown', 'msf_manual'
-            ];
-            
-            for (const field of msfFields) {
-                const input = document.querySelector(`[name="${field}"]`);
-                if (input && settings[field] !== undefined) {
-                    input.value = settings[field];
-                }
-            }
-        } catch (error) {
-        }
+        return this.setupManager.loadMetasploitSettings();
     }
 
-    // Сохранение настроек Impact
     async saveImpactSettings() {
-        const form = document.getElementById('impact-form');
-        const formData = new FormData(form);
-        const settings = {};
-
-        for (let [key, value] of formData.entries()) {
-            settings[key] = value;
-        }
-
-        
-
-        try {
-            const response = await fetch(this.getApiBasePath() + '/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(settings)
-            });
-
-
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            const data = await response.json();
-
-            
-            if (data.success) {
-                // Сохраняем порог риска в localStorage для быстрого доступа
-                const threshold = formData.get('risk_threshold');
-                if (threshold) {
-                    localStorage.setItem('risk_threshold', threshold);
-                }
-                this.showNotification('Настройки Impact успешно сохранены', 'success');
-            } else {
-                this.showNotification('Ошибка сохранения настроек Impact', 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка сохранения настроек Impact', 'error');
-        }
+        return this.setupManager.saveImpactSettings();
     }
 
-    // Поиск CVE
-    async searchCVE() {
-        const cveId = document.getElementById('cve-id').value.trim();
-        if (!cveId) {
-            this.showNotification('Введите CVE ID', 'warning');
-            return;
-        }
-
-        // Валидация формата CVE
-        if (!/^CVE-\d{4}-\d+$/i.test(cveId)) {
-            console.log('CVE validation failed for:', cveId);
-            this.showNotification('Неверный формат CVE ID. Используйте формат: CVE-2023-1234', 'warning');
-            return;
-        }
-
-        try {
-            this.showNotification('Поиск CVE...', 'info');
-            
-            const response = await fetch(this.getApiBasePath() + `/cve/search/${cveId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    this.showNotification(`CVE ${cveId} не найдена в базе данных`, 'warning');
-                    this.displayCVENotFound(cveId);
-                    return;
-                }
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            // Проверяем успешность ответа
-            if (!data.success) {
-                this.showNotification(data.error || 'Ошибка получения данных CVE', 'error');
-                return;
-            }
-            
-            this.displayCVEResults(data);
-            this.showNotification(`Информация о ${cveId} загружена`, 'success');
-
-        } catch (error) {
-            this.showNotification('Ошибка поиска CVE', 'error');
-        }
+    async searchCVE(query) {
+        return this.cveService.searchCVE(query);
     }
 
-    // Отображение результатов поиска CVE
     displayCVEResults(data) {
-        const resultsContainer = document.getElementById('cve-results');
-        if (!resultsContainer) return;
-
-        // Проверяем, что данные корректны
-        if (!data || !data.cve || !data.cve.cve_id) {
-            this.showNotification('Ошибка: некорректные данные CVE', 'error');
-            return;
-        }
-
-        const cve = data.cve;
-        const epss = data.epss;
-        const exploitdb = data.exploitdb;
-        const metasploit = data.metasploit;
-        const risk = data.risk;
-
-        resultsContainer.innerHTML = `
-            <div class="cve-details">
-                <div class="cve-header">
-                    <h3>${cve.cve_id}</h3>
-                    <div class="cve-status">
-                        <span class="status-badge ${cve.status === 'PUBLISHED' ? 'published' : 'draft'}">${cve.status}</span>
-                    </div>
-                </div>
-                
-                <div class="cve-info-grid">
-                    <div class="info-card">
-                        <h4><i class="fas fa-info-circle"></i> Основная информация</h4>
-                        <div class="info-item">
-                            <strong>Описание:</strong>
-                            <p>${cve.description || 'Описание недоступно'}</p>
-                        </div>
-                        <div class="info-item">
-                            <strong>Дата публикации:</strong>
-                            <span>${cve.published_date || 'Не указана'}</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Дата последнего изменения:</strong>
-                            <span>${cve.last_modified_date || 'Не указана'}</span>
-                        </div>
-                    </div>
-
-                    <div class="info-card">
-                        <h4><i class="fas fa-shield-alt"></i> CVSS</h4>
-                        <div class="cvss-info">
-                            <div class="cvss-score">
-                                <span class="score-value ${this.getCVSSSeverityClass(cve.cvss_v3_score || cve.cvss_v2_score)}">
-                                    ${cve.cvss_v3_score || cve.cvss_v2_score || 'N/A'}
-                                </span>
-                                <span class="score-label">CVSS ${cve.cvss_v3_score ? 'v3' : 'v2'}</span>
-                            </div>
-                            <div class="cvss-vector">
-                                <strong>Вектор:</strong> ${cve.cvss_v3_vector || cve.cvss_v2_vector || 'N/A'}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-card">
-                        <h4><i class="fas fa-chart-line"></i> EPSS</h4>
-                        <div class="epss-info">
-                            <div class="epss-score">
-                                <span class="score-value">${epss ? (epss.epss * 100).toFixed(2) : 'N/A'}%</span>
-                                <span class="score-label">Вероятность эксплуатации</span>
-                            </div>
-                            <div class="epss-date">
-                                <strong>Дата:</strong> ${epss ? epss.date : 'N/A'}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-card">
-                        <h4><i class="fas fa-bug"></i> ExploitDB</h4>
-                        <div class="exploitdb-info">
-                            ${exploitdb && exploitdb.length > 0 ? `
-                                <div class="exploit-count">
-                                    <span class="count-value">${exploitdb.length}</span>
-                                    <span class="count-label">эксплойтов найдено</span>
-                                </div>
-                                <div class="exploit-types">
-                                    ${exploitdb.map(exp => `
-                                        <span class="exploit-type ${exp.type.toLowerCase()}">${exp.type}</span>
-                                    `).join('')}
-                                </div>
-                                <div class="exploit-list">
-                                    ${exploitdb.map(exp => `
-                                        <div class="exploit-item">
-                                            <div class="exploit-header">
-                                                <span class="exploit-id">#${exp.exploit_id}</span>
-                                                <span class="exploit-type-badge ${exp.type.toLowerCase()}">${exp.type}</span>
-                                                <span class="exploit-date">${exp.date_published}</span>
-                                            </div>
-                                            <div class="exploit-description">${exp.description}</div>
-                                            <div class="exploit-author">Автор: ${exp.author}</div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<p>Эксплойты не найдены</p>'}
-                        </div>
-                    </div>
-
-                    <div class="info-card">
-                        <h4><i class="fas fa-tools"></i> Metasploit</h4>
-                        <div class="metasploit-info">
-                            ${metasploit && metasploit.length > 0 ? `
-                                <div class="module-count">
-                                    <span class="count-value">${metasploit.length}</span>
-                                    <span class="count-label">модулей найдено</span>
-                                </div>
-                                <div class="module-ranks">
-                                    ${metasploit.map(mod => `
-                                        <span class="module-rank ${mod.rank.toLowerCase()}">${mod.rank}</span>
-                                    `).join('')}
-                                </div>
-                                <div class="module-list">
-                                    ${metasploit.map(mod => `
-                                        <div class="module-item">
-                                            <div class="module-header">
-                                                <span class="module-id">#${mod.id}</span>
-                                                <span class="module-rank-badge ${mod.rank.toLowerCase()}">${mod.rank}</span>
-                                                <span class="module-type">${mod.type}</span>
-                                            </div>
-                                            <div class="module-name">${mod.name}</div>
-                                            <div class="module-path">${mod.module_name}</div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<p>Модули не найдены</p>'}
-                        </div>
-                    </div>
-
-                    <div class="info-card risk-card">
-                        <h4><i class="fas fa-exclamation-triangle"></i> Расчет риска</h4>
-                        <div class="risk-info">
-                            <div class="risk-score">
-                                <span class="score-value ${this.getRiskSeverityClass(risk.risk_score)}">
-                                    ${risk.risk_score}%
-                                </span>
-                                <span class="score-label">Общий риск</span>
-                            </div>
-                            <div class="risk-breakdown">
-                                <div class="risk-item">
-                                    <strong>EPSS:</strong> ${(risk.epss * 100).toFixed(2)}%
-                                </div>
-                                <div class="risk-item">
-                                    <strong>CVSS фактор:</strong> ${risk.cvss_factor.toFixed(2)}
-                                </div>
-                                <div class="risk-item">
-                                    <strong>Impact:</strong> ${risk.impact}
-                                </div>
-                                <div class="risk-item">
-                                    <strong>CVE параметр:</strong> ${risk.cve_param.toFixed(2)}
-                                </div>
-                                <div class="risk-item">
-                                    <strong>ExploitDB параметр:</strong> ${risk.exdb_param.toFixed(2)}
-                                </div>
-                                <div class="risk-item">
-                                    <strong>Metasploit параметр:</strong> ${risk.msf_param.toFixed(2)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        resultsContainer.style.display = 'block';
+        return this.cveService.displayCVEResults(data);
     }
 
     // Отображение сообщения о том, что CVE не найдена
     displayCVENotFound(cveId) {
-        const resultsContainer = document.getElementById('cve-results');
-        if (!resultsContainer) return;
-
-        resultsContainer.innerHTML = `
-            <div class="cve-not-found">
-                <div class="not-found-icon">
-                    <i class="fas fa-search"></i>
-                </div>
-                <h3>CVE ${cveId} не найдена</h3>
-                <p>Данная уязвимость не найдена в базе данных. Возможные причины:</p>
-                <ul>
-                    <li>CVE ID введен неверно</li>
-                    <li>Уязвимость еще не добавлена в базу данных</li>
-                    <li>Уязвимость была удалена или архивирована</li>
-                </ul>
-            </div>
-        `;
-
-        resultsContainer.style.display = 'block';
+        return this.cveService.displayCVENotFound(cveId);
     }
 
-    // Получение класса для CVSS оценки
     getCVSSSeverityClass(score) {
-        if (!score) return 'unknown';
-        if (score >= 9.0) return 'critical';
-        if (score >= 7.0) return 'high';
-        if (score >= 4.0) return 'medium';
-        return 'low';
+        return this.cveService.getCVSSSeverityClass(score);
     }
 
-    // Получение класса для оценки риска
     getRiskSeverityClass(score) {
-        if (score >= 80) return 'critical';
-        if (score >= 60) return 'high';
-        if (score >= 40) return 'medium';
-        return 'low';
+        return this.cveService.getRiskSeverityClass(score);
     }
 
-    // Обновление цвета ползунка порога риска
     updateThresholdSlider(value) {
-        const slider = document.getElementById('risk-threshold');
-        if (slider) {
-            const percentage = value + '%';
-            slider.style.background = `linear-gradient(to right, var(--success-color) 0%, var(--success-color) ${percentage}, var(--error-color) ${percentage}, var(--error-color) 100%)`;
-        }
+        return this.setupManager.updateThresholdSlider(value);
     }
 
     // Проверка подключения к базе данных
     async testConnection() {
-        try {
-            const btn = document.getElementById('test-connection');
-            if (!btn) {
-                this.showNotification('❌ Кнопка проверки подключения не найдена', 'error');
-                return;
-            }
-            
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
-            btn.disabled = true;
-
-            const response = await fetch(this.getApiBasePath() + '/health');
-            const data = await response.json();
-            
-            if (data.status === 'healthy' && data.database === 'connected') {
-                this.showNotification('Подключение к базе данных успешно', 'success');
-            } else {
-                this.showNotification('Ошибка подключения к базе данных', 'error');
-            }
-        } catch (error) {
-            this.showNotification('❌ Ошибка подключения к базе данных', 'error');
-        } finally {
-            const btn = document.getElementById('test-connection');
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-database"></i> Проверить подключение';
-                btn.disabled = false;
-            }
-        }
+        return this.setupManager.testConnection();
     }
 
-    // Очистка таблицы хостов
     async clearHosts() {
-        if (!confirm('Вы уверены, что хотите удалить все записи хостов? Это действие нельзя отменить.')) {
-            return;
-        }
-
-        try {
-            const btn = document.getElementById('clear-hosts-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Очистка...';
-            btn.disabled = true;
-
-            const response = await fetch(this.getApiBasePath() + '/hosts/clear', {
-                method: 'POST'
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                this.showNotification('Таблица хостов очищена успешно!', 'success');
-                this.updateHostsStatus();
-            } else {
-                this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка очистки хостов', 'error');
-        } finally {
-            const btn = document.getElementById('clear-hosts-btn');
-            btn.innerHTML = '<i class="fas fa-trash"></i> Очистить хосты';
-            btn.disabled = false;
-        }
+        return this.hostsService.clearHosts();
     }
 
-    // Очистка таблицы EPSS
     async clearEPSS() {
-        if (!confirm('Вы уверены, что хотите удалить все записи EPSS? Это действие нельзя отменить.')) {
-            return;
-        }
-
-        try {
-            const btn = document.getElementById('clear-epss-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Очистка...';
-            btn.disabled = true;
-
-            const response = await fetch(this.getApiBasePath() + '/epss/clear', {
-                method: 'POST'
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                this.showNotification('Таблица EPSS очищена успешно!', 'success');
-                this.updateEPSSStatus();
-            } else {
-                this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка очистки EPSS', 'error');
-        } finally {
-            const btn = document.getElementById('clear-epss-btn');
-            btn.innerHTML = '<i class="fas fa-trash"></i> Очистить EPSS';
-            btn.disabled = false;
-        }
+        return this.epssService.clearEPSS();
     }
 
-    // Очистка таблицы ExploitDB
     async clearExploitDB() {
-        if (!confirm('Вы уверены, что хотите удалить все записи ExploitDB? Это действие нельзя отменить.')) {
-            return;
-        }
-
-        try {
-            const btn = document.getElementById('clear-exploitdb-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Очистка...';
-            btn.disabled = true;
-
-            const response = await fetch(this.getApiBasePath() + '/exploitdb/clear', {
-                method: 'POST'
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                this.showNotification('Таблица ExploitDB очищена успешно!', 'success');
-                this.updateExploitDBStatus();
-            } else {
-                this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка очистки ExploitDB', 'error');
-        } finally {
-            const btn = document.getElementById('clear-exploitdb-btn');
-            btn.innerHTML = '<i class="fas fa-trash"></i> Очистить ExploitDB';
-            btn.disabled = false;
-        }
+        return this.exploitdbService.clearExploitDB();
     }
 
-    // Очистка таблицы CVE
     async clearCVE() {
-        if (!confirm('Вы уверены, что хотите удалить все записи CVE? Это действие нельзя отменить.')) {
-            return;
-        }
-
-        try {
-            const btn = document.getElementById('clear-cve-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Очистка...';
-            btn.disabled = true;
-
-            const response = await fetch(this.getApiBasePath() + '/cve/clear', {
-                method: 'POST'
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                this.showNotification('Таблица CVE очищена успешно!', 'success');
-                this.updateCVEStatus();
-            } else {
-                this.showNotification(`Ошибка очистки: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            this.showNotification('Ошибка очистки CVE', 'error');
-        } finally {
-            const btn = document.getElementById('clear-cve-btn');
-            btn.innerHTML = '<i class="fas fa-trash"></i> Очистить CVE';
-            btn.disabled = false;
-        }
+        return this.cveService.clearCVE();
     }
 
-
+    async clearMetasploit() {
+        return this.metasploitService.clearMetasploitData();
+    }
 
     // Показ уведомлений
     showNotification(message, type = 'info') {
@@ -2348,9 +721,9 @@ class VulnAnalizer {
         notifications.appendChild(notification);
 
         // Удаляем уведомление через 5 секунд
-        setTimeout(() => {
+        this.delay(5000).then(() => {
             notification.remove();
-        }, 5000);
+        });
     }
 
     // Новые методы для улучшенного статусбара
@@ -2453,8 +826,6 @@ class VulnAnalizer {
         `;
     }
 
-
-
     async loadAppVersion() {
         try {
             const response = await fetch(`${this.getApiBasePath()}/version`);
@@ -2465,9 +836,9 @@ class VulnAnalizer {
                 versionElement.textContent = `v${data.version}`;
             }
         } catch (error) {
+            console.warn('Ошибка загрузки версии приложения:', error);
         }
     }
-
 
     setupSidebar() {
         const sidebar = document.getElementById('sidebar');
@@ -2509,8 +880,6 @@ class VulnAnalizer {
             updateToggleIcon(isNowCollapsed);
         });
     }
-
-
 
     // Функции для работы с прогресс-баром импорта
     showImportProgress() {
@@ -2565,8 +934,6 @@ class VulnAnalizer {
     }
 
     startBackgroundTaskMonitoring(taskId) {
-
-        
         // Показываем прогресс-бар
         this.showImportProgress();
         
@@ -2591,12 +958,13 @@ class VulnAnalizer {
                         }
                         
                         // Скрываем прогресс-бар через 3 секунды
-                        setTimeout(() => {
+                        this.delay(3000).then(() => {
                             this.hideImportProgress();
-                        }, 3000);
+                        });
                     }
                 }
             } catch (err) {
+                console.error('Ошибка мониторинга импорта:', err);
             }
         }, 2000); // Обновляем каждые 2 секунды
         
@@ -2674,407 +1042,47 @@ class VulnAnalizer {
     }
 
     startBackgroundUpdateMonitoring() {
-        // Очищаем предыдущий интервал
-        if (this.backgroundUpdateInterval) {
-            clearInterval(this.backgroundUpdateInterval);
-            this.backgroundUpdateInterval = null;
-        }
-
-
-        
-        this.backgroundUpdateInterval = setInterval(async () => {
-            try {
-    
-                const data = await fetch(this.getApiBasePath() + '/hosts/update-data-progress').then(r => r.json());
-                
-    
-                
-                // Обновляем UI только если есть данные
-                if (data && typeof data === 'object') {
-                    this.updateBackgroundUpdateProgress(data);
-
-                    // Останавливаем интервал при завершении
-                    if (data.status === 'completed' || data.status === 'error' || data.status === 'idle') {
-            
-                        this.stopBackgroundUpdateMonitoring();
-                        
-                        // Показываем уведомление о завершении только если это новое завершение
-                        if (data.status === 'completed' && !this.lastNotifiedCompletionTime) {
-                            this.showNotification(`Обновление завершено: ${data.updated_hosts || 0} записей обновлено`, 'success');
-                            this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
-                            localStorage.setItem('app_last_notification_time', this.lastNotifiedCompletionTime);
-                        } else if (data.status === 'error' && !this.lastNotifiedCompletionTime) {
-                            this.showNotification(`Ошибка обновления: ${data.error_message || 'Неизвестная ошибка'}`, 'error');
-                            this.lastNotifiedCompletionTime = data.end_time || data.last_update || Date.now();
-                            localStorage.setItem('app_last_notification_time', this.lastNotifiedCompletionTime);
-                        }
-                        
-                        // Скрываем прогресс-бар через 3 секунды
-                        setTimeout(() => {
-                            this.hideBackgroundUpdateProgress();
-                        }, 3000);
-                    }
-                }
-            } catch (err) {
-                this.stopBackgroundUpdateMonitoring();
-                
-                // Скрываем прогресс-бар при ошибке
-                setTimeout(() => {
-                    this.hideBackgroundUpdateProgress();
-                }, 3000);
-            }
-        }, 2000);
+        return this.setupManager.startBackgroundUpdateMonitoring();
     }
 
     stopBackgroundUpdateMonitoring() {
-        if (this.backgroundUpdateInterval) {
-            clearInterval(this.backgroundUpdateInterval);
-            this.backgroundUpdateInterval = null;
-    
-        }
+        return this.setupManager.stopBackgroundUpdateMonitoring();
     }
     
     updateBackgroundTaskProgress(task) {
-        const container = document.getElementById('import-progress-container');
-        if (!container) return;
-
-        // Обновляем классы для анимации
-        container.className = 'progress-info ' + task.status;
-
-        // Обновляем текст текущего шага
-        const currentStepText = document.getElementById('current-step-text');
-        if (currentStepText) {
-            currentStepText.textContent = task.current_step || 'Обработка...';
-        }
-
-        // Обновляем общий прогресс
-        const overallProgressText = document.getElementById('overall-progress-text');
-        if (overallProgressText) {
-            // Используем progress_percent из API для правильного расчета
-            const progress = task.progress_percent !== undefined ? 
-                Math.round(task.progress_percent) : 
-                (task.total_items > 0 ? Math.round((task.processed_items / task.total_items) * 100) : 0);
-            overallProgressText.textContent = progress + '%';
-        }
-
-        // Обновляем прогресс-бар
-        const progressBarFill = document.getElementById('progress-bar-fill');
-        if (progressBarFill) {
-            // Используем progress_percent из API для правильного расчета
-            const progress = task.progress_percent !== undefined ? 
-                task.progress_percent : 
-                (task.total_items > 0 ? (task.processed_items / task.total_items) * 100 : 0);
-            progressBarFill.style.width = progress + '%';
-        }
-
-        // Обновляем количество записей
-        const processedRecordsText = document.getElementById('processed-records-text');
-        if (processedRecordsText && task.processed_records !== undefined) {
-            processedRecordsText.textContent = task.processed_records.toLocaleString();
-        }
-
-        const totalRecordsText = document.getElementById('total-records-text');
-        if (totalRecordsText && task.total_records !== undefined) {
-            totalRecordsText.textContent = task.total_records.toLocaleString();
-        }
+        return this.setupManager.updateBackgroundTaskProgress(task);
     }
 
     formatTime(seconds) {
-        if (!seconds || seconds < 0) return '-';
-        
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = Math.floor(seconds % 60);
-        
-        if (hours > 0) {
-            return `${hours}ч ${minutes}м ${secs}с`;
-        } else if (minutes > 0) {
-            return `${minutes}м ${secs}с`;
-        } else {
-            return `${secs}с`;
-        }
+        return this.setupManager.formatTime(seconds);
     }
-
-    // Функции для работы с фоновым обновлением
-    showBackgroundUpdateProgress() {
-        const container = document.getElementById('background-update-progress-container');
-        if (container) {
-            container.style.display = 'block';
-        }
-    }
-
-    hideBackgroundUpdateProgress() {
-        const container = document.getElementById('background-update-progress-container');
-        if (container) {
-            container.style.display = 'none';
-        }
-    }
-
-
-
-
-
-
 
     async loadBackgroundTasksData() {
-        try {
-    
-            const resp = await fetch(this.getApiBasePath() + '/background-tasks/status');
-            if (resp.ok) {
-                const data = await resp.json();
-    
-                
-                this.updateBackgroundTasksUI(data);
-            } else {
-                this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
-            }
-        } catch (err) {
-            this.showNotification('Ошибка загрузки данных о фоновых задачах', 'error');
-        }
+        return this.setupManager.loadBackgroundTasksData();
     }
 
     updateBackgroundTasksUI(data) {
-        // Обновляем список активных задач
-        const activeTasksContainer = document.getElementById('active-tasks-list');
-        if (activeTasksContainer) {
-            if (data.active_tasks && data.active_tasks.length > 0) {
-                activeTasksContainer.innerHTML = data.active_tasks.map(task => `
-                    <div class="task-item active-task">
-                        <div class="task-header">
-                            <h4>${task.task_type}</h4>
-                            <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
-                        </div>
-                        <div class="task-progress">
-                            <div class="operation-progress-bar">
-                                <div class="operation-progress-fill" style="width: ${task.progress_percent}%"></div>
-                            </div>
-                            <span class="operation-progress-text">${task.progress_percent}%</span>
-                        </div>
-                        <div class="task-details">
-                            <p><strong>Текущий шаг:</strong> ${task.current_step || 'Инициализация...'}</p>
-                            <p><strong>Обработано:</strong> ${task.processed_records || task.processed_items}/${task.total_records || task.total_items}</p>
-                            <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
-                            <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
-                        </div>
-                        <div class="task-actions">
-                            <button class="btn btn-danger btn-sm" onclick="window.vulnAnalizer.cancelTask('${task.task_type}')">
-                                <i class="fas fa-stop"></i> Отменить
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                activeTasksContainer.innerHTML = '<p class="no-tasks">Нет активных задач</p>';
-            }
-        }
-
-        // Обновляем список завершенных задач
-        const completedTasksContainer = document.getElementById('completed-tasks-list');
-        if (completedTasksContainer) {
-            if (data.recent_completed_tasks && data.recent_completed_tasks.length > 0) {
-                completedTasksContainer.innerHTML = data.recent_completed_tasks.map(task => `
-                    <div class="task-item completed-task">
-                        <div class="task-header">
-                            <h4>${task.task_type}</h4>
-                            <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
-                        </div>
-                        <div class="task-details">
-                            <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
-                            <p><strong>Обработано:</strong> ${task.processed_records || task.processed_items}/${task.total_records || task.total_items}</p>
-                            <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
-                            <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
-                            <p><strong>Завершено:</strong> ${task.end_time ? new Date(task.end_time).toLocaleString() : 'Неизвестно'}</p>
-                            ${task.error_message ? `<p><strong>Ошибка:</strong> <span class="error-text">${task.error_message}</span></p>` : ''}
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                completedTasksContainer.innerHTML = '<p class="no-tasks">Нет завершенных задач</p>';
-            }
-        }
-
-        // Обновляем статистику
-        const statsContainer = document.getElementById('tasks-stats');
-        if (statsContainer) {
-            statsContainer.innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number">${data.total_active}</div>
-                        <div class="stat-label">Активных задач</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${data.total_completed}</div>
-                        <div class="stat-label">Завершенных задач</div>
-                    </div>
-                </div>
-            `;
-        }
+        return this.setupManager.updateBackgroundTasksUI(data);
     }
 
     getStatusText(status) {
-        const statusMap = {
-            'idle': 'Ожидает',
-            'processing': 'Выполняется',
-            'running': 'Запущена',
-            'initializing': 'Инициализация',
-            'completed': 'Завершена',
-            'error': 'Ошибка',
-            'cancelled': 'Отменена'
-        };
-        return statusMap[status] || status;
+        return this.setupManager.getStatusText(status);
     }
 
     async cancelTask(taskType) {
-        try {
-            const resp = await fetch(this.getApiBasePath() + `/background-tasks/${taskType}/cancel`, {
-                method: 'POST'
-            });
-            
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data.success) {
-                    this.showNotification(`Задача ${taskType} отменена`, 'success');
-                    // Перезагружаем данные
-                    this.loadBackgroundTasksData();
-                } else {
-                    this.showNotification(data.message || 'Ошибка отмены задачи', 'error');
-                }
-            } else {
-                this.showNotification('Ошибка отмены задачи', 'error');
-            }
-        } catch (err) {
-            this.showNotification('Ошибка отмены задачи', 'error');
-        }
+        return this.setupManager.cancelTask(taskType);
     }
 
     async checkActiveImportTasks() {
-        try {
-    
-            
-            // Проверяем импорт
-            const importResponse = await fetch(this.getApiBasePath() + '/hosts/import-progress', {
-                method: 'GET',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
-            
-            if (importResponse.ok) {
-                const importData = await importResponse.json();
-                
-                if (importData && importData.status && importData.status !== 'idle' && importData.status !== 'completed' && importData.status !== 'error' && importData.status !== 'cancelled') {
-        
-                    
-                    // Показываем уведомление о том, что есть активная задача
-                    this.showNotification(`Обнаружена активная задача импорта: ${importData.current_step}`, 'info');
-                    
-                    // Показываем прогресс-бар если мы на странице хостов
-                    const hostsPage = document.getElementById('hosts-page');
-                    if (hostsPage && hostsPage.classList.contains('active')) {
-                        this.showImportProgress();
-                        this.updateImportProgress(
-                            importData.status || 'unknown',
-                            importData.current_step || '',
-                            importData.progress || 0,
-                            importData.current_step_progress || 0,
-                            importData.total_records || 0,
-                            importData.processed_records || 0,
-                            importData.error_message || null
-                        );
-                        this.startBackgroundTaskMonitoring(importData.task_id);
-                    }
-                }
-            }
-            
-            // Проверяем обновление
-            const updateResponse = await fetch(this.getApiBasePath() + '/hosts/update-data-progress', {
-                method: 'GET',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
-            
-            if (updateResponse.ok) {
-                const updateData = await updateResponse.json();
-                
-                if (updateData && updateData.status && updateData.status !== 'idle' && updateData.status !== 'completed' && updateData.status !== 'error' && updateData.status !== 'cancelled') {
-        
-                    
-                    // Показываем уведомление о том, что есть активная задача обновления
-                    this.showNotification(`Обнаружена активная задача обновления: ${updateData.current_step}`, 'info');
-                    
-                    // Показываем прогресс-бар если мы на странице хостов
-                    const hostsPage = document.getElementById('hosts-page');
-                    if (hostsPage && hostsPage.classList.contains('active')) {
-                        this.showBackgroundUpdateProgress();
-                        this.updateBackgroundUpdateProgress(updateData);
-                        this.startBackgroundUpdateMonitoring();
-                    }
-                }
-            }
-        } catch (err) {
-        }
+        return this.setupManager.checkActiveImportTasks();
     }
 
-    setupCollapsibleBlocks() {
-            const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
-        
-        collapsibleHeaders.forEach(header => {
-            // Инициализируем стрелки как свернутые по умолчанию
-            const arrow = header.querySelector('.collapsible-arrow i');
-            if (arrow) {
-                arrow.style.transform = 'rotate(-90deg)';
-            }
-            header.classList.add('collapsed');
-            
-            // Инициализируем контент как свернутый
-            const targetId = header.getAttribute('data-target');
-            const content = document.getElementById(targetId);
-            if (content) {
-                content.style.display = 'none';
-            }
-            
-            header.addEventListener('click', (e) => {
-                // Предотвращаем срабатывание при клике на форму внутри
-                if (e.target.closest('form') || (e.target.closest('button') && !e.target.closest('.formula-btn'))) {
-                    return;
-                }
-                const targetId = header.getAttribute('data-target');
-                const content = document.getElementById(targetId);
-                
-                if (content) {
-                    const isCollapsed = content.style.display === 'none' || content.style.display === '';
-                    
-                    if (isCollapsed) {
-                        // Разворачиваем блок
-                        content.style.display = 'block';
-                        arrow.style.transform = 'rotate(0deg)';
-                        header.classList.remove('collapsed');
-                    } else {
-                        // Сворачиваем блок
-                        content.style.display = 'none';
-                        arrow.style.transform = 'rotate(-90deg)';
-                        header.classList.add('collapsed');
-                    }
-                }
-            });
-        });
-    }
+    // setupCollapsibleBlocks перенесен в SetupManager
 }
 
 // Инициализация приложения при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     window.vulnAnalizer = new VulnAnalizer();
-    
-    // Проверяем активную страницу из URL и проверяем активные задачи
-    setTimeout(() => {
-        const currentPage = window.location.hash.replace('#', '') || 'analysis';
-        if (currentPage === 'hosts') {
-            window.vulnAnalizer.checkActiveImportTasks();
-        }
-    }, 500);
     
     // Обработчик изменения хэша URL
     window.addEventListener('hashchange', () => {

@@ -1,6 +1,6 @@
 /**
  * Модуль для управления настройками
- * v=3.0
+ * v=3.2
  */
 class SettingsModule {
     constructor(app) {
@@ -151,22 +151,13 @@ class SettingsModule {
         }
 
         // Настройка выпадающего меню настроек
-        const settingsToggle = document.getElementById('settings-toggle');
         const settingsDropdown = document.getElementById('settings-dropdown');
         const usersLink = document.getElementById('users-link');
+        const backgroundTasksLink = document.getElementById('background-tasks-link');
+        const settingsLink = document.getElementById('settings-link');
 
-        // Переключение выпадающего меню настроек
-        if (settingsToggle) {
-            settingsToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Закрываем меню пользователя при открытии настроек
-                const userDropdown = document.getElementById('user-dropdown');
-                if (userDropdown) {
-                    userDropdown.classList.remove('show');
-                }
-                settingsDropdown.classList.toggle('show');
-            });
-        }
+        // Обработчик для кнопки настроек перенесен в SetupManager.js
+        // чтобы избежать дублирования обработчиков
 
         // Закрытие при клике вне меню настроек
         
@@ -195,18 +186,39 @@ class SettingsModule {
                 }
             });
         }
-        document.addEventListener('click', (e) => {
-            if (settingsToggle && !settingsToggle.contains(e.target) && !settingsDropdown.contains(e.target)) {
-                settingsDropdown.classList.remove('show');
-            }
-        });
+        // Обработчик закрытия меню настроек перенесен в SetupManager.js
+        // чтобы избежать дублирования обработчиков
 
         // Обработка клика по пункту "Пользователи"
         if (usersLink) {
             usersLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 settingsDropdown.classList.remove('show');
-                this.app.auth.openUsersPage();
+                this.app.authManager.openUsersPage();
+            });
+        }
+
+        // Обработка клика по пункту "Управление очередями"
+        if (backgroundTasksLink) {
+            backgroundTasksLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                // Переключаемся на страницу фоновых задач
+                if (this.app && this.app.uiManager) {
+                    this.app.uiManager.switchPage('background-tasks');
+                }
+            });
+        }
+
+        // Обработка клика по пункту "Настройки системы"
+        if (settingsLink) {
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsDropdown.classList.remove('show');
+                // Переключаемся на страницу настроек
+                if (this.app && this.app.uiManager) {
+                    this.app.uiManager.switchPage('settings');
+                }
             });
         }
     }

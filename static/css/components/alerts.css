@@ -282,8 +282,8 @@
     }
 }
 
-/* Fixed Notifications (for backward compatibility) */
-.notification {
+/* Fixed Notifications (for backward compatibility) - только для уведомлений вне контейнера */
+.notification:not(.notification-container .notification) {
     position: fixed;
     top: var(--spacing-lg);
     right: var(--spacing-lg);
@@ -299,22 +299,22 @@
     animation: slideIn 0.3s ease-out;
 }
 
-.notification.success {
+.notification:not(.notification-container .notification).success {
     background-color: var(--success-color);
     color: var(--text-inverse);
 }
 
-.notification.error {
+.notification:not(.notification-container .notification).error {
     background-color: var(--danger-color);
     color: var(--text-inverse);
 }
 
-.notification.warning {
+.notification:not(.notification-container .notification).warning {
     background-color: var(--warning-color);
     color: var(--text-inverse);
 }
 
-.notification.info {
+.notification:not(.notification-container .notification).info {
     background-color: var(--info-color);
     color: var(--text-inverse);
 }

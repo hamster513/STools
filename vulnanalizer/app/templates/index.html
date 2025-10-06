@@ -9,9 +9,11 @@
     <!-- Основные CSS файлы -->
     <link rel="stylesheet" href="/static/css/main.css?v=6.26">
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.4">
-    <link rel="stylesheet" href="/static/css/components/cve-search.css?v=1.0">
+    <link rel="stylesheet" href="/static/css/components/cve-search.css?v=1.1">
+    <link rel="stylesheet" href="/static/css/components/modals.css?v=1.5">
             <link rel="stylesheet" href="/vulnanalizer/css-debug/collapsible.css?v=4.4&nocache={{ range(1, 999999) | random }}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Font Awesome - локальная версия с fallback на CDN -->
+    <link href="/static/css/fontawesome/all.min.css" rel="stylesheet" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css'">
     
     <!-- Мета-теги для кэширования -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1349,10 +1351,10 @@
     <div id="notifications" class="notifications"></div>
 
     <!-- Модальное окно для описания CVE -->
-    <div id="cve-modal" class="modal-content" style="display: none;">
+    <div id="cve-modal" style="display: none;">
         <div class="modal-header">
             <h3 id="cve-modal-title">Описание CVE</h3>
-            <span class="close" id="cve-modal-close">&times;</span>
+            <button class="close" id="cve-modal-close" type="button" aria-label="Закрыть">&times;</button>
         </div>
         <div class="modal-body">
             <div id="cve-modal-loading" style="text-align: center; padding: 2rem;">
@@ -1472,7 +1474,6 @@
     </div>
 
     <!-- Скрипты -->
-    <script src="/static/js/ui-manager.js?v=6.4"></script>
         <script src="/vulnanalizer/static/js/modules/notifications.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/api.js?v=2.4"></script>
     <script src="/vulnanalizer/static/js/modules/auth.js?v=2.1"></script>
@@ -1483,7 +1484,7 @@
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
                     <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
         <script src="/vulnanalizer/static/js/modules/risk-modal.js?v=1.6"></script>
-        <script src="/vulnanalizer/static/js/modules/settings.js?v=3.1"></script>
+        <script src="/vulnanalizer/static/js/modules/settings.js?v=3.2"></script>
         <script src="/vulnanalizer/static/js/modules/base-modal.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
@@ -1493,7 +1494,25 @@
 <script src="/vulnanalizer/static/js/modules/vm.js?v=3.8"></script>
         <script src="/vulnanalizer/static/js/modules/navigation.js?v=2.1"></script>
 <script src="/vulnanalizer/static/js/modules/utils.js?v=2.1"></script>
-            <script src="/vulnanalizer/static/js/app.js?v=7.1"></script>
+    
+    <!-- Новые модули v7.1 -->
+    <script src="/vulnanalizer/static/js/modules/core/ApiManager.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/core/StorageManager.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/core/EventManager.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/core/AuthManager.js?v=7.5"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/NotificationManager.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/SetupManager.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/UIManager.js?v=7.2"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/HostsUIManager.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/utils/Helpers.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/services/HostsService.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/services/CVEService.js?v=7.2"></script>
+    <script src="/vulnanalizer/static/js/modules/services/EPSSService.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/services/ExploitDBService.js?v=7.1"></script>
+    <script src="/vulnanalizer/static/js/modules/services/MetasploitService.js?v=7.1"></script>
+    
+    <!-- Основное приложение -->
+    <script src="/vulnanalizer/static/js/app.js?v=7.1"></script>
 
     <!-- Инициализация UI -->
     <script>

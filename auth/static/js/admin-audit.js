@@ -74,7 +74,7 @@ class AdminAudit {
 
     async loadStats() {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -88,6 +88,7 @@ class AdminAudit {
                 this.stats = await response.json();
                 this.renderStats();
             } else if (response.status === 401) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             }
@@ -176,7 +177,7 @@ class AdminAudit {
 
     async loadLogs() {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -201,6 +202,7 @@ class AdminAudit {
                 this.logs = data.logs || [];
                 this.renderLogs();
             } else if (response.status === 401) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             }
@@ -255,7 +257,7 @@ class AdminAudit {
 
     async loadLoginAttempts() {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -278,6 +280,7 @@ class AdminAudit {
                 this.loginAttempts = data.attempts || [];
                 this.renderLoginAttempts();
             } else if (response.status === 401) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             }
@@ -331,7 +334,7 @@ class AdminAudit {
 
     async loadSessions() {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -346,6 +349,7 @@ class AdminAudit {
                 this.sessions = data.sessions || [];
                 this.renderSessions();
             } else if (response.status === 401) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             }

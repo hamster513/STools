@@ -307,6 +307,22 @@ class AuthDatabase:
                 print(f"Error getting all permissions: {e}")
                 return []
 
+    async def get_role_permissions(self, role_id: int) -> List[Dict]:
+        """Получение прав роли"""
+        async with self.pool.acquire() as conn:
+            try:
+                permissions = await conn.fetch('''
+                    SELECT p.id, p.name, p.description, p.resource, p.action, p.created_at
+                    FROM auth.permissions p
+                    JOIN auth.role_permissions rp ON p.id = rp.permission_id
+                    WHERE rp.role_id = $1
+                    ORDER BY p.resource, p.action
+                ''', role_id)
+                return [dict(permission) for permission in permissions]
+            except Exception as e:
+                print(f"Error getting all permissions: {e}")
+                return []
+
     async def create_role(self, name: str, description: str = None) -> Dict:
         """Создание новой роли"""
         async with self.pool.acquire() as conn:

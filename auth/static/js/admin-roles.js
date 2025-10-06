@@ -5,6 +5,7 @@ class AdminRoles {
     constructor() {
         this.roles = [];
         this.permissions = [];
+        this.rolePermissions = [];
         this.filteredRoles = [];
         this.currentRoleId = null;
         this.init();
@@ -39,7 +40,7 @@ class AdminRoles {
 
     async loadData() {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -64,6 +65,7 @@ class AdminRoles {
                 
                 this.filterRoles();
             } else if (rolesResponse.status === 401 || permissionsResponse.status === 401) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             } else {
@@ -121,14 +123,14 @@ class AdminRoles {
                     </div>
                 </div>
                 <div class="role-actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminRoles.editRole(${role.id})">
+                    <button class="btn btn-sm btn-primary" onclick="editRole(${role.id})">
                         <i class="fas fa-edit"></i> Редактировать
                     </button>
-                    <button class="btn btn-sm btn-info" onclick="adminRoles.managePermissions(${role.id})">
+                    <button class="btn btn-sm btn-info" onclick="managePermissions(${role.id})">
                         <i class="fas fa-key"></i> Права
                     </button>
                     ${!role.is_system ? `
-                        <button class="btn btn-sm btn-danger" onclick="adminRoles.deleteRole(${role.id})">
+                        <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.id})">
                             <i class="fas fa-trash"></i> Удалить
                         </button>
                     ` : ''}
@@ -173,7 +175,7 @@ class AdminRoles {
         const roleData = Object.fromEntries(formData.entries());
         
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             const roleId = roleData.id;
             const url = roleId ? `/auth/api/roles/${roleId}` : '/auth/api/roles';
             const method = roleId ? 'PUT' : 'POST';
@@ -213,7 +215,7 @@ class AdminRoles {
         this.openPermissionsModal();
     }
 
-    openPermissionsModal() {
+    async openPermissionsModal() {
         const modal = document.getElementById('permissions-modal');
         const role = this.roles.find(r => r.id === this.currentRoleId);
         
@@ -221,6 +223,8 @@ class AdminRoles {
             document.getElementById('permissions-modal-title').textContent = `Права роли: ${role.name}`;
         }
         
+        // Загружаем права роли
+        await this.loadRolePermissions();
         this.renderPermissions();
         modal.style.display = 'flex';
     }
@@ -228,6 +232,30 @@ class AdminRoles {
     closePermissionsModal() {
         document.getElementById('permissions-modal').style.display = 'none';
         this.currentRoleId = null;
+    }
+
+    async loadRolePermissions() {
+        try {
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
+            if (!token || !this.currentRoleId) return;
+
+            const response = await fetch(`/auth/api/roles/${this.currentRoleId}/permissions`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.rolePermissions = data.permissions || [];
+            } else {
+                console.error('Ошибка загрузки прав роли:', response.status);
+                this.rolePermissions = [];
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки прав роли:', error);
+            this.rolePermissions = [];
+        }
     }
 
     renderPermissions() {
@@ -246,16 +274,19 @@ class AdminRoles {
             <div class="permission-group">
                 <h5>${this.getResourceName(resource)}</h5>
                 <div class="permission-items">
-                    ${permissions.map(permission => `
+                    ${permissions.map(permission => {
+                        const hasPermission = this.rolePermissions.some(rp => rp.id === permission.id);
+                        return `
                         <label class="permission-item">
                             <input type="checkbox" 
                                    value="${permission.id}" 
                                    data-resource="${permission.resource}"
-                                   data-action="${permission.action}">
-                            <span class="permission-name">${permission.name}</span>
+                                   data-action="${permission.action}"
+                                   ${hasPermission ? 'checked' : ''}>
                             <span class="permission-description">${permission.description}</span>
                         </label>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `).join('');
@@ -291,7 +322,7 @@ class AdminRoles {
         if (!this.currentRoleId) return;
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             const response = await fetch(`/auth/api/roles/${this.currentRoleId}`, {
                 method: 'DELETE',
                 headers: {
@@ -349,7 +380,7 @@ class AdminRoles {
     }
 }
 
-// Глобальные функции для вызова из HTML
+// Глобальные функции для HTML
 function closeRoleModal() {
     window.adminRoles.closeRoleModal();
 }
@@ -362,12 +393,28 @@ function closePermissionsModal() {
     window.adminRoles.closePermissionsModal();
 }
 
+function savePermissions() {
+    window.adminRoles.savePermissions();
+}
+
 function closeDeleteModal() {
     window.adminRoles.closeDeleteModal();
 }
 
 function confirmDelete() {
     window.adminRoles.confirmDelete();
+}
+
+function editRole(roleId) {
+    window.adminRoles.editRole(roleId);
+}
+
+function managePermissions(roleId) {
+    window.adminRoles.managePermissions(roleId);
+}
+
+function deleteRole(roleId) {
+    window.adminRoles.deleteRole(roleId);
 }
 
 // Инициализация при загрузке страницы

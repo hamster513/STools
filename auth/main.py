@@ -521,6 +521,16 @@ async def get_permissions():
         print(f"Error getting permissions: {e}")
         raise HTTPException(status_code=500, detail="Ошибка получения прав")
 
+@app.get("/api/roles/{role_id}/permissions")
+async def get_role_permissions(role_id: int):
+    """Получение прав роли"""
+    try:
+        permissions = await auth_db.get_role_permissions(role_id)
+        return {"permissions": permissions}
+    except Exception as e:
+        print(f"Error getting role permissions: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка получения прав роли")
+
 @app.get("/api/users/{user_id}/roles")
 async def get_user_roles(user_id: int):
     """Получение ролей пользователя"""
@@ -669,4 +679,20 @@ async def verify_token_endpoint(credentials: HTTPAuthorizationCredentials = Depe
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    return {"valid": True, "username": payload.get("sub")}
+    # Получаем полную информацию о пользователе
+    username = payload.get("sub")
+    user = await auth_db.get_user_by_username(username)
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return {
+        "valid": True, 
+        "username": username,
+        "user": {
+            "id": user['id'],
+            "username": user['username'],
+            "email": user['email'],
+            "is_admin": user['is_admin']
+        }
+    }

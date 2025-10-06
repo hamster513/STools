@@ -441,6 +441,11 @@ class SchedulerService:
             if idle_tasks:
                 print(f"📋 Детали задач: {[(t['id'], t['task_type'], t['status']) for t in idle_tasks]}")
                 
+                # Получаем список активных задач для проверки дублирования
+                active_tasks = await self._get_active_tasks()
+                active_task_types = {task['task_type'] for task in active_tasks}
+                print(f"🔍 Активные типы задач: {active_task_types}")
+                
                 for task in idle_tasks:
                     task_id = task['id']
                     task_type = task['task_type']
@@ -448,6 +453,17 @@ class SchedulerService:
                     
                     print(f"🔄 Обрабатываем фоновую задачу {task_id} типа {task_type}")
                     print(f"📋 Параметры задачи: {parameters_str}")
+                    
+                    # Проверяем на дублирование задач
+                    if task_type in active_task_types:
+                        print(f"⚠️ Задача типа '{task_type}' уже выполняется, отменяем дублирующую задачу {task_id}")
+                        await self.db.update_background_task(task_id, **{
+                            'status': 'cancelled',
+                            'current_step': 'Отменено: дублирование активной задачи',
+                            'error_message': f'Задача типа {task_type} уже выполняется',
+                            'end_time': datetime.now()
+                        })
+                        continue
                     
                     # Десериализуем параметры из JSON
                     import json
@@ -464,6 +480,9 @@ class SchedulerService:
                         'current_step': 'Инициализация задачи'
                     })
                     print(f"✅ Статус задачи {task_id} обновлен на 'initializing'")
+                    
+                    # Добавляем тип задачи в список активных
+                    active_task_types.add(task_type)
                     
                     # Обрабатываем задачу в зависимости от типа в отдельной задаче
                     if task_type == 'hosts_import':
@@ -509,16 +528,16 @@ class SchedulerService:
             print(f"❌ Error details: {traceback.format_exc()}")
     
     async def _check_stuck_tasks(self):
-        """Проверить зависшие задачи (processing более 10 минут)"""
+        """Проверить зависшие задачи (processing более 3 минут)"""
         try:
             conn = await self.db.get_connection()
             
-            # Ищем задачи в статусе processing, которые не обновлялись более 10 минут
+            # Ищем задачи в статусе processing, которые не обновлялись более 3 минут
             query = """
                 SELECT id, task_type, status, current_step, created_at, updated_at, start_time
                 FROM vulnanalizer.background_tasks 
                 WHERE status IN ('processing', 'initializing')
-                AND updated_at < NOW() - INTERVAL '10 minutes'
+                AND updated_at < NOW() - INTERVAL '3 minutes'
                 ORDER BY updated_at ASC
             """
             stuck_tasks = await conn.fetch(query)
@@ -564,6 +583,26 @@ class SchedulerService:
             
         except Exception as e:
             print(f"❌ Ошибка перезапуска зависшей задачи {task['id']}: {e}")
+    
+    async def _get_active_tasks(self):
+        """Получить список активных задач (processing, initializing)"""
+        try:
+            conn = await self.db.get_connection()
+            
+            # Ищем задачи в статусе processing или initializing
+            query = """
+                SELECT id, task_type, status, current_step, created_at, updated_at, start_time
+                FROM vulnanalizer.background_tasks 
+                WHERE status IN ('processing', 'initializing')
+                ORDER BY created_at ASC
+            """
+            active_tasks = await conn.fetch(query)
+            return [dict(task) for task in active_tasks]
+        except Exception as e:
+            print(f"❌ Ошибка получения активных задач: {e}")
+            return []
+        finally:
+            await self.db.release_connection(conn)
     
     async def cleanup_old_data(self):
         """Очистка старых данных"""

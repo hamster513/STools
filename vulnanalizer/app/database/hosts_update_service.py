@@ -210,21 +210,29 @@ class HostsUpdateService(DatabaseBase):
                         WHERE cve = $13
                     """
                     
-                    await conn.execute(update_query,
-                        cvss_score,
-                        cvss_source,
-                        epss_row['epss'] if epss_row else None,
-                        epss_row['percentile'] if epss_row else None,
-                        exploit_count,
-                        has_exploits,
-                        risk_score,
-                        risk_raw,
-                        metasploit_data.get(cve),
-                        datetime.now(),
-                        datetime.now(),
-                        datetime.now(),
-                        cve
-                    )
+                    # Выполняем UPDATE с timeout для избежания блокировок
+                    try:
+                        await asyncio.wait_for(
+                            conn.execute(update_query,
+                                cvss_score,
+                                cvss_source,
+                                epss_row['epss'] if epss_row else None,
+                                epss_row['percentile'] if epss_row else None,
+                                exploit_count,
+                                has_exploits,
+                                risk_score,
+                                risk_raw,
+                                metasploit_data.get(cve),
+                                datetime.now(),
+                                datetime.now(),
+                                datetime.now(),
+                                cve
+                            ),
+                            timeout=30.0  # 30 секунд timeout
+                        )
+                    except asyncio.TimeoutError:
+                        print(f"⚠️ Timeout updating host for CVE {cve}, skipping")
+                        continue
                     
                     updated_count += 1
                     

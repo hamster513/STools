@@ -1,7 +1,7 @@
 /**
  * Модуль для работы с Metasploit
  */
-class MetasploitModule {
+class MetasploitManager {
     constructor(app) {
         this.app = app;
         this.apiBasePath = app.getApiBasePath();
@@ -460,5 +460,7 @@ class MetasploitModule {
 
 // Экспорт модуля
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = MetasploitModule;
+    module.exports = MetasploitManager;
+} else {
+    window.MetasploitManager = MetasploitManager;
 }

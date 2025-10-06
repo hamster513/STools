@@ -16,7 +16,8 @@ class AdminUsers {
     }
 
     checkAuth() {
-        const token = localStorage.getItem('auth_token');
+        // Ищем токен с префиксом vulnanalizer_ (из VulnAnalizer) или без префикса (прямой вход)
+        const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
         if (!token) {
             window.location.href = '/auth/';
             return;
@@ -29,6 +30,7 @@ class AdminUsers {
             }
         }).then(response => {
             if (!response.ok) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             } else {
@@ -73,7 +75,7 @@ class AdminUsers {
 
     async loadUsers() {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -90,6 +92,7 @@ class AdminUsers {
                 this.users = data.users || [];
                 this.filterUsers();
             } else if (response.status === 401) {
+                localStorage.removeItem('vulnanalizer_auth_token');
                 localStorage.removeItem('auth_token');
                 window.location.href = '/auth/';
             } else {
@@ -222,7 +225,7 @@ class AdminUsers {
                 delete userData.password;
             }
             
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             const response = await fetch(url, {
                 method: method,
                 headers: {
@@ -261,7 +264,7 @@ class AdminUsers {
         if (!newPassword) return;
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             const response = await fetch(`/auth/api/users/${userId}/password`, {
                 method: 'PUT',
                 headers: {
@@ -301,7 +304,7 @@ class AdminUsers {
         if (!this.currentUserId) return;
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
             const response = await fetch(`/auth/api/users/${this.currentUserId}`, {
                 method: 'DELETE',
                 headers: {
