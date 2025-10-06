@@ -40,7 +40,7 @@ class AdminRoles {
 
     async loadData() {
         try {
-            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
+            const token = localStorage.getItem('stools_auth_token');
             if (!token) {
                 window.location.href = '/auth/';
                 return;
@@ -65,8 +65,8 @@ class AdminRoles {
                 
                 this.filterRoles();
             } else if (rolesResponse.status === 401 || permissionsResponse.status === 401) {
-                localStorage.removeItem('vulnanalizer_auth_token');
-                localStorage.removeItem('auth_token');
+                localStorage.removeItem('stools_auth_token');
+                localStorage.removeItem('stools_user_info');
                 window.location.href = '/auth/';
             } else {
                 throw new Error('Ошибка загрузки данных');
@@ -175,7 +175,7 @@ class AdminRoles {
         const roleData = Object.fromEntries(formData.entries());
         
         try {
-            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
+            const token = localStorage.getItem('stools_auth_token');
             const roleId = roleData.id;
             const url = roleId ? `/auth/api/roles/${roleId}` : '/auth/api/roles';
             const method = roleId ? 'PUT' : 'POST';
@@ -236,7 +236,7 @@ class AdminRoles {
 
     async loadRolePermissions() {
         try {
-            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
+            const token = localStorage.getItem('stools_auth_token');
             if (!token || !this.currentRoleId) return;
 
             const response = await fetch(`/auth/api/roles/${this.currentRoleId}/permissions`, {
@@ -322,7 +322,7 @@ class AdminRoles {
         if (!this.currentRoleId) return;
 
         try {
-            const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
+            const token = localStorage.getItem('stools_auth_token');
             const response = await fetch(`/auth/api/roles/${this.currentRoleId}`, {
                 method: 'DELETE',
                 headers: {

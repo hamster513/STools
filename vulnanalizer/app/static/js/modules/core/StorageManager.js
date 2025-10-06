@@ -1,11 +1,11 @@
 /**
  * StorageManager - Централизованное управление локальным хранилищем
- * v=7.1
+ * v=8.0 - Унифицированная система токенов для всех сервисов STools
  */
 class StorageManager {
     constructor() {
         this.storage = localStorage;
-        this.prefix = 'vulnanalizer_';
+        this.prefix = 'stools_';  // Единый префикс для всех сервисов STools
     }
 
     // Безопасное получение данных

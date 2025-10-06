@@ -25,7 +25,8 @@ class UIManager {
 
     // ===== ТЕМЫ =====
     initTheme() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
+        // Ищем тему с единым префиксом stools_ для всех сервисов STools
+        this.currentTheme = localStorage.getItem('stools_theme') || localStorage.getItem('theme') || 'light';
         this.applyTheme(this.currentTheme);
         this.updateThemeUI();
     }
@@ -33,7 +34,7 @@ class UIManager {
     applyTheme(theme) {
         document.body.className = `${theme}-theme`;
         this.currentTheme = theme;
-        localStorage.setItem('theme', theme);
+        localStorage.setItem('stools_theme', theme);
     }
 
     toggleTheme() {

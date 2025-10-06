@@ -1,6 +1,6 @@
 /**
  * UIManager - Менеджер пользовательского интерфейса
- * v=7.3
+ * v=7.5
  */
 class UIManager {
     constructor(app) {
@@ -117,8 +117,8 @@ class UIManager {
                 this.app.checkActiveImportTasks(); // Проверяем активные задачи импорта
                 break;
             case 'settings':
-                this.app.updateEPSSStatus();
-                this.app.updateExploitDBStatus();
+                // Перенаправляем на страницу общих настроек системы STools
+                window.location.href = '/settings/';
                 break;
             case 'background-tasks':
                 // Перенаправляем на отдельную страницу фоновых задач

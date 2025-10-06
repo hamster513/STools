@@ -1,6 +1,6 @@
 /**
  * AuthManager - Менеджер аутентификации
- * v=7.5
+ * v=8.0 - Унифицированная система токенов
  */
 class AuthManager {
     constructor(app) {

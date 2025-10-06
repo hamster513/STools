@@ -11,8 +11,8 @@ class BackgroundTasksManager {
     }
 
     checkAuth() {
-        // Ищем токен с префиксом vulnanalizer_ (из VulnAnalizer) или без префикса (прямой вход)
-        const token = localStorage.getItem('vulnanalizer_auth_token') || localStorage.getItem('auth_token');
+        // Ищем единый токен stools_auth_token для всех сервисов STools
+        const token = localStorage.getItem('stools_auth_token');
         if (!token) {
             window.location.href = '/auth/';
             return;
