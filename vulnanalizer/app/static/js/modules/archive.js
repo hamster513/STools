@@ -1,6 +1,6 @@
 /**
  * Модуль для работы с архивами баз данных
- * v=1.0
+ * v=1.1
  */
 class ArchiveModule {
     constructor(app) {
@@ -85,21 +85,47 @@ class ArchiveModule {
                 // Формируем детальное сообщение
                 let detailsHtml = '<ul style="text-align: left; margin: 1rem 0;">';
                 
+                // EPSS
                 if (data.details.epss.success) {
                     detailsHtml += `<li><i class="fas fa-check-circle" style="color: #4CAF50;"></i> EPSS: ${data.details.epss.count} записей</li>`;
+                } else if (data.details.epss.count === 0) {
+                    detailsHtml += `<li><i class="fas fa-exclamation-triangle" style="color: #FF9800;"></i> EPSS: ${data.details.epss.message || 'Не загружено'}</li>`;
                 }
+                
+                // ExploitDB
                 if (data.details.exploitdb.success) {
                     detailsHtml += `<li><i class="fas fa-check-circle" style="color: #4CAF50;"></i> ExploitDB: ${data.details.exploitdb.count} записей</li>`;
+                } else if (data.details.exploitdb.count === 0) {
+                    detailsHtml += `<li><i class="fas fa-exclamation-triangle" style="color: #FF9800;"></i> ExploitDB: ${data.details.exploitdb.message || 'Не загружено'}</li>`;
                 }
+                
+                // Metasploit
                 if (data.details.metasploit.success) {
                     detailsHtml += `<li><i class="fas fa-check-circle" style="color: #4CAF50;"></i> Metasploit: ${data.details.metasploit.count} модулей</li>`;
+                } else if (data.details.metasploit.count === 0) {
+                    detailsHtml += `<li><i class="fas fa-exclamation-triangle" style="color: #FF9800;"></i> Metasploit: ${data.details.metasploit.message || 'Не загружено'}</li>`;
                 }
+                
+                // CVE
                 if (data.details.cve.success) {
                     detailsHtml += `<li><i class="fas fa-check-circle" style="color: #4CAF50;"></i> CVE: ${data.details.cve.count} записей</li>`;
+                } else if (data.details.cve.count === 0) {
+                    detailsHtml += `<li><i class="fas fa-exclamation-triangle" style="color: #FF9800;"></i> CVE: ${data.details.cve.message || 'Не загружено'}</li>`;
                 }
                 
                 detailsHtml += '</ul>';
                 detailsHtml += `<p><strong>Всего импортировано:</strong> ${data.total_records} записей из ${data.databases_imported} баз данных</p>`;
+                
+                // Если есть предупреждения, показываем их
+                const warnings = [];
+                if (!data.details.epss.success) warnings.push('EPSS');
+                if (!data.details.exploitdb.success) warnings.push('ExploitDB');
+                if (!data.details.metasploit.success) warnings.push('Metasploit');
+                if (!data.details.cve.success) warnings.push('CVE');
+                
+                if (warnings.length > 0) {
+                    detailsHtml += `<p style="color: #FF9800; margin-top: 1rem;"><i class="fas fa-info-circle"></i> <strong>Внимание:</strong> Некоторые базы не были загружены: ${warnings.join(', ')}</p>`;
+                }
 
                 this.updateOperationProgress('archive', 'Завершение...', 90, 'Финальная обработка...');
                 await new Promise(resolve => setTimeout(resolve, 300));

@@ -70,14 +70,27 @@ async def upload_archive(file: UploadFile = File(...)):
                     
                     # Распаковываем gzip
                     gz_content = zip_file.read(file_path)
+                    print(f"📦 Размер сжатого EPSS файла: {len(gz_content)} байт")
+                    
                     with gzip.GzipFile(fileobj=io.BytesIO(gz_content)) as gz:
                         csv_content = gz.read().decode('utf-8-sig')
                     
+                    print(f"📄 Размер распакованного EPSS: {len(csv_content)} символов")
+                    
                     # Парсим CSV
                     lines = csv_content.splitlines()
+                    print(f"📋 Строк в EPSS файле: {len(lines)}")
+                    
+                    # Показываем первые 3 строки для отладки
+                    if len(lines) > 0:
+                        print(f"📝 Первая строка (заголовок): {lines[0][:200]}")
+                    if len(lines) > 1:
+                        print(f"📝 Вторая строка (данные): {lines[1][:200]}")
+                    
                     reader = csv.DictReader(lines, delimiter=',')
                     
                     records = []
+                    skipped = 0
                     for row in reader:
                         try:
                             cve = row.get('cve', '').strip()
@@ -91,18 +104,30 @@ async def upload_archive(file: UploadFile = File(...)):
                                         'epss': epss_value
                                     })
                                 except ValueError:
+                                    skipped += 1
                                     continue
                         except Exception:
+                            skipped += 1
                             continue
                     
+                    print(f"📊 Обработано записей EPSS: {len(records)}, пропущено: {skipped}")
+                    
                     # Сохраняем в базу
-                    await db.epss.insert_records(records)
-                    results["epss"] = {
-                        "success": True,
-                        "count": len(records),
-                        "message": f"EPSS данные успешно импортированы: {len(records)} записей"
-                    }
-                    print(f"✅ EPSS загружен: {len(records)} записей")
+                    if records:
+                        await db.epss.insert_records(records)
+                        results["epss"] = {
+                            "success": True,
+                            "count": len(records),
+                            "message": f"EPSS данные успешно импортированы: {len(records)} записей"
+                        }
+                        print(f"✅ EPSS загружен: {len(records)} записей")
+                    else:
+                        print(f"⚠️ EPSS: нет записей для загрузки")
+                        results["epss"] = {
+                            "success": False,
+                            "count": 0,
+                            "message": "EPSS файл не содержит валидных записей"
+                        }
                 
                 # ExploitDB
                 elif 'exploitdb' in file_path.lower() and file_path.endswith('.csv'):
