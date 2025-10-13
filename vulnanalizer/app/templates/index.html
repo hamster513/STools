@@ -894,6 +894,28 @@
                             <p><i class="fas fa-info-circle"></i> Загрузите ZIP-архив, созданный скриптом скачивания баз данных.</p>
                             <p>Архив должен содержать папки: <code>epss/</code>, <code>exploitdb/</code>, <code>metasploit/</code>, <code>cve/</code></p>
                         </div>
+                        
+                        <!-- Скачивание скриптов -->
+                        <div class="form-group" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                                <i class="fas fa-download"></i> Скачать скрипты для создания архива:
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <a href="/vulnanalizer/static/scripts/download_vulnerability_databases.sh" download class="btn btn-secondary btn-sm">
+                                    <i class="fab fa-linux"></i> Bash (Linux/macOS)
+                                </a>
+                                <a href="/vulnanalizer/static/scripts/download_vulnerability_databases.ps1" download class="btn btn-secondary btn-sm">
+                                    <i class="fab fa-windows"></i> PowerShell (Windows)
+                                </a>
+                                <a href="/vulnanalizer/static/scripts/DOWNLOAD_DATABASES_README.md" download class="btn btn-info btn-sm">
+                                    <i class="fas fa-book"></i> Инструкция
+                                </a>
+                            </div>
+                            <small style="display: block; margin-top: 0.5rem;">
+                                Скрипты автоматически скачают все необходимые базы данных и создадут ZIP-архив
+                            </small>
+                        </div>
+                        
                         <form id="archive-upload-form" enctype="multipart/form-data">
                             <div class="form-group">
                                 <label for="archive-file">Выберите ZIP-архив:</label>
