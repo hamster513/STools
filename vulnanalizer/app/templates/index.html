@@ -881,6 +881,36 @@
                     </div>
                 </div>
                 
+                <!-- Загрузка архива баз данных -->
+                <div class="archive-container collapsible-block">
+                    <div class="collapsible-header" data-target="archive-settings">
+                        <h3><i class="fas fa-file-archive"></i> Загрузка данных из архива</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="archive-settings">
+                        <div class="info-block" style="margin-bottom: 1rem;">
+                            <p><i class="fas fa-info-circle"></i> Загрузите ZIP-архив, созданный скриптом скачивания баз данных.</p>
+                            <p>Архив должен содержать папки: <code>epss/</code>, <code>exploitdb/</code>, <code>metasploit/</code>, <code>cve/</code></p>
+                        </div>
+                        <form id="archive-upload-form" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="archive-file">Выберите ZIP-архив:</label>
+                                <input type="file" id="archive-file" name="file" accept=".zip" required>
+                                <small>Архив, созданный скриптом download_vulnerability_databases</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm" id="archive-upload-btn">
+                                    <i class="fas fa-upload"></i> <span class="btn-text">Загрузить архив</span>
+                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                                </button>
+                            </div>
+                        </form>
+                        <div id="archive-status" style="margin-top:2rem;"></div>
+                    </div>
+                </div>
+                
                 <!-- EPSS -->
                 <div class="epss-container collapsible-block">
                     <div class="collapsible-header" data-target="epss-settings">
@@ -1488,6 +1518,7 @@
             <script src="/vulnanalizer/static/js/modules/hosts.js?v=4.4"></script>
         <script src="/vulnanalizer/static/js/modules/epss.js?v=2.3"></script>
         <script src="/vulnanalizer/static/js/modules/exploitdb.js?v=2.1"></script>
+        <script src="/vulnanalizer/static/js/modules/archive.js?v=1.0"></script>
         <script src="/vulnanalizer/static/js/modules/cve.js?v=2.1"></script>
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
                     <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
@@ -1520,7 +1551,7 @@
     <script src="/vulnanalizer/static/js/modules/services/MetasploitService.js?v=7.1"></script>
     
     <!-- Основное приложение -->
-    <script src="/vulnanalizer/static/js/app.js?v=7.1"></script>
+        <script src="/vulnanalizer/static/js/app.js?v=7.2"></script>
 
     <!-- Инициализация UI -->
     <script>

@@ -1,6 +1,6 @@
 /**
  * VulnAnalizer - Основное приложение
- * v=7.1
+ * v=7.2
  */
 
 // Подключение модулей
@@ -410,6 +410,10 @@ class VulnAnalizer {
         
         if (typeof ExploitDBModule !== 'undefined') {
             this.exploitdbModule = new ExploitDBModule(this);
+        }
+        
+        if (typeof ArchiveModule !== 'undefined') {
+            this.archiveModule = new ArchiveModule(this);
         }
         
         if (typeof HostsModule !== 'undefined') {
