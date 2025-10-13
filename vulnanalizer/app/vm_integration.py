@@ -45,7 +45,7 @@ class VMMaxPatrolIntegration:
             print(f"Error getting VM token: {e}")
             return None
     
-    def get_hosts_data(self, os_filter: str = None, limit: int = 0) -> List[Dict[str, str]]:
+    def get_hosts_data(self, os_filter: str = None, custom_filter: str = None, limit: int = 0) -> List[Dict[str, str]]:
         """Получить данные хостов из VM"""
         try:
             if not self.token:
@@ -75,6 +75,10 @@ class VMMaxPatrolIntegration:
             # Объединяем все фильтры
             all_os_filters = base_os_filters + user_os_filters
             os_filter_conditions = " and ".join(all_os_filters)
+            
+            # Добавляем кастомный фильтр если указан
+            if custom_filter and custom_filter.strip():
+                os_filter_conditions = f"{os_filter_conditions} and ({custom_filter.strip()})"
             
             pdql_query = f"""select(@Host, Host.OsName, Host.@Vulners.CVEs, host.UF_Criticality, Host.UF_Zone) 
             | filter(   Host.OsName != null 

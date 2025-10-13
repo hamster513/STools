@@ -207,23 +207,47 @@ class VMWorker:
         try:
             await self._log('debug', "Начинаем получение данных из VM API", {"host": host})
             
-            # Получаем лимит из настроек
+            # Получаем настройки фильтров
             vm_limit = int(settings.get('vm_limit', 0))
-            await self._log('debug', "Настройки VM", {"vm_limit": vm_limit, "os_filter": settings.get('vm_os_filter')})
-            
-            # Формируем PDQL запрос
-            if vm_limit > 0:
-                pdql = f'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) | limit({vm_limit})'
-            else:
-                pdql = 'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) | limit(0)'
-            
-            # Добавляем фильтр по ОС если настроен
             os_filter = settings.get('vm_os_filter', '').strip()
+            custom_filter = settings.get('vm_custom_filter', '').strip()
+            
+            await self._log('debug', "Настройки VM", {
+                "vm_limit": vm_limit, 
+                "os_filter": os_filter,
+                "custom_filter": custom_filter
+            })
+            
+            # Базовые фильтры ОС (всегда применяются)
+            base_os_filters = [
+                "Host.OsName != 'Windows 7'",
+                "Host.OsName != 'Windows 10'", 
+                "Host.OsName != 'ESXi'",
+                "Host.OsName != 'IOS'",
+                "Host.OsName != 'NX-OS'",
+                "Host.OsName != 'IOS XE'",
+                "Host.OsName != 'FreeBSD'"
+            ]
+            
+            # Дополнительные фильтры ОС (из настроек)
+            user_os_filters = []
             if os_filter:
                 os_list = [os.strip() for os in os_filter.split(',') if os.strip()]
-                if os_list:
-                    os_conditions = ' or '.join([f'Host.OsName != "{os}"' for os in os_list])
-                    pdql = f'select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) | filter({os_conditions}) | limit({vm_limit if vm_limit > 0 else 0})'
+                for os_name in os_list:
+                    user_os_filters.append(f"Host.OsName != '{os_name}'")
+            
+            # Объединяем все фильтры ОС
+            all_os_filters = base_os_filters + user_os_filters
+            filter_conditions = " and ".join(all_os_filters)
+            
+            # Добавляем кастомный фильтр если указан
+            if custom_filter:
+                filter_conditions = f"{filter_conditions} and ({custom_filter})"
+            
+            # Формируем финальный PDQL запрос
+            pdql = f"""select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) 
+            | filter(Host.OsName != null and {filter_conditions}) 
+            | limit({vm_limit})"""
             
             if self.logger:
                 await self._log('debug', "Сформирован PDQL запрос", {"pdql": pdql})

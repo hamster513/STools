@@ -73,6 +73,7 @@ class VMModule {
         const vmPassword = document.getElementById('vm-password');
         const vmClientSecret = document.getElementById('vm-client-secret');
         const vmOsFilter = document.getElementById('vm-os-filter');
+        const vmCustomFilter = document.getElementById('vm-custom-filter');
         const vmLimit = document.getElementById('vm-limit');
         const vmDetailedLogging = document.getElementById('vm-detailed-logging');
 
@@ -82,6 +83,7 @@ class VMModule {
             vmPassword: !!vmPassword,
             vmClientSecret: !!vmClientSecret,
             vmOsFilter: !!vmOsFilter,
+            vmCustomFilter: !!vmCustomFilter,
             vmLimit: !!vmLimit,
             vmDetailedLogging: !!vmDetailedLogging
         });
@@ -91,6 +93,7 @@ class VMModule {
         if (vmPassword) vmPassword.value = settings.vm_password || '';
         if (vmClientSecret) vmClientSecret.value = settings.vm_client_secret || '';
         if (vmOsFilter) vmOsFilter.value = settings.vm_os_filter || '';
+        if (vmCustomFilter) vmCustomFilter.value = settings.vm_custom_filter || '';
         if (vmLimit) vmLimit.value = settings.vm_limit || '0';
         if (vmDetailedLogging) vmDetailedLogging.value = settings.vm_detailed_logging || 'false';
         

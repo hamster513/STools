@@ -141,6 +141,7 @@ class SettingsRepository(DatabaseBase):
                 'vm_password': '',
                 'vm_client_secret': '',
                 'vm_os_filter': 'Windows 7,Windows 10,ESXi,IOS,NX-OS,IOS XE,FreeBSD',
+                'vm_custom_filter': '',
                 'vm_limit': '0',
                 'vm_detailed_logging': 'false'
             }

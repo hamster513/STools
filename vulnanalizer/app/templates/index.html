@@ -839,9 +839,16 @@
                             <small>Секретный ключ для OAuth2 аутентификации</small>
                         </div>
                         <div class="form-group">
-                            <label for="vm-os-filter">Фильтр ОС:</label>
-                            <input type="text" id="vm-os-filter" name="vm_os_filter" placeholder="Windows, Linux, etc.">
-                            <small>Фильтр операционных систем (необязательно)</small>
+                            <label for="vm-os-filter">Дополнительный фильтр ОС (исключить):</label>
+                            <input type="text" id="vm-os-filter" name="vm_os_filter" placeholder="macOS,Android,Ubuntu">
+                            <small>Дополнительные ОС через запятую для исключения из импорта. 
+                            <br><strong>Базовые фильтры применяются автоматически:</strong> Windows 7, Windows 10, ESXi, IOS, NX-OS, IOS XE, FreeBSD</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vm-custom-filter">Кастомный PDQL фильтр (необязательно):</label>
+                            <input type="text" id="vm-custom-filter" name="vm_custom_filter" placeholder='Host.UF_Zone = "DMZ" and Host.UF_Criticality = "High"'>
+                            <small>Произвольное условие PDQL для дополнительной фильтрации. 
+                            <br>Примеры: <code>Host.UF_Zone = "DMZ"</code>, <code>Host.UF_Criticality = "High"</code>, <code>Host.OsName like "Windows Server"</code></small>
                         </div>
                         <div class="form-group">
                             <label for="vm-limit">Лимит записей:</label>
