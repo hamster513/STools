@@ -1,6 +1,6 @@
 /**
  * SetupManager - Менеджер настройки UI компонентов
- * v=7.1
+ * v=7.2 - Исправлены API endpoints
  */
 class SetupManager {
     constructor(app) {
@@ -364,7 +364,7 @@ class SetupManager {
     // Загрузка данных фоновых задач
     async loadBackgroundTasksData() {
         try {
-            const response = await fetch('/api/background-tasks');
+            const response = await fetch('/vulnanalizer/api/background-tasks/status');
             if (response.ok) {
                 const data = await response.json();
                 console.log('📊 Данные фоновых задач загружены:', data);
@@ -380,7 +380,7 @@ class SetupManager {
     // Проверка активных задач импорта
     async checkActiveImportTasks() {
         try {
-            const response = await fetch('/api/hosts/import-progress');
+            const response = await fetch('/vulnanalizer/api/hosts/import-progress');
             if (response.ok) {
                 const data = await response.json();
                 console.log('📊 Статус импорта хостов:', data);
@@ -396,7 +396,7 @@ class SetupManager {
     // Загрузка настроек базы данных
     async loadDatabaseSettings() {
         try {
-            const response = await fetch('/api/settings');
+            const response = await fetch('/vulnanalizer/api/system/settings');
             if (response.ok) {
                 const data = await response.json();
                 console.log('📊 Настройки базы данных загружены:', data);

@@ -117,8 +117,8 @@ class UIManager {
                 this.app.checkActiveImportTasks(); // Проверяем активные задачи импорта
                 break;
             case 'settings':
-                // Перенаправляем на страницу общих настроек системы STools
-                window.location.href = '/settings/';
+                // Загружаем настройки VulnAnalizer
+                this.app.loadDatabaseSettings();
                 break;
             case 'background-tasks':
                 // Перенаправляем на отдельную страницу фоновых задач

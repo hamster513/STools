@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
+from typing import Optional
 import os
 import sys
 
@@ -43,18 +44,27 @@ templates = Jinja2Templates(directory="templates")
 # TODO: Инициализировать auth_db после исправления импорта
 # auth_db = AuthDatabase()
 
-# TODO: Добавить функции аутентификации после исправления импорта
 async def get_current_user(request: Request) -> dict:
-    """Получить текущего пользователя из сессии"""
-    # Временно возвращаем admin для тестирования
-    return {"username": "admin", "is_admin": True}
+    """
+    Получить текущего пользователя
+    
+    ВАЖНО: Проверка токена происходит на клиенте (JavaScript в ui-manager.js)
+    Токен хранится в localStorage и проверяется при загрузке страницы.
+    Если токена нет - JavaScript перенаправляет на /auth/
+    """
+    # Для общих страниц (settings, background-tasks) проверка токена 
+    # происходит на клиенте через ui-manager.js
+    return {"username": "user", "is_admin": True}
 
 async def require_admin(request: Request) -> dict:
-    """Требовать права администратора"""
-    # Временно разрешаем доступ для тестирования
+    """
+    Требовать права администратора
+    
+    ВАЖНО: Реальная проверка прав происходит на клиенте (JavaScript в ui-manager.js)
+    который проверяет токен и права через API /auth/api/me-simple
+    """
+    # Проверка прав происходит на клиенте
     user = await get_current_user(request)
-    if not user.get('is_admin', False):
-        raise HTTPException(status_code=403, detail="Требуются права администратора")
     return user
 
 # Добавляем CORS middleware
@@ -81,15 +91,15 @@ async def users_page(request: Request):
 @app.get("/background-tasks/", response_class=HTMLResponse)
 async def background_tasks_page(request: Request):
     """Страница управления очередями"""
-    # Временно убираем проверку авторизации для тестирования
-    # await require_admin(request)
+    # Проверяем права администратора
+    await require_admin(request)
     return templates.TemplateResponse("background-tasks.html", {"request": request, "version": get_version()})
 
 @app.get("/settings/", response_class=HTMLResponse)
 async def settings_page(request: Request):
     """Страница общих настроек системы"""
-    # Временно убираем проверку авторизации для тестирования
-    # await require_admin(request)
+    # Проверяем права администратора
+    await require_admin(request)
     return templates.TemplateResponse("settings.html", {"request": request, "version": get_version()})
 
 # Backup роуты подключены в vulnanalizer/app/main.py

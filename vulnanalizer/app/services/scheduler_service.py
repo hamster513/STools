@@ -81,6 +81,7 @@ class SchedulerService:
     
     async def hourly_check(self):
         """Ежечасная проверка системы"""
+        conn = None
         try:
             print("🔍 Hourly system check")
             
@@ -109,6 +110,9 @@ class SchedulerService:
             
         except Exception as e:
             print(f"❌ Error in hourly check: {e}")
+        finally:
+            if conn:
+                await self.db.release_connection(conn)
     
     async def process_hosts_import_task(self, task_id: int, parameters: Dict[str, Any]):
         """Обработка фоновой задачи импорта хостов"""
@@ -606,6 +610,7 @@ class SchedulerService:
     
     async def cleanup_old_data(self):
         """Очистка старых данных"""
+        conn = None
         try:
             print("🧹 Cleaning up old data")
             
@@ -621,6 +626,9 @@ class SchedulerService:
             
         except Exception as e:
             print(f"❌ Error in cleanup: {e}")
+        finally:
+            if conn:
+                await self.db.release_connection(conn)
     
     async def add_custom_schedule(self, task_name: str, schedule_config: Dict[str, Any]):
         """Добавить пользовательское расписание"""
@@ -720,7 +728,7 @@ class SchedulerService:
             
             if not cve_rows:
                 print("✅ Нет хостов для расчета рисков")
-                await self.db.update_background_task(task_id, **{
+                await self.db.update_background_task(task_id, conn=conn, **{
                     'status': 'completed',
                     'current_step': 'Нет хостов для расчета рисков',
                     'end_time': datetime.now()
@@ -731,7 +739,7 @@ class SchedulerService:
             print(f"🔍 Найдено {total_cves} CVE для расчета рисков")
             
             # Обновляем общее количество
-            await self.db.update_background_task(task_id, **{
+            await self.db.update_background_task(task_id, conn=conn, **{
                 'total_items': total_cves,
                 'current_step': f'Найдено {total_cves} CVE для расчета рисков'
             })
@@ -743,7 +751,7 @@ class SchedulerService:
             
             # Создаем функцию обратного вызова для прогресса
             async def update_progress(step: str, message: str, progress_percent: int = 0, **kwargs):
-                await self.db.update_background_task(task_id, **{
+                await self.db.update_background_task(task_id, conn=conn, **{
                     'current_step': message,
                     'progress_percent': progress_percent,
                     'processed_items': kwargs.get('processed_cves', 0),
@@ -755,7 +763,7 @@ class SchedulerService:
             await self.db.risk_calculation.update_hosts_complete(update_progress)
             
             # Завершаем задачу
-            await self.db.update_background_task(task_id, **{
+            await self.db.update_background_task(task_id, conn=conn, **{
                 'status': 'completed',
                 'current_step': f'Расчет рисков завершен для {total_cves} CVE',
                 'end_time': datetime.now()
@@ -773,6 +781,9 @@ class SchedulerService:
                 'error_message': str(e),
                 'end_time': datetime.now()
             })
+        finally:
+            if conn:
+                await self.db.release_connection(conn)
 
     async def process_risk_recalculation_task(self, task_id: int, parameters: Dict[str, Any]):
         """Обработка задачи пересчета рисков для ВСЕХ хостов"""
@@ -800,7 +811,7 @@ class SchedulerService:
             
             if not cve_rows:
                 print("✅ Нет хостов для пересчета рисков")
-                await self.db.update_background_task(task_id, **{
+                await self.db.update_background_task(task_id, conn=conn, **{
                     'status': 'completed',
                     'current_step': 'Нет хостов для пересчета рисков',
                     'end_time': datetime.now()
@@ -811,7 +822,7 @@ class SchedulerService:
             print(f"🔍 Найдено {total_cves} CVE для пересчета рисков")
             
             # Обновляем общее количество
-            await self.db.update_background_task(task_id, **{
+            await self.db.update_background_task(task_id, conn=conn, **{
                 'total_items': total_cves,
                 'current_step': f'Найдено {total_cves} CVE для пересчета рисков'
             })
@@ -823,7 +834,7 @@ class SchedulerService:
             
             # Создаем функцию обратного вызова для прогресса
             async def update_progress(step: str, message: str, progress_percent: int = 0, **kwargs):
-                await self.db.update_background_task(task_id, **{
+                await self.db.update_background_task(task_id, conn=conn, **{
                     'current_step': message,
                     'progress_percent': progress_percent,
                     'processed_items': kwargs.get('processed_cves', 0),
@@ -837,7 +848,7 @@ class SchedulerService:
             await hosts_update_service.recalculate_all_risks(update_progress)
             
             # Завершаем задачу
-            await self.db.update_background_task(task_id, **{
+            await self.db.update_background_task(task_id, conn=conn, **{
                 'status': 'completed',
                 'current_step': f'Пересчет рисков завершен для {total_cves} CVE',
                 'end_time': datetime.now()
@@ -855,6 +866,9 @@ class SchedulerService:
                 'error_message': str(e),
                 'end_time': datetime.now()
             })
+        finally:
+            if conn:
+                await self.db.release_connection(conn)
 
     async def process_backup_create_task(self, task_id: int, parameters: Dict[str, Any]):
         """Обработка задачи создания бэкапа"""

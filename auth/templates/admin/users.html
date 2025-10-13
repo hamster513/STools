@@ -78,7 +78,7 @@
 </div>
 
 <!-- Модальное окно создания/редактирования пользователя -->
-<div id="user-modal" class="modal-overlay" style="display: none;">
+<div id="user-modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="modal-title">Создать пользователя</h3>
@@ -106,10 +106,18 @@
                     <small>Оставьте пустым, чтобы не изменять</small>
                 </div>
                 
+                <div class="form-group">
+                    <label for="user-roles">Роли:</label>
+                    <select id="user-roles" name="roles" multiple size="5">
+                        <!-- Роли загружаются динамически -->
+                    </select>
+                    <small>Удерживайте Ctrl (Cmd на Mac) для выбора нескольких ролей</small>
+                </div>
+                
                 <div class="form-row">
                     <div class="form-group checkbox-group">
                         <input type="checkbox" id="is-admin" name="is_admin">
-                        <label for="is-admin">Администратор</label>
+                        <label for="is-admin">Администратор (устаревшее)</label>
                     </div>
                     
                     <div class="form-group checkbox-group">
@@ -129,7 +137,7 @@
 </div>
 
 <!-- Модальное окно подтверждения удаления -->
-<div id="delete-modal" class="modal-overlay" style="display: none;">
+<div id="delete-modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Подтверждение удаления</h3>
@@ -152,5 +160,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="/auth/static/js/admin-users.js?v=1.0"></script>
+<script src="/auth/static/js/admin-users.js?v=2.1"></script>
 {% endblock %}

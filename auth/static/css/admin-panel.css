@@ -589,6 +589,24 @@
     border: 1px solid var(--primary-color);
 }
 
+.badge.role {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #2196f3;
+}
+
+.badge.active {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #28a745;
+}
+
+.badge.inactive {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #dc3545;
+}
+
 .role-description {
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
@@ -631,7 +649,8 @@
 /* Модальные окна для ролей */
 #role-modal,
 #permissions-modal,
-#delete-modal {
+#delete-modal,
+#user-modal {
     display: none !important;
     position: fixed !important;
     top: 50% !important;
@@ -649,14 +668,16 @@
 /* Стили для активных модальных окон */
 #role-modal[style*="flex"],
 #permissions-modal[style*="flex"],
-#delete-modal[style*="flex"] {
+#delete-modal[style*="flex"],
+#user-modal[style*="flex"] {
     display: flex !important;
 }
 
 /* Дополнительная защита от переопределения */
 body #role-modal,
 body #permissions-modal,
-body #delete-modal {
+body #delete-modal,
+body #user-modal {
     position: fixed !important;
     top: 50% !important;
     left: 50% !important;
@@ -669,7 +690,8 @@ body #delete-modal {
 
 #role-modal .modal-content,
 #permissions-modal .modal-content,
-#delete-modal .modal-content {
+#delete-modal .modal-content,
+#user-modal .modal-content {
     background: var(--surface-color) !important;
     border-radius: var(--border-radius-lg) !important;
     box-shadow: var(--shadow-xl) !important;
@@ -693,7 +715,8 @@ body #delete-modal {
 
 #role-modal .modal-header,
 #permissions-modal .modal-header,
-#delete-modal .modal-header {
+#delete-modal .modal-header,
+#user-modal .modal-header {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
@@ -705,7 +728,8 @@ body #delete-modal {
 
 #role-modal .modal-header h3,
 #permissions-modal .modal-header h3,
-#delete-modal .modal-header h3 {
+#delete-modal .modal-header h3,
+#user-modal .modal-header h3 {
     margin: 0 !important;
     color: var(--text-primary) !important;
     font-size: var(--font-size-lg) !important;
@@ -714,7 +738,8 @@ body #delete-modal {
 
 #role-modal .modal-close,
 #permissions-modal .modal-close,
-#delete-modal .modal-close {
+#delete-modal .modal-close,
+#user-modal .modal-close {
     background: none !important;
     border: none !important;
     width: 32px !important;
@@ -730,14 +755,16 @@ body #delete-modal {
 
 #role-modal .modal-close:hover,
 #permissions-modal .modal-close:hover,
-#delete-modal .modal-close:hover {
+#delete-modal .modal-close:hover,
+#user-modal .modal-close:hover {
     background: var(--surface-color-light) !important;
     color: var(--text-primary) !important;
 }
 
 #role-modal .modal-body,
 #permissions-modal .modal-body,
-#delete-modal .modal-body {
+#delete-modal .modal-body,
+#user-modal .modal-body {
     padding: var(--spacing-lg) !important;
     flex: 1 !important;
     overflow-y: auto !important;
@@ -746,7 +773,8 @@ body #delete-modal {
 
 #role-modal .modal-footer,
 #permissions-modal .modal-footer,
-#delete-modal .modal-footer {
+#delete-modal .modal-footer,
+#user-modal .modal-footer {
     display: flex !important;
     justify-content: flex-end !important;
     gap: var(--spacing-sm) !important;

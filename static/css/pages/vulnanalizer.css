@@ -9,6 +9,27 @@
 - Стили контейнеров (.container, sidebar-collapsed)
 */
 
+/* ===== ИСПРАВЛЕНИЕ БОКОВОЙ ПАНЕЛИ ===== */
+.sidebar-tab {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: var(--spacing-sm) !important;
+}
+
+.sidebar-tab-icon {
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sidebar-tab-title {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
 /* Main Container - специфичный для VulnAnalizer */
 .vulnanalizer-container {
     display: grid;

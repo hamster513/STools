@@ -100,13 +100,41 @@ class AuthDatabase:
             return None
 
     async def get_all_users(self) -> List[Dict]:
-        """Получение всех пользователей"""
+        """Получение всех пользователей с их ролями"""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch('''
-                SELECT id, username, email, is_active, is_admin, created_at
-                FROM auth.users ORDER BY created_at DESC
+                SELECT 
+                    u.id, 
+                    u.username, 
+                    u.email, 
+                    u.is_active, 
+                    u.is_admin, 
+                    u.created_at,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', r.id,
+                                'name', r.name,
+                                'description', r.description,
+                                'sort_order', r.sort_order
+                            ) ORDER BY r.sort_order, r.name
+                        ) FILTER (WHERE r.id IS NOT NULL),
+                        '[]'::json
+                    ) as roles
+                FROM auth.users u
+                LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
+                LEFT JOIN auth.roles r ON ur.role_id = r.id
+                GROUP BY u.id, u.username, u.email, u.is_active, u.is_admin, u.created_at
+                ORDER BY u.created_at DESC
             ''')
-            return [dict(row) for row in rows]
+            
+            # Преобразуем результаты
+            users = []
+            for row in rows:
+                user = dict(row)
+                # roles уже JSON объект благодаря json_agg
+                users.append(user)
+            return users
 
     async def update_user(self, user_id: int, username: str, email: str, is_active: bool, is_admin: bool) -> bool:
         """Обновление пользователя"""
@@ -280,13 +308,13 @@ class AuthDatabase:
         async with self.pool.acquire() as conn:
             try:
                 roles = await conn.fetch('''
-                    SELECT r.id, r.name, r.description, r.is_system, r.created_at,
+                    SELECT r.id, r.name, r.description, r.is_system, r.created_at, r.sort_order,
                            COUNT(ur.user_id) as user_count
                     FROM auth.roles r
                     LEFT JOIN auth.user_roles ur ON r.id = ur.role_id 
                         AND (ur.expires_at IS NULL OR ur.expires_at > NOW())
-                    GROUP BY r.id, r.name, r.description, r.is_system, r.created_at
-                    ORDER BY r.name
+                    GROUP BY r.id, r.name, r.description, r.is_system, r.created_at, r.sort_order
+                    ORDER BY r.sort_order, r.name
                 ''')
                 return [dict(role) for role in roles]
             except Exception as e:
@@ -322,6 +350,69 @@ class AuthDatabase:
             except Exception as e:
                 print(f"Error getting all permissions: {e}")
                 return []
+
+    async def get_user_roles(self, user_id: int) -> List[Dict]:
+        """Получение ролей пользователя"""
+        async with self.pool.acquire() as conn:
+            try:
+                roles = await conn.fetch('''
+                    SELECT r.id, r.name, r.description, r.is_system, r.sort_order, ur.assigned_at
+                    FROM auth.roles r
+                    JOIN auth.user_roles ur ON r.id = ur.role_id
+                    WHERE ur.user_id = $1
+                    ORDER BY r.sort_order, r.name
+                ''', user_id)
+                return [dict(role) for role in roles]
+            except Exception as e:
+                print(f"Error getting user roles: {e}")
+                return []
+
+    async def assign_user_role(self, user_id: int, role_id: int, assigned_by: int) -> bool:
+        """Назначение роли пользователю"""
+        async with self.pool.acquire() as conn:
+            try:
+                await conn.execute('''
+                    INSERT INTO auth.user_roles (user_id, role_id, assigned_by)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (user_id, role_id) DO NOTHING
+                ''', user_id, role_id, assigned_by)
+                return True
+            except Exception as e:
+                print(f"Error assigning user role: {e}")
+                return False
+
+    async def remove_user_role(self, user_id: int, role_id: int) -> bool:
+        """Удаление роли у пользователя"""
+        async with self.pool.acquire() as conn:
+            try:
+                await conn.execute('''
+                    DELETE FROM auth.user_roles
+                    WHERE user_id = $1 AND role_id = $2
+                ''', user_id, role_id)
+                return True
+            except Exception as e:
+                print(f"Error removing user role: {e}")
+                return False
+
+    async def set_user_roles(self, user_id: int, role_ids: List[int], assigned_by: int) -> bool:
+        """Установка ролей пользователя (заменяет все существующие)"""
+        async with self.pool.acquire() as conn:
+            try:
+                # Удаляем все текущие роли
+                await conn.execute('DELETE FROM auth.user_roles WHERE user_id = $1', user_id)
+                
+                # Добавляем новые роли
+                if role_ids:
+                    for role_id in role_ids:
+                        await conn.execute('''
+                            INSERT INTO auth.user_roles (user_id, role_id, assigned_by)
+                            VALUES ($1, $2, $3)
+                        ''', user_id, role_id, assigned_by)
+                
+                return True
+            except Exception as e:
+                print(f"Error setting user roles: {e}")
+                return False
 
     async def create_role(self, name: str, description: str = None) -> Dict:
         """Создание новой роли"""

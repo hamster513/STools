@@ -308,6 +308,7 @@ async def clear_background_tasks():
 
 
 @router.get("/api/settings")
+@router.get("/api/system/settings")  # Алиас для совместимости с frontend
 async def get_settings(request: Request):
     """Получить настройки приложения"""
     # Проверяем права администратора

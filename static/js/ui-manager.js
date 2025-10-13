@@ -392,7 +392,14 @@ class UIManager {
     // ===== ПРОВЕРКА ПРАВ ПОЛЬЗОВАТЕЛЯ =====
     async checkUserPermissions() {
         try {
-            const token = localStorage.getItem('auth_token');
+            // Проверяем наличие токена с единым префиксом
+            const token = localStorage.getItem('stools_auth_token');
+            
+            // Если токена нет - перенаправляем на авторизацию
+            if (!token) {
+                window.location.href = '/auth/';
+                return;
+            }
             
             // Проверяем права пользователя
             // Всегда используем централизованный auth API

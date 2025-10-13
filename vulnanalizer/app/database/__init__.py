@@ -120,9 +120,15 @@ class NewDatabase:
             """Создать новую фоновую задачу"""
             return await self.background_tasks.create_task(task_type, description, parameters)
         
-        async def update_background_task(self, task_id: int, **kwargs):
-            """Обновить статус фоновой задачи"""
-            return await self.background_tasks.update_task(task_id, **kwargs)
+        async def update_background_task(self, task_id: int, conn=None, **kwargs):
+            """Обновить статус фоновой задачи
+            
+            Args:
+                task_id: ID задачи
+                conn: Опциональное существующее подключение
+                **kwargs: Поля для обновления
+            """
+            return await self.background_tasks.update_task(task_id, conn=conn, **kwargs)
 
         async def get_background_task(self, task_id: int):
             """Получить фоновую задачу по ID"""

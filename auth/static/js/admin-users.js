@@ -6,12 +6,14 @@ class AdminUsers {
         this.users = [];
         this.filteredUsers = [];
         this.currentUserId = null;
+        this.roles = [];
         this.init();
     }
 
     init() {
         this.checkAuth();
         this.setupEventListeners();
+        this.loadRoles();
         this.loadUsers();
     }
 
@@ -49,14 +51,20 @@ class AdminUsers {
 
     setupEventListeners() {
         // Кнопка создания пользователя
-        document.getElementById('create-user-btn').addEventListener('click', () => {
-            this.openUserModal();
-        });
+        const createBtn = document.getElementById('create-user-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                this.openUserModal();
+            });
+        }
 
         // Кнопка обновления
-        document.getElementById('refresh-users-btn').addEventListener('click', () => {
-            this.loadUsers();
-        });
+        const refreshBtn = document.getElementById('refresh-users-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadUsers();
+            });
+        }
 
         // Поиск
         document.getElementById('user-search').addEventListener('input', (e) => {
@@ -89,7 +97,18 @@ class AdminUsers {
             
             if (response.ok) {
                 const data = await response.json();
-                this.users = data.users || [];
+                this.users = (data.users || []).map(user => {
+                    // Если roles - строка, парсим её
+                    if (typeof user.roles === 'string') {
+                        try {
+                            user.roles = JSON.parse(user.roles);
+                        } catch (e) {
+                            console.error('Ошибка парсинга ролей:', e);
+                            user.roles = [];
+                        }
+                    }
+                    return user;
+                });
                 this.filterUsers();
             } else if (response.status === 401) {
                 localStorage.removeItem('stools_auth_token');
@@ -102,6 +121,26 @@ class AdminUsers {
             console.error('Ошибка загрузки пользователей:', error);
             this.showNotification('Ошибка загрузки пользователей', 'error');
             this.renderUsers([]);
+        }
+    }
+
+    async loadRoles() {
+        try {
+            const token = localStorage.getItem('stools_auth_token');
+            if (!token) return;
+
+            const response = await fetch('/auth/api/roles', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.roles = data.roles || [];
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки ролей:', error);
         }
     }
 
@@ -140,7 +179,16 @@ class AdminUsers {
             return;
         }
 
-        const html = users.map(user => `
+        const html = users.map(user => {
+            // Формируем отображение ролей
+            let rolesHtml = '';
+            if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+                rolesHtml = user.roles.map(role => 
+                    `<span class="badge role">${role.description || role.name}</span>`
+                ).join('');
+            }
+            
+            return `
             <div class="user-item" data-user-id="${user.id}">
                 <div class="user-info">
                     <div class="user-avatar">
@@ -150,7 +198,7 @@ class AdminUsers {
                         <h4>${user.username}</h4>
                         <p>${user.email || 'Email не указан'}</p>
                         <div class="user-badges">
-                            ${user.is_admin ? '<span class="badge admin">Администратор</span>' : ''}
+                            ${rolesHtml || '<span class="badge">Нет ролей</span>'}
                             ${user.is_active ? '<span class="badge active">Активный</span>' : '<span class="badge inactive">Неактивный</span>'}
                         </div>
                     </div>
@@ -167,7 +215,7 @@ class AdminUsers {
                     </button>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
 
         container.innerHTML = html;
     }
@@ -176,6 +224,17 @@ class AdminUsers {
         const modal = document.getElementById('user-modal');
         const title = document.getElementById('modal-title');
         const form = document.getElementById('user-form');
+        const rolesSelect = document.getElementById('user-roles');
+        
+        if (!modal) {
+            console.error('Модальное окно user-modal не найдено!');
+            return;
+        }
+        
+        // Заполняем список ролей
+        rolesSelect.innerHTML = this.roles.map(role => 
+            `<option value="${role.id}">${role.description || role.name}</option>`
+        ).join('');
         
         if (userId) {
             // Редактирование
@@ -189,6 +248,14 @@ class AdminUsers {
                 document.getElementById('is-active').checked = user.is_active;
                 document.getElementById('password').required = false;
                 document.getElementById('password').placeholder = 'Оставьте пустым, чтобы не изменять';
+                
+                // Выбираем роли пользователя
+                if (user.roles && Array.isArray(user.roles)) {
+                    const userRoleIds = user.roles.map(r => r.id);
+                    Array.from(rolesSelect.options).forEach(option => {
+                        option.selected = userRoleIds.includes(parseInt(option.value));
+                    });
+                }
             }
         } else {
             // Создание
@@ -196,6 +263,11 @@ class AdminUsers {
             form.reset();
             document.getElementById('password').required = true;
             document.getElementById('password').placeholder = '';
+            
+            // Перезаполняем роли после reset
+            rolesSelect.innerHTML = this.roles.map(role => 
+                `<option value="${role.id}">${role.description || role.name}</option>`
+            ).join('');
         }
         
         modal.style.display = 'flex';
@@ -214,6 +286,11 @@ class AdminUsers {
         // Обрабатываем чекбоксы
         userData.is_admin = formData.has('is_admin');
         userData.is_active = formData.has('is_active');
+        
+        // Получаем выбранные роли
+        const rolesSelect = document.getElementById('user-roles');
+        const selectedRoles = Array.from(rolesSelect.selectedOptions).map(opt => parseInt(opt.value));
+        userData.role_ids = selectedRoles;
         
         try {
             const userId = userData.id;

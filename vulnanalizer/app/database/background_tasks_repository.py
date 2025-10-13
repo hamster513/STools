@@ -60,9 +60,19 @@ class BackgroundTasksRepository(DatabaseBase):
         finally:
             await self.release_connection(conn)
     
-    async def update_task(self, task_id: int, **kwargs) -> bool:
-        """Обновить задачу"""
-        conn = await self.get_connection()
+    async def update_task(self, task_id: int, conn=None, **kwargs) -> bool:
+        """Обновить задачу
+        
+        Args:
+            task_id: ID задачи
+            conn: Опциональное существующее подключение. Если None - создается новое
+            **kwargs: Поля для обновления
+        """
+        # Если подключение не передано - создаем новое
+        own_connection = conn is None
+        if own_connection:
+            conn = await self.get_connection()
+        
         try:
             # Строим динамический запрос
             fields = []
@@ -101,7 +111,9 @@ class BackgroundTasksRepository(DatabaseBase):
             await conn.execute(query, *values)
             return True
         finally:
-            await self.release_connection(conn)
+            # Освобождаем только если создали свое подключение
+            if own_connection:
+                await self.release_connection(conn)
     
     async def get_recent_tasks(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Получить последние задачи"""

@@ -170,7 +170,7 @@ async def admin_audit(request: Request):
     })
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 class UserCreate(BaseModel):
     username: str
@@ -178,12 +178,14 @@ class UserCreate(BaseModel):
     password: str
     is_admin: bool = False
     is_active: bool = True
+    role_ids: Optional[List[int]] = None
 
 class UserUpdate(BaseModel):
     username: str
     email: Optional[str] = None
     is_active: bool
     is_admin: bool
+    role_ids: Optional[List[int]] = None
 
 class PasswordUpdate(BaseModel):
     password: str
@@ -338,6 +340,11 @@ async def create_user(
         raise HTTPException(status_code=400, detail="Email already exists")
     
     user = await auth_db.create_user(user_data.username, user_data.email, user_data.password, user_data.is_admin, user_data.is_active)
+    
+    # Назначаем роли, если указаны
+    if user_data.role_ids:
+        await auth_db.set_user_roles(user['id'], user_data.role_ids, current_user['id'])
+    
     return {"message": "User created successfully", "user": user}
 
 @app.put("/api/users/{user_id}")
@@ -360,6 +367,10 @@ async def update_user(
     success = await auth_db.update_user(user_id, user_data.username, user_data.email, user_data.is_active, user_data.is_admin)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Обновляем роли, если указаны
+    if user_data.role_ids is not None:
+        await auth_db.set_user_roles(user_id, user_data.role_ids, current_user['id'])
     
     return {"message": "User updated successfully"}
 
@@ -550,6 +561,21 @@ async def get_user_permissions(user_id: int):
     except Exception as e:
         print(f"Error getting user permissions: {e}")
         raise HTTPException(status_code=500, detail="Ошибка получения прав пользователя")
+
+@app.get("/user-settings")
+async def get_user_settings(current_user: dict = Depends(get_current_user)):
+    """Получение настроек текущего пользователя"""
+    try:
+        # Пока возвращаем настройки по умолчанию
+        # В будущем можно будет хранить настройки в БД
+        return {
+            "theme": "light",
+            "language": "ru",
+            "notifications_enabled": True
+        }
+    except Exception as e:
+        print(f"Error getting user settings: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка получения настроек пользователя")
 
 @app.post("/api/roles")
 async def create_role(name: str = Form(...), description: str = Form(None)):
