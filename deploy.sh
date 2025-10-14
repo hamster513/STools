@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Скрипт для развертывания STools v0.7.00 на удаленном сервере
+# Скрипт для развертывания STools v0.7.10 на удаленном сервере
 
 set -e
 
-echo "🚀 Развертывание STools v0.7.00"
+echo "🚀 Развертывание STools v0.7.10"
 
 # Проверяем архитектуру
 ARCH=$(uname -m)
@@ -35,11 +35,11 @@ mkdir -p backups
 mkdir -p nginx/ssl
 
 # Загружаем новые образы
-echo "⬇️  Загрузка образов v0.7.00..."
-docker pull hamster5133/stools-auth_web:v0.7.00
-docker pull hamster5133/stools-loganalizer_web:v0.7.00
-docker pull hamster5133/stools-vulnanalizer_web:v0.7.00
-docker pull hamster5133/stools-main_web:v0.7.00
+echo "⬇️  Загрузка образов v0.7.10..."
+docker pull hamster5133/stools-auth_web:v0.7.10
+docker pull hamster5133/stools-loganalizer_web:v0.7.10
+docker pull hamster5133/stools-vulnanalizer_web:v0.7.10
+docker pull hamster5133/stools-main_web:v0.7.10
 
 # Запускаем контейнеры
 echo "🚀 Запуск контейнеров..."
