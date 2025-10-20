@@ -179,13 +179,7 @@ class SetupManager {
             });
         }
 
-        // Кнопка проверки подключения
-        const testConnectionBtn = this.app.getElementSafe('vm-test-connection-btn');
-        if (testConnectionBtn) {
-            testConnectionBtn.addEventListener('click', () => {
-                this.app.testDatabaseConnection();
-            });
-        }
+        // Кнопка проверки подключения VM перенесена в modules/vm.js
     }
 
     // Настройка EPSS
