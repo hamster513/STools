@@ -135,14 +135,7 @@ class SetupManager {
 
     // Настройка форм
     setupForms() {
-        // Форма настроек
-        const settingsForm = this.app.getElementSafe('vm-settings-form');
-        if (settingsForm) {
-            settingsForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.app.saveSettings();
-            });
-        }
+        // Форма настроек VM перенесена в modules/vm.js
 
         // Форма настроек Impact
         const impactForm = this.app.getElementSafe('impact-form');
