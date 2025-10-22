@@ -6,6 +6,10 @@ set -e
 
 echo "🚀 Развертывание STools v0.7.10"
 
+# Устанавливаем переменные окружения
+export COMPOSE_PROJECT_NAME=stools
+export STOOLS_VERSION=0.7.10
+
 # Проверяем архитектуру
 ARCH=$(uname -m)
 if [[ "$ARCH" == "arm64" ]]; then
