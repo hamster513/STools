@@ -668,7 +668,7 @@ class HostsRepository(DatabaseBase):
             await self.release_connection(conn)
 
     async def clear_hosts(self):
-        """Очистка таблицы хостов"""
+        """Очистка таблицы хостов с оптимизацией для больших таблиц"""
         conn = await self.get_connection()
         try:
             # Начинаем транзакцию
@@ -678,21 +678,94 @@ class HostsRepository(DatabaseBase):
                 count_before = await conn.fetchval(count_query)
                 print(f"🗑️ Удаляем {count_before} записей из таблицы хостов")
                 
-                # Удаляем все записи
-                delete_query = "DELETE FROM vulnanalizer.hosts"
-                result = await conn.execute(delete_query)
+                if count_before == 0:
+                    print("✅ Таблица хостов уже пуста")
+                    return {
+                        'success': True,
+                        'deleted_count': 0,
+                        'message': 'Таблица хостов уже пуста'
+                    }
+                
+                # Для больших таблиц используем TRUNCATE вместо DELETE
+                if count_before > 10000:
+                    print("📊 Большая таблица, используем TRUNCATE для оптимизации")
+                    try:
+                        truncate_query = "TRUNCATE TABLE vulnanalizer.hosts RESTART IDENTITY CASCADE"
+                        await conn.execute(truncate_query)
+                        deleted_count = count_before
+                    except Exception as truncate_error:
+                        print(f"⚠️ TRUNCATE не удался, пробуем батчевую очистку: {truncate_error}")
+                        # Если TRUNCATE не удался, используем батчевую очистку
+                        await self.release_connection(conn)
+                        return await self.clear_hosts_batch()
+                else:
+                    # Для небольших таблиц используем DELETE
+                    print("📊 Небольшая таблица, используем DELETE")
+                    try:
+                        delete_query = "DELETE FROM vulnanalizer.hosts"
+                        result = await conn.execute(delete_query)
+                        deleted_count = count_before
+                    except Exception as delete_error:
+                        print(f"⚠️ DELETE не удался, пробуем батчевую очистку: {delete_error}")
+                        # Если DELETE не удался, используем батчевую очистку
+                        await self.release_connection(conn)
+                        return await self.clear_hosts_batch()
                 
                 # Проверяем результат
                 count_after = await conn.fetchval(count_query)
-                print(f"✅ Очистка завершена: удалено {count_before - count_after} записей")
+                print(f"✅ Очистка завершена: удалено {deleted_count} записей")
                 
                 return {
                     'success': True,
-                    'deleted_count': count_before - count_after,
-                    'message': f'Удалено {count_before - count_after} записей хостов'
+                    'deleted_count': deleted_count,
+                    'message': f'Удалено {deleted_count} записей хостов'
                 }
         except Exception as e:
             print(f"❌ Ошибка очистки таблицы хостов: {e}")
+            raise e
+        finally:
+            await self.release_connection(conn)
+    
+    async def clear_hosts_batch(self, batch_size=1000):
+        """Очистка таблицы хостов батчами для очень больших таблиц"""
+        conn = await self.get_connection()
+        try:
+            total_deleted = 0
+            
+            while True:
+                # Удаляем батчами
+                delete_query = f"""
+                    DELETE FROM vulnanalizer.hosts 
+                    WHERE id IN (
+                        SELECT id FROM vulnanalizer.hosts 
+                        LIMIT {batch_size}
+                    )
+                """
+                result = await conn.execute(delete_query)
+                
+                # Получаем количество удаленных строк
+                deleted_count = int(result.split()[-1]) if result.split()[-1].isdigit() else 0
+                total_deleted += deleted_count
+                
+                print(f"🗑️ Удалено {deleted_count} записей (всего: {total_deleted})")
+                
+                # Если удалили меньше чем batch_size, значит таблица пуста
+                if deleted_count < batch_size:
+                    break
+                    
+                # Небольшая пауза между батчами
+                import asyncio
+                await asyncio.sleep(0.1)
+            
+            print(f"✅ Очистка завершена: удалено {total_deleted} записей")
+            return {
+                'success': True,
+                'deleted_count': total_deleted,
+                'message': f'Удалено {total_deleted} записей хостов (батчами)'
+            }
+            
+        except Exception as e:
+            print(f"❌ Ошибка батчевой очистки таблицы хостов: {e}")
             raise e
         finally:
             await self.release_connection(conn)
