@@ -3,6 +3,8 @@ VM MaxPatrol Worker для импорта данных
 """
 import csv
 import io
+import json
+import os
 import requests
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -19,6 +21,79 @@ class VMWorker:
         self.db = get_db()
         self.is_running = True
         self.logger = None
+        self.vm_data_dir = "/app/data/vm_imports"
+        self._ensure_data_dir()
+    
+    def _ensure_data_dir(self):
+        """Создать директорию для сохранения данных VM если не существует"""
+        try:
+            if not os.path.exists(self.vm_data_dir):
+                os.makedirs(self.vm_data_dir, exist_ok=True)
+        except PermissionError:
+            # Если нет прав на создание директории, используем временную директорию
+            import tempfile
+            self.vm_data_dir = os.path.join(tempfile.gettempdir(), 'stools_vm_imports')
+            os.makedirs(self.vm_data_dir, exist_ok=True)
+    
+    def _get_vm_data_file_path(self, task_id: int) -> str:
+        """Получить путь к файлу данных VM для задачи"""
+        return os.path.join(self.vm_data_dir, f"vm_data_{task_id}.json")
+    
+    def _cleanup_old_vm_files(self):
+        """Удалить старые файлы данных VM"""
+        try:
+            if os.path.exists(self.vm_data_dir):
+                for filename in os.listdir(self.vm_data_dir):
+                    if filename.startswith("vm_data_") and filename.endswith(".json"):
+                        file_path = os.path.join(self.vm_data_dir, filename)
+                        os.remove(file_path)
+                        print(f"🗑️ Удален старый файл VM данных: {filename}")
+        except Exception as e:
+            print(f"⚠️ Ошибка удаления старых файлов VM: {e}")
+    
+    async def _save_vm_data_to_file(self, task_id: int, vm_data: List[Dict[str, str]]) -> str:
+        """Сохранить данные VM в JSON файл"""
+        try:
+            file_path = self._get_vm_data_file_path(task_id)
+            
+            # Сохраняем данные в JSON файл
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(vm_data, f, ensure_ascii=False, indent=2)
+            
+            await self._log('info', f"Данные VM сохранены в файл: {file_path}", {
+                "file_path": file_path,
+                "records_count": len(vm_data)
+            })
+            
+            return file_path
+            
+        except Exception as e:
+            error_msg = f"Ошибка сохранения данных VM в файл: {str(e)}"
+            await self._log('error', error_msg)
+            raise Exception(error_msg)
+    
+    async def _load_vm_data_from_file(self, task_id: int) -> List[Dict[str, str]]:
+        """Загрузить данные VM из JSON файла"""
+        try:
+            file_path = self._get_vm_data_file_path(task_id)
+            
+            if not os.path.exists(file_path):
+                raise Exception(f"Файл данных VM не найден: {file_path}")
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                vm_data = json.load(f)
+            
+            await self._log('info', f"Данные VM загружены из файла: {file_path}", {
+                "file_path": file_path,
+                "records_count": len(vm_data)
+            })
+            
+            return vm_data
+            
+        except Exception as e:
+            error_msg = f"Ошибка загрузки данных VM из файла: {str(e)}"
+            await self._log('error', error_msg)
+            raise Exception(error_msg)
     
     async def _log(self, level: str, message: str, data: dict = None):
         """Вспомогательный метод для логирования"""
@@ -36,6 +111,9 @@ class VMWorker:
         """Запустить импорт данных из VM MaxPatrol"""
         try:
             print(f"🚀 Начинаем импорт VM данных для задачи {task_id}")
+            
+            # Удаляем старые файлы VM данных
+            self._cleanup_old_vm_files()
             
             # Обновляем статус
             await self.db.update_background_task(task_id, **{
@@ -90,14 +168,32 @@ class VMWorker:
             
             await self._log('info', f"Получено {len(vm_data)} записей из VM API")
             
+            # Сохраняем данные в файл
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Сохранение данных в файл'
+            })
+            await self._log('info', "Начинаем сохранение данных VM в файл")
+            
+            file_path = await self._save_vm_data_to_file(task_id, vm_data)
+            await self._log('info', f"Данные VM сохранены в файл: {file_path}")
+            
+            # Загружаем данные из файла
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Импорт данных из файла'
+            })
+            await self._log('info', "Начинаем импорт данных из файла")
+            
+            vm_data_from_file = await self._load_vm_data_from_file(task_id)
+            await self._log('info', f"Загружено {len(vm_data_from_file)} записей из файла")
+            
             # Группируем данные по хостам
             await self.db.update_background_task(task_id, **{
                 'current_step': 'Группировка данных по хостам'
             })
             await self._log('info', "Начинаем группировку данных по хостам")
             
-            grouped_hosts = self._group_vm_data_by_hosts(vm_data)
-            await self._log('info', f"Сгруппировано {len(grouped_hosts)} хостов из {len(vm_data)} записей")
+            grouped_hosts = self._group_vm_data_by_hosts(vm_data_from_file)
+            await self._log('info', f"Сгруппировано {len(grouped_hosts)} хостов из {len(vm_data_from_file)} записей")
             
             # Обновляем общее количество записей
             await self.db.update_background_task(task_id, **{
@@ -113,6 +209,13 @@ class VMWorker:
             
             result = await self._save_hosts_with_risks(task_id, grouped_hosts)
             await self._log('info', "Сохранение хостов в базу данных завершено", {"result": result})
+            
+            # Удаляем файл после успешного импорта
+            try:
+                os.remove(file_path)
+                await self._log('info', f"Файл данных VM удален: {file_path}")
+            except Exception as e:
+                await self._log('warning', f"Не удалось удалить файл данных VM: {e}")
             
             # Завершение
             await self.db.update_background_task(task_id, **{

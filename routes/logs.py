@@ -16,7 +16,13 @@ class UniversalLoggingService:
     
     def __init__(self):
         self.logs_dir = Path('/app/data/logs')
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.logs_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            # Если нет прав на создание директории, используем временную директорию
+            import tempfile
+            self.logs_dir = Path(tempfile.gettempdir()) / 'stools_logs'
+            self.logs_dir.mkdir(parents=True, exist_ok=True)
     
     def get_log_files(self, task_type: str = None, component: str = None, limit: int = 50) -> List[Dict[str, Any]]:
         """Получить список файлов логов"""

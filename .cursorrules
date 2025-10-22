@@ -1,0 +1,244 @@
+# STools Project Charter
+
+## Обзор проекта
+
+**STools** - это комплексный набор инструментов безопасности на основе микросервисной архитектуры, включающий:
+- **VulnAnalizer** - анализ уязвимостей с интеграцией CVE, EPSS, ExploitDB, Metasploit, MP VM
+- **LogAnalizer** - анализ логов различных форматов
+- **Auth Service** - единая система аутентификации и авторизации
+
+Текущая версия: **0.7.10** (источник: файл VERSION в корне проекта)
+
+## Архитектура
+
+### Микросервисы
+1. **auth_web** (порт 8000) - JWT аутентификация, RBAC, аудит
+2. **vulnanalizer_web** (порт 8000) - основной функционал анализа уязвимостей
+3. **loganalizer_web** (порт 8000) - анализ логов (отключен по умолчанию, используется заглушка)
+4. **main_web** (порт 8000) - административные страницы (users, settings, background-tasks)
+5. **postgres** - единая PostgreSQL БД для всех сервисов (stools_db)
+6. **redis** - кэширование и очереди задач
+7. **nginx** - обратный прокси с HTTPS/SSL
+
+### Технологический стек
+- **Backend**: Python 3.13, FastAPI, uvicorn
+- **Frontend**: Vanilla JavaScript (ES6+), CSS Grid, CSS Variables
+- **База данных**: PostgreSQL 15 с оптимизацией для больших импортов
+- **Кэш**: Redis 7 (256MB, LRU eviction)
+- **Контейнеризация**: Docker, Docker Compose
+- **Прокси**: Nginx Alpine с HTTP/2 и HTTPS
+
+### Структура проекта
+```
+STools/
+├── auth/                      # Сервис аутентификации
+│   ├── main.py               # FastAPI приложение auth
+│   ├── database.py           # БД методы для auth, RBAC, audit
+│   ├── templates/            # HTML шаблоны (login, admin панель)
+│   └── static/               # CSS/JS для auth
+├── vulnanalizer/             # Основной сервис анализа уязвимостей
+│   ├── app/
+│   │   ├── main.py          # FastAPI приложение vulnanalizer
+│   │   ├── routes/          # API маршруты (hosts, cve, vm, epss, exploitdb, metasploit, backup, archive)
+│   │   ├── services/        # Бизнес-логика (cache, excel, risk, workers, scheduler, metrics)
+│   │   ├── models/          # Pydantic модели
+│   │   ├── database/        # DB слой
+│   │   └── utils/           # Утилиты
+│   └── init-db/             # SQL миграции
+├── loganalizer/              # Анализ логов (отключен по умолчанию)
+│   └── app/
+│       ├── main.py          # FastAPI приложение loganalizer
+│       └── log_formats.py   # Поддержка разных форматов логов
+├── main.py                   # Главный FastAPI для административных страниц
+├── routes/                   # Общие роуты (logs.py)
+├── templates/                # Общие шаблоны (users, settings, background-tasks)
+├── static/                   # Общие статические ресурсы
+│   ├── css/
+│   │   ├── base/            # variables.css, reset.css, layout.css, typography.css
+│   │   ├── components/      # buttons, forms, tables, cards, modals, navigation, etc.
+│   │   ├── themes/          # dark.css, light.css
+│   │   ├── pages/           # admin.css, auth.css, dashboard.css, vulnanalizer.css
+│   │   └── utilities/       # colors, spacing, flexbox, grid, display
+│   └── js/                  # background-tasks.js, settings.js, ui-manager.js
+├── nginx/                    # Nginx конфигурация
+├── init-db/                  # Общие SQL миграции
+├── docker-compose.yml        # Основной compose
+├── docker-compose.arm.yml    # Для macOS ARM64
+├── docker-compose.x86.yml    # Для Linux x86_64
+└── VERSION                   # Единственный источник версии приложения
+```
+
+## Ключевые особенности
+
+### Версионирование
+- Версия хранится в **единственном файле VERSION** в корне проекта
+- Все сервисы читают версию из `/app/VERSION` в контейнерах
+- Версии Docker образов синхронизированы с VERSION файлом
+- Формат версии: MAJOR.MINOR.PATCH (например, 0.7.10)
+
+### База данных
+- **Единая БД** `stools_db` для всех сервисов (auth, vulnanalizer, loganalizer)
+- PostgreSQL 15 с оптимизацией для больших импортов (EPSS, ExploitDB, CSV)
+- Миграции находятся в `init-db/` (общие) и `<сервис>/init-db/` (специфичные)
+- Настройки производительности: shared_buffers=2GB, work_mem=256MB, max_wal_size=4GB
+
+### Аутентификация и авторизация
+- **JWT токены**: access token (30 мин) + refresh token (7 дней)
+- **RBAC**: система ролей и прав (таблицы roles, permissions, role_permissions, user_roles)
+- **Аудит**: логирование всех действий (audit_log, login_attempts, user_sessions)
+- Проверка токена на клиенте через `/auth/api/me-simple`
+
+### Фоновые задачи
+- **Scheduler Service** в vulnanalizer для управления фоновыми задачами
+- Workers: vm_worker, cve_worker, metasploit_worker
+- Детальное логирование задач в `data/logs/` (например, vm_import_XXX.log)
+- Глобальный переключатель детального логирования для всех задач
+
+### CSS архитектура
+- **Модульная система**: base, components, themes, pages, utilities
+- **CSS Variables** для всех цветов, размеров, отступов
+- **CSS Grid** для разметки (не использовать пиксели, не использовать !important)
+- **Mobile First** подход с брейкпоинтами
+- **Темная/светлая темы** через CSS Variables
+
+### Nginx маршрутизация
+- `/auth/` → auth_web
+- `/vulnanalizer/` → vulnanalizer_web
+- `/loganalizer/` → заглушка "Under Construction" (сервис отключен по умолчанию)
+- `/users/`, `/settings/`, `/background-tasks/` → main_web
+- `/static/` → общие статические файлы
+- Все HTTP → HTTPS redirect
+- Увеличенные таймауты для API больших файлов (3600s)
+
+### Docker volumes
+- Используются Docker volume mounts для синхронизации файлов
+- НЕ использовать `docker cp` для копирования файлов
+- Примеры: `./data:/app/data`, `./VERSION:/app/VERSION`, `./backups:/app/backups`
+
+### Интеграции
+- **EPSS** - вероятность эксплуатации уязвимостей
+- **ExploitDB** - база эксплойтов
+- **Metasploit** - модули эксплуатации
+- **MP VM** - импорт данных из MaxPatrol VM (CSV)
+- **CVE** - база уязвимостей
+
+## Правила разработки
+
+### Общие правила
+1. **НЕ вносить правки в файлы** без явного разрешения пользователя
+2. **НЕ пушить в git** без явного запроса
+3. **НЕ использовать px** в CSS стилях
+4. **НЕ использовать !important** в CSS
+5. **Сначала анализировать** существующий код перед изменениями
+6. Писать на **русском языке**
+7. Давать **прямые ответы** без лишних комментариев
+
+### SQL команды
+- При выполнении SQL в psql перезадавать команды через `cat`
+- Использовать неинтерактивный режим (без `-it` флагов)
+
+### Стиль кода
+- **Python**: FastAPI best practices, async/await, type hints
+- **JavaScript**: ES6+, модульный подход, async/await
+- **CSS**: BEM naming, CSS Variables, Mobile First
+- **SQL**: snake_case для таблиц и колонок
+
+### Управление фоновыми задачами
+- Использовать scheduler_service для планирования
+- Создавать workers для длительных операций
+- Логировать детально при включенном режиме детального логирования
+- Обрабатывать ошибки и обновлять статус задач
+
+## Текущее состояние
+
+### Основной функционал
+- ✅ Аутентификация и RBAC полностью работают
+- ✅ VulnAnalizer работает (поиск хостов, CVE, импорт VM, EPSS, ExploitDB)
+- ✅ Фоновые задачи (импорт VM, обновление EPSS/ExploitDB)
+- ✅ Бэкапы и архивирование БД
+- ⚠️ LogAnalizer отключен (используется заглушка)
+
+### Планы развития
+- Детальное логирование для всех фоновых задач
+- Улучшение производительности больших импортов
+- Расширение RBAC функционала
+- Метрики и мониторинг
+
+## Полезные команды
+
+### Docker
+```bash
+# Запуск всех сервисов
+docker-compose up -d
+
+# Запуск с LogAnalizer
+docker-compose --profile loganalizer up -d
+
+# Просмотр логов
+docker-compose logs -f [service_name]
+
+# Пересборка
+docker-compose down && docker-compose build --no-cache && docker-compose up -d
+```
+
+### База данных
+```bash
+# Подключение к БД
+docker-compose exec postgres psql -U stools_user -d stools_db
+
+# Бэкап
+docker-compose exec postgres pg_dump -U stools_user stools_db > backup.sql
+
+# Восстановление
+cat backup.sql | docker-compose exec -T postgres psql -U stools_user -d stools_db
+```
+
+### Обновление версии
+```bash
+# Обновить версию во всех файлах
+./update_version.sh 0.7.11
+```
+
+## Важные файлы
+
+- `VERSION` - единственный источник версии
+- `docker-compose.yml` - основная конфигурация
+- `nginx/nginx.conf` - маршрутизация и SSL
+- `env.example` - пример переменных окружения
+- `CHANGELOG.md` - история изменений
+- `static/css/README.md` - документация CSS архитектуры
+
+## API Endpoints
+
+### Auth Service (/auth/api/)
+- POST `/login` - аутентификация
+- POST `/refresh` - обновление access token
+- POST `/logout` - выход
+- GET `/me-simple` - информация о текущем пользователе
+- GET `/users` - список пользователей (admin)
+- POST `/users` - создание пользователя (admin)
+- GET `/roles` - список ролей
+- GET `/permissions` - список прав
+- GET `/audit/logs` - логи аудита
+- GET `/audit/login-attempts` - попытки входа
+- GET `/audit/sessions` - активные сессии
+
+### VulnAnalizer (/vulnanalizer/api/)
+- GET `/hosts/search` - поиск хостов с пагинацией
+- GET `/hosts/{host_id}` - детали хоста
+- GET `/cve/search` - поиск CVE
+- POST `/vm/import` - импорт из MP VM
+- GET `/vm/tasks` - статус импорта
+- POST `/epss/update` - обновление EPSS
+- POST `/exploitdb/update` - обновление ExploitDB
+- POST `/metasploit/update` - обновление Metasploit
+- POST `/backup/create` - создание бэкапа
+- GET `/backup/list` - список бэкапов
+- POST `/backup/restore` - восстановление бэкапа
+
+## Дополнительная информация
+
+- Проект в стадии активной разработки
+- Используется семантическое версионирование
+- Поддержка ARM64 (macOS) и x86_64 (Linux) архитектур
+- Лицензия: MIT
