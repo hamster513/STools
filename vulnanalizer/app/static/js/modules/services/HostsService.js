@@ -231,15 +231,23 @@ class HostsService {
     // Очистка данных хостов
     async clearHostsData() {
         try {
+            console.log('🗑️ Начинаем очистку данных хостов...');
             const data = await this.api.post('/hosts/clear');
             
             if (data && data.success) {
-                this.app.showNotification('Данные хостов очищены', 'success');
+                const message = data.deleted_count 
+                    ? `Удалено ${data.deleted_count} записей хостов`
+                    : 'Данные хостов очищены';
+                this.app.showNotification(message, 'success');
+                console.log('✅ Очистка завершена:', data);
                 this.updateHostsStatus();
             } else {
-                this.app.showNotification(`Ошибка очистки: ${data.error}`, 'error');
+                const errorMsg = data?.message || data?.error || 'Неизвестная ошибка';
+                this.app.showNotification(`Ошибка очистки: ${errorMsg}`, 'error');
+                console.error('❌ Ошибка очистки:', data);
             }
         } catch (error) {
+            console.error('❌ Ошибка при очистке хостов:', error);
             this.app.handleError(error, 'очистки данных хостов');
             throw error;
         }

@@ -907,8 +907,8 @@ async def clear_hosts():
     """Очистить все записи хостов"""
     try:
         db = get_db()
-        await db.clear_hosts()
-        return {"success": True, "message": "Все записи хостов удалены"}
+        result = await db.clear_hosts()
+        return result
     except Exception as e:
         print('Hosts clear error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

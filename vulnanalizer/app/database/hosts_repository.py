@@ -671,11 +671,28 @@ class HostsRepository(DatabaseBase):
         """Очистка таблицы хостов"""
         conn = await self.get_connection()
         try:
-            query = "DELETE FROM vulnanalizer.hosts"
-            await conn.execute(query)
-            print("Hosts table cleared successfully")
+            # Начинаем транзакцию
+            async with conn.transaction():
+                # Получаем количество записей перед удалением
+                count_query = "SELECT COUNT(*) FROM vulnanalizer.hosts"
+                count_before = await conn.fetchval(count_query)
+                print(f"🗑️ Удаляем {count_before} записей из таблицы хостов")
+                
+                # Удаляем все записи
+                delete_query = "DELETE FROM vulnanalizer.hosts"
+                result = await conn.execute(delete_query)
+                
+                # Проверяем результат
+                count_after = await conn.fetchval(count_query)
+                print(f"✅ Очистка завершена: удалено {count_before - count_after} записей")
+                
+                return {
+                    'success': True,
+                    'deleted_count': count_before - count_after,
+                    'message': f'Удалено {count_before - count_after} записей хостов'
+                }
         except Exception as e:
-            print(f"Error clearing hosts table: {e}")
+            print(f"❌ Ошибка очистки таблицы хостов: {e}")
             raise e
         finally:
             await self.release_connection(conn)
