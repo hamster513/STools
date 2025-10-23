@@ -177,11 +177,67 @@ class VMWorker:
             file_path = await self._save_vm_data_to_file(task_id, vm_data)
             await self._log('info', f"Данные VM сохранены в файл: {file_path}")
             
+            # НЕ запускаем автоматический импорт - только сохраняем файл
+            await self.db.update_background_task(task_id, **{
+                'status': 'completed',
+                'current_step': 'Данные сохранены в файл. Готово к ручному импорту.',
+                'end_time': datetime.now()
+            })
+            
+            await self._log('info', f"Данные VM сохранены в файл: {file_path}. Импорт не запущен автоматически.")
+            print(f"✅ Данные VM сохранены в файл: {file_path}")
+            
+            # Закрываем логгер
+            if self.logger:
+                await self.logger.close()
+            
+            return {
+                "success": True,
+                "count": len(vm_data),
+                "message": f"Сохранено {len(vm_data)} записей в файл. Импорт не запущен автоматически.",
+                "file_path": file_path
+            }
+            
+        except Exception as e:
+            error_msg = f"Ошибка импорта VM данных: {str(e)}"
+            print(f"❌ {error_msg}")
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            
+            # Логируем ошибку
+            await self._log('error', error_msg, {"traceback": traceback.format_exc()})
+            if self.logger:
+                await self.logger.close()
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'error_message': error_msg,
+                'end_time': datetime.now()
+            })
+            
+            return {"success": False, "message": error_msg}
+    
+    async def start_manual_import(self, task_id: int, parameters: Dict[str, Any]) -> Dict:
+        """Запустить ручной импорт данных из сохраненного файла VM"""
+        try:
+            print(f"🚀 Начинаем ручной импорт VM данных для задачи {task_id}")
+            
+            # Обновляем статус
+            await self.db.update_background_task(task_id, **{
+                'status': 'processing',
+                'current_step': 'Загрузка данных из файла'
+            })
+            
+            # Создаем логгер только если включено подробное логирование
+            vm_settings = await self.db.get_vm_settings()
+            if vm_settings.get('vm_detailed_logging') == 'true':
+                self.logger = await simple_logging_service.create_task_logger(task_id, 'vm_manual_import')
+                await self._log('info', "Начинаем ручной импорт VM данных", {"task_id": task_id, "parameters": parameters})
+            
             # Загружаем данные из файла
             await self.db.update_background_task(task_id, **{
-                'current_step': 'Импорт данных из файла'
+                'current_step': 'Загрузка данных из файла'
             })
-            await self._log('info', "Начинаем импорт данных из файла")
+            await self._log('info', "Начинаем загрузку данных из файла")
             
             vm_data_from_file = await self._load_vm_data_from_file(task_id)
             await self._log('info', f"Загружено {len(vm_data_from_file)} записей из файла")
@@ -212,6 +268,7 @@ class VMWorker:
             
             # Удаляем файл после успешного импорта
             try:
+                file_path = self._get_vm_data_file_path(task_id)
                 os.remove(file_path)
                 await self._log('info', f"Файл данных VM удален: {file_path}")
             except Exception as e:
@@ -220,14 +277,14 @@ class VMWorker:
             # Завершение
             await self.db.update_background_task(task_id, **{
                 'status': 'completed',
-                'current_step': 'Импорт VM данных завершен',
+                'current_step': 'Ручной импорт VM данных завершен',
                 'processed_records': len(grouped_hosts),
                 'total_records': len(grouped_hosts),
                 'end_time': datetime.now()
             })
             
-            await self._log('info', f"Импорт VM данных завершен успешно: {len(grouped_hosts)} хостов")
-            print(f"✅ Импорт VM данных завершен: {len(grouped_hosts)} хостов")
+            await self._log('info', f"Ручной импорт VM данных завершен успешно: {len(grouped_hosts)} хостов")
+            print(f"✅ Ручной импорт VM данных завершен: {len(grouped_hosts)} хостов")
             
             # Закрываем логгер
             if self.logger:
@@ -236,26 +293,29 @@ class VMWorker:
             return {
                 "success": True,
                 "count": len(grouped_hosts),
-                "message": f"Импортировано {len(grouped_hosts)} хостов из VM MaxPatrol"
+                "message": f"Импортировано {len(grouped_hosts)} хостов из файла VM"
             }
             
         except Exception as e:
-            error_msg = f"Ошибка импорта VM данных: {str(e)}"
+            error_msg = f"Ошибка ручного импорта VM данных: {str(e)}"
             print(f"❌ {error_msg}")
             print(f"❌ Traceback: {traceback.format_exc()}")
             
             # Логируем ошибку
             await self._log('error', error_msg, {"traceback": traceback.format_exc()})
-            if self.logger:
-                await self.logger.close()
             
+            # Обновляем статус задачи
             await self.db.update_background_task(task_id, **{
-                'status': 'error',
-                'error_message': error_msg,
+                'status': 'failed',
+                'current_step': f'Ошибка: {error_msg}',
                 'end_time': datetime.now()
             })
             
-            return {"success": False, "message": error_msg}
+            # Закрываем логгер
+            if self.logger:
+                await self.logger.close()
+            
+            raise Exception(error_msg)
     
     async def _get_vm_token(self, host: str, username: str, password: str, client_secret: str) -> str:
         """Получить токен аутентификации для VM MaxPatrol"""
@@ -310,47 +370,12 @@ class VMWorker:
         try:
             await self._log('debug', "Начинаем получение данных из VM API", {"host": host})
             
-            # Получаем настройки фильтров
-            vm_limit = int(settings.get('vm_limit', 0))
-            os_filter = settings.get('vm_os_filter', '').strip()
-            custom_filter = settings.get('vm_custom_filter', '').strip()
+            # Убираем все фильтры - загружаем все данные
+            await self._log('debug', "Загружаем все данные без фильтров")
             
-            await self._log('debug', "Настройки VM", {
-                "vm_limit": vm_limit, 
-                "os_filter": os_filter,
-                "custom_filter": custom_filter
-            })
-            
-            # Базовые фильтры ОС (всегда применяются)
-            base_os_filters = [
-                "Host.OsName != 'Windows 7'",
-                "Host.OsName != 'Windows 10'", 
-                "Host.OsName != 'ESXi'",
-                "Host.OsName != 'IOS'",
-                "Host.OsName != 'NX-OS'",
-                "Host.OsName != 'IOS XE'",
-                "Host.OsName != 'FreeBSD'"
-            ]
-            
-            # Дополнительные фильтры ОС (из настроек)
-            user_os_filters = []
-            if os_filter:
-                os_list = [os.strip() for os in os_filter.split(',') if os.strip()]
-                for os_name in os_list:
-                    user_os_filters.append(f"Host.OsName != '{os_name}'")
-            
-            # Объединяем все фильтры ОС
-            all_os_filters = base_os_filters + user_os_filters
-            filter_conditions = " and ".join(all_os_filters)
-            
-            # Добавляем кастомный фильтр если указан
-            if custom_filter:
-                filter_conditions = f"{filter_conditions} and ({custom_filter})"
-            
-            # Формируем финальный PDQL запрос
-            pdql = f"""select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) 
-            | filter(Host.OsName != null and {filter_conditions}) 
-            | limit({vm_limit})"""
+            # Простой PDQL запрос без фильтров
+            pdql = """select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) 
+            | filter(Host.OsName != null)"""
             
             if self.logger:
                 await self._log('debug', "Сформирован PDQL запрос", {"pdql": pdql})

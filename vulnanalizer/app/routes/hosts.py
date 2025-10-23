@@ -6,7 +6,7 @@ import traceback
 import asyncio
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, HTTPException, File, UploadFile, Query
+from fastapi import APIRouter, HTTPException, File, UploadFile, Query, Form
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
@@ -20,8 +20,12 @@ router = APIRouter()
 
 
 @router.post("/api/hosts/upload")
-async def upload_hosts(file: UploadFile = File(...)):
-    """Загрузить файл хостов и создать фоновую задачу для импорта"""
+async def upload_hosts(
+    file: UploadFile = File(...),
+    criticality_filter: str = Form(None),
+    os_filter: str = Form(None)
+):
+    """Загрузить файл хостов с фильтрами и создать фоновую задачу для импорта"""
     try:
         print(f"🔄 Начинаем загрузку файла: {file.filename} ({file.size} байт)")
         
@@ -87,8 +91,16 @@ async def upload_hosts(file: UploadFile = File(...)):
         task_parameters = {
             "file_path": str(file_path),
             "filename": file.filename,
-            "file_size_mb": file_size_mb
+            "file_size_mb": file_size_mb,
+            "criticality_filter": criticality_filter,
+            "os_filter": os_filter
         }
+        
+        # Логируем фильтры
+        if criticality_filter:
+            print(f"🔍 Фильтр критичности: {criticality_filter}")
+        if os_filter:
+            print(f"🔍 Фильтр ОС: {os_filter}")
         
         print(f"📋 Параметры задачи: {task_parameters}")
         

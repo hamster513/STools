@@ -73,7 +73,7 @@ class HostsService {
         }
     }
 
-    // Импорт хостов
+    // Импорт хостов с фильтрами
     async importHosts(file, onProgress = null) {
         try {
             if (!file) {
@@ -81,10 +81,31 @@ class HostsService {
                 return;
             }
 
-            const data = await this.api.uploadFile('/hosts/upload', file, onProgress);
+            // Получаем фильтры из формы
+            const criticalityFilter = document.getElementById('import-criticality-filter')?.value || '';
+            const osFilter = document.getElementById('import-os-filter')?.value || '';
+            
+            console.log('🔍 Применяем фильтры импорта:', { criticalityFilter, osFilter });
+
+            // Создаем FormData с файлом и фильтрами
+            const formData = new FormData();
+            formData.append('file', file);
+            if (criticalityFilter) {
+                formData.append('criticality_filter', criticalityFilter);
+            }
+            if (osFilter) {
+                formData.append('os_filter', osFilter);
+            }
+
+            const data = await this.api.uploadFileWithFilters('/hosts/upload', formData, onProgress);
             
             if (data && data.success) {
-                this.app.showNotification(`Импорт завершен: ${data.processed_records || 0} записей`, 'success');
+                const filterInfo = [];
+                if (criticalityFilter) filterInfo.push(`критичность: ${criticalityFilter}`);
+                if (osFilter) filterInfo.push(`ОС: ${osFilter}`);
+                
+                const filterText = filterInfo.length > 0 ? ` (фильтры: ${filterInfo.join(', ')})` : '';
+                this.app.showNotification(`Импорт завершен: ${data.processed_records || 0} записей${filterText}`, 'success');
                 this.updateHostsStatus();
                 
                 // Эмитируем событие импорта

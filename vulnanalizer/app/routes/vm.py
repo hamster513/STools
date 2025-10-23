@@ -159,6 +159,40 @@ async def import_vm_hosts():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/vm/manual-import")
+async def manual_import_vm_hosts():
+    """Ручной импорт хостов из сохраненного файла VM"""
+    try:
+        # Проверяем, не запущена ли уже задача импорта
+        db = get_db()
+        existing_task = await db.get_background_task_by_type('vm_manual_import')
+        if existing_task and existing_task['status'] in ['processing', 'running', 'initializing', 'idle']:
+            return {"success": False, "message": "Ручной импорт VM данных уже запущен"}
+        
+        # Создаем фоновую задачу для ручного импорта
+        task_id = await db.create_background_task(
+            task_type="vm_manual_import",
+            parameters={
+                "import_type": "vm_manual_import"
+            },
+            description="Ручной импорт данных из файла VM MaxPatrol"
+        )
+        
+        print(f"✅ Фоновая задача ручного импорта VM создана: {task_id}")
+        
+        return {
+            "success": True,
+            "task_id": task_id,
+            "message": "Ручной импорт данных из файла VM запущен в фоновом режиме"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print('VM manual import error:', traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/api/vm/status")
 async def get_vm_status():
     """Получить статус подключения к VM MaxPatrol"""

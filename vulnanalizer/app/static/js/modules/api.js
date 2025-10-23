@@ -154,6 +154,16 @@ class ApiModule {
     }
 
     /**
+     * Загрузить хосты из файла с фильтрами
+     * @param {string} endpoint - API endpoint
+     * @param {FormData} formData - FormData с файлом и фильтрами
+     * @param {Function} onProgress - Callback для прогресса
+     */
+    async uploadFileWithFilters(endpoint, formData, onProgress = null) {
+        return this.post(endpoint, formData, onProgress);
+    }
+
+    /**
      * Экспорт хостов
      * @param {Object} params - Параметры экспорта
      */
