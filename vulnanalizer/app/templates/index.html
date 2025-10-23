@@ -838,16 +838,11 @@
                     </div>
                 </div>
                 
-                <!-- Настройки VM MaxPatrol -->
-                <div class="collapsible-block">
-                    <div class="collapsible-header" data-target="vm-settings">
-                        <h3><i class="fas fa-server"></i> Интеграция с MaxPatrol VM</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="collapsible-content" id="vm-settings">
-                        <form id="vm-settings-form">
+                <!-- Блок 3: Настройки VM MaxPatrol -->
+                <div class="vm-settings-container content-block" style="margin-top: 2rem;">
+                    <h3><i class="fas fa-cog"></i> Настройки VM MaxPatrol</h3>
+                    
+                    <form id="vm-settings-form">
                         <div class="form-group">
                             <label for="vm-host">Хост VM:</label>
                             <input type="text" id="vm-host" name="vm_host" placeholder="msk01vm23.corp.local" required>
@@ -883,7 +878,7 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
-                                <i class="fas fa-save"></i> Сохранить VM
+                                <i class="fas fa-save"></i> Сохранить настройки
                             </button>
                             <button type="button" id="vm-test-connection-btn" class="btn btn-info">
                                 <i class="fas fa-plug"></i> Тест подключения
@@ -896,7 +891,6 @@
                     
                     <!-- Статус импорта VM -->
                     <div id="vm-import-status" style="margin-top: 1rem;"></div>
-                    </div>
                 </div>
                 
                 <!-- Загрузка архива баз данных -->
