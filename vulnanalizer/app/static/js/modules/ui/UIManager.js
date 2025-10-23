@@ -115,6 +115,10 @@ class UIManager {
             case 'hosts':
                 this.app.updateHostsStatus();
                 this.app.checkActiveImportTasks(); // Проверяем активные задачи импорта
+                // Проверяем статус файла VM
+                if (this.app.hostsService) {
+                    this.app.hostsService.checkVMFileStatus();
+                }
                 break;
             case 'settings':
                 // Загружаем настройки VulnAnalizer

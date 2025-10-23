@@ -286,6 +286,15 @@ class SetupManager {
                     }
                 });
             }
+
+            // Настройка кнопки ручного импорта VM
+            const vmManualImportBtn = this.app.getElementSafe('vm-manual-import-btn');
+            if (vmManualImportBtn) {
+                vmManualImportBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await this.app.hostsService.startVMManualImport();
+                });
+            }
         }
     }
 

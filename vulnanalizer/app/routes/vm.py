@@ -193,6 +193,64 @@ async def manual_import_vm_hosts():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/api/vm/file-status")
+async def get_vm_file_status():
+    """Получить статус файла VM в папке vm_imports"""
+    try:
+        import os
+        from pathlib import Path
+        from datetime import datetime
+        
+        vm_data_dir = "/app/data/vm_imports"
+        
+        # Проверяем существование директории
+        if not os.path.exists(vm_data_dir):
+            return {
+                "success": True,
+                "file_exists": False,
+                "message": "Директория vm_imports не найдена"
+            }
+        
+        # Ищем файлы VM данных
+        vm_files = []
+        for filename in os.listdir(vm_data_dir):
+            if filename.startswith("vm_data_") and filename.endswith(".json"):
+                file_path = os.path.join(vm_data_dir, filename)
+                stat = os.stat(file_path)
+                vm_files.append({
+                    "filename": filename,
+                    "file_path": file_path,
+                    "file_size": stat.st_size,
+                    "file_size_mb": stat.st_size / (1024 * 1024),
+                    "created_at": datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
+                })
+        
+        if vm_files:
+            # Берем самый новый файл
+            latest_file = max(vm_files, key=lambda x: x["created_at"])
+            return {
+                "success": True,
+                "file_exists": True,
+                "filename": latest_file["filename"],
+                "file_size": latest_file["file_size"],
+                "file_size_mb": latest_file["file_size_mb"],
+                "created_at": latest_file["created_at"]
+            }
+        else:
+            return {
+                "success": True,
+                "file_exists": False,
+                "message": "Файлы VM данных не найдены"
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "file_exists": False,
+            "message": f"Ошибка проверки файла: {str(e)}"
+        }
+
+
 @router.get("/api/vm/status")
 async def get_vm_status():
     """Получить статус подключения к VM MaxPatrol"""

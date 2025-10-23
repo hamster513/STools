@@ -117,7 +117,7 @@
                     <div class="sidebar-tab-icon">
                         <i class="fas fa-database"></i>
                     </div>
-                    <span class="sidebar-tab-title">Импорт</span>
+                    <span class="sidebar-tab-title">Импорт записей</span>
                 </a>
                 <a href="#" class="sidebar-tab" id="settings-tab" data-page="settings">
                     <div class="sidebar-tab-icon">
@@ -284,35 +284,13 @@
             <!-- Страница импорта хостов -->
             <div id="hosts-page" class="page-content">
                 <div class="content-header">
-                    <h2>Импорт хостов</h2>
-                    <p>Загрузка и обработка данных о хостах</p>
+                    <h2>Импорт записей</h2>
+                    <p id="records-count">Записей в базе: <span id="records-count-value">0</span></p>
                 </div>
                 
+                <!-- Блок 1: Импорт экспорта из MP VM -->
                 <div class="hosts-container content-block">
-                    <h3><i class="fas fa-server"></i> Импорт хостов из MP VM</h3>
-                    
-                    <!-- Фильтры импорта -->
-                    <div class="import-filters" style="margin-bottom: 2rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h4><i class="fas fa-filter"></i> Фильтры импорта</h4>
-                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label for="import-criticality-filter">Критичность уязвимости:</label>
-                                <select id="import-criticality-filter" name="criticality_filter" class="form-control">
-                                    <option value="">Все критичности</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                    <option value="N/A">N/A</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="import-os-filter">Операционная система:</label>
-                                <input type="text" id="import-os-filter" name="os_filter" class="form-control" placeholder="Например: Windows, Linux, Ubuntu">
-                                <small>Оставьте пустым для всех ОС</small>
-                            </div>
-                        </div>
-                    </div>
+                    <h3><i class="fas fa-download"></i> Импорт экспорта из MP VM</h3>
                     
                     <form id="hosts-upload-form" enctype="multipart/form-data">
                         <div class="form-group">
@@ -822,7 +800,44 @@
                         </div>
                     </div>
                 </div>
-
+                
+                <!-- Блок 2: Импорт из MP VM -->
+                <div class="vm-import-container content-block" style="margin-top: 2rem;">
+                    <h3><i class="fas fa-server"></i> Импорт из MP VM</h3>
+                    
+                    <!-- Фильтры импорта -->
+                    <div class="import-filters" style="margin-bottom: 2rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <h4><i class="fas fa-filter"></i> Фильтры импорта</h4>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="import-criticality-filter">Критичность уязвимости:</label>
+                                <select id="import-criticality-filter" name="criticality_filter" class="form-control">
+                                    <option value="">Все критичности</option>
+                                    <option value="Critical">Critical</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                    <option value="N/A">N/A</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="import-os-filter">Операционная система:</label>
+                                <input type="text" id="import-os-filter" name="os_filter" class="form-control" placeholder="Например: Windows, Linux, Ubuntu">
+                                <small>Оставьте пустым для всех ОС</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Статус файла VM -->
+                    <div id="vm-file-status" style="margin-bottom: 1rem; padding: 1rem; background: var(--info-bg, #e3f2fd); border-radius: 8px; border: 1px solid var(--info-border, #2196f3);">
+                        <h4><i class="fas fa-file-alt"></i> Статус файла VM</h4>
+                        <p id="vm-file-info">Файл не найден</p>
+                        <button type="button" id="vm-manual-import-btn" class="btn btn-success btn-sm" style="display:none;">
+                            <i class="fas fa-play"></i> Запустить импорт из файла
+                        </button>
+                    </div>
+                </div>
+                
                 <!-- Настройки VM MaxPatrol -->
                 <div class="collapsible-block">
                     <div class="collapsible-header" data-target="vm-settings">

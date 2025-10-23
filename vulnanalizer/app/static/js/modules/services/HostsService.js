@@ -59,17 +59,24 @@ class HostsService {
     // Обновление UI статуса хостов
     updateHostsStatusUI(data) {
         const statusDiv = this.app.getElementSafe('hosts-status');
-        if (!statusDiv) return;
-
-        if (data && data.count !== undefined) {
-            statusDiv.innerHTML = `
-                <div class="status-success">
-                    <i class="fas fa-check-circle"></i>
-                    <span class="status-message">Хостов в базе: ${data.count}</span>
-                </div>
-            `;
-        } else {
-            statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса хостов</span>';
+        const recordsCountElement = this.app.getElementSafe('records-count-value');
+        
+        if (statusDiv) {
+            if (data && data.count !== undefined) {
+                statusDiv.innerHTML = `
+                    <div class="status-success">
+                        <i class="fas fa-check-circle"></i>
+                        <span class="status-message">Хостов в базе: ${data.count}</span>
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса хостов</span>';
+            }
+        }
+        
+        // Обновляем счетчик записей в заголовке
+        if (recordsCountElement && data && data.count !== undefined) {
+            recordsCountElement.textContent = data.count;
         }
     }
 
@@ -271,6 +278,56 @@ class HostsService {
             console.error('❌ Ошибка при очистке хостов:', error);
             this.app.handleError(error, 'очистки данных хостов');
             throw error;
+        }
+    }
+
+    // Проверка статуса файла VM
+    async checkVMFileStatus() {
+        try {
+            const data = await this.api.get('/vm/file-status');
+            this.updateVMFileStatusUI(data);
+        } catch (error) {
+            console.error('Ошибка проверки статуса файла VM:', error);
+            this.updateVMFileStatusUI({ success: false, message: 'Ошибка проверки файла' });
+        }
+    }
+
+    // Обновление UI статуса файла VM
+    updateVMFileStatusUI(data) {
+        const fileInfoElement = this.app.getElementSafe('vm-file-info');
+        const manualImportBtn = this.app.getElementSafe('vm-manual-import-btn');
+        
+        if (fileInfoElement) {
+            if (data && data.success && data.file_exists) {
+                fileInfoElement.innerHTML = `
+                    <strong>Файл найден:</strong> ${data.filename}<br>
+                    <small>Размер: ${data.file_size_mb?.toFixed(2) || 'неизвестно'} МБ | Создан: ${data.created_at || 'неизвестно'}</small>
+                `;
+                if (manualImportBtn) {
+                    manualImportBtn.style.display = 'inline-block';
+                }
+            } else {
+                fileInfoElement.innerHTML = '<span style="color: var(--warning-color)">Файл не найден</span>';
+                if (manualImportBtn) {
+                    manualImportBtn.style.display = 'none';
+                }
+            }
+        }
+    }
+
+    // Ручной импорт из файла VM
+    async startVMManualImport() {
+        try {
+            const data = await this.api.post('/vm/manual-import');
+            
+            if (data && data.success) {
+                this.app.showNotification('Ручной импорт из файла VM запущен', 'success');
+                this.checkVMFileStatus(); // Обновляем статус файла
+            } else {
+                this.app.showNotification(`Ошибка запуска импорта: ${data.message || 'Неизвестная ошибка'}`, 'error');
+            }
+        } catch (error) {
+            this.app.handleError(error, 'запуска ручного импорта VM');
         }
     }
 }
