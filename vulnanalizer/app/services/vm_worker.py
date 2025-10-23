@@ -370,12 +370,18 @@ class VMWorker:
         try:
             await self._log('debug', "Начинаем получение данных из VM API", {"host": host})
             
-            # Убираем все фильтры - загружаем все данные
-            await self._log('debug', "Загружаем все данные без фильтров")
+            # Получаем лимит записей из настроек
+            vm_limit = int(settings.get('vm_limit', 0))
+            await self._log('debug', f"Лимит записей: {vm_limit} (0 = без ограничений)")
             
-            # Простой PDQL запрос без фильтров
-            pdql = """select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) 
-            | filter(Host.OsName != null)"""
+            # PDQL запрос с лимитом записей
+            if vm_limit > 0:
+                pdql = f"""select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) 
+                | filter(Host.OsName != null) 
+                | limit({vm_limit})"""
+            else:
+                pdql = """select(@Host, Host.OsName, Host.@Groups, Host.@Vulners.CVEs, Host.UF_Criticality, Host.UF_Zone) 
+                | filter(Host.OsName != null)"""
             
             if self.logger:
                 await self._log('debug', "Сформирован PDQL запрос", {"pdql": pdql})
