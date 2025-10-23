@@ -580,6 +580,47 @@
                                         <p>Содержит информацию о различных уязвимостях в программном обеспечении.</p>
                                     </div>
                                     
+                                    <!-- Выбор лет для загрузки -->
+                                    <div class="cve-year-selector-container collapsible-block" style="margin-bottom: 1rem;">
+                                        <div class="collapsible-header" data-target="cve-year-selector">
+                                            <h4><i class="fas fa-calendar"></i> Выбор лет для загрузки</h4>
+                                            <div class="collapsible-arrow">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                        <div class="collapsible-content" id="cve-year-selector">
+                                            <div class="year-grid" id="year-grid">
+                                                <!-- Годы будут добавлены через JavaScript -->
+                                            </div>
+                                            <div class="year-controls mt-2">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-years">
+                                                    Выбрать все
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="select-recent-years">
+                                                    Последние 5 лет
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-years">
+                                                    Очистить
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Ссылки для скачивания CVE -->
+                                    <div class="cve-download-links-container collapsible-block" style="margin-bottom: 1rem;">
+                                        <div class="collapsible-header" data-target="cve-download-links">
+                                            <h4><i class="fas fa-link"></i> Ссылки для скачивания CVE по годам</h4>
+                                            <div class="collapsible-arrow">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                        <div class="collapsible-content" id="cve-download-links">
+                                            <div id="cve-download-links-content">
+                                                <!-- Ссылки будут добавлены через JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                     <div class="form-actions">
                                         <button id="download-cve-btn" class="btn btn-primary btn-sm">
                                             <i class="fas fa-download"></i> Скачать с сайта
@@ -593,6 +634,24 @@
                                     </div>
                                     
                                     <div id="cve-status" class="mt-3"></div>
+                                    
+                                    <!-- Загрузка файлов (legacy) -->
+                                    <div class="mt-4">
+                                        <h4><i class="fas fa-upload"></i> Загрузка файлов</h4>
+                                        <form id="cve-upload-form" enctype="multipart/form-data">
+                                            <div class="form-group">
+                                                <label for="cve-file">Загрузить JSON-файл:</label>
+                                                <input type="file" id="cve-file" name="file" accept=".json,.gz" required>
+                                                <small>Поддерживаемые форматы: JSON, GZ (архив)</small>
+                                            </div>
+                                            <div class="form-actions">
+                                                <button type="submit" class="btn btn-primary btn-sm" id="cve-upload-btn">
+                                                    <i class="fas fa-upload"></i> <span class="btn-text">Загрузить файл</span>
+                                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
