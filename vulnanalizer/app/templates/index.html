@@ -436,6 +436,168 @@
                         </div>
                     </div>
 
+                    <!-- Vulnerability Databases -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="vulnerability-databases">
+                            <h3><i class="fas fa-database"></i> Vulnerability Databases</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="vulnerability-databases">
+                            <!-- Загрузка архива баз данных -->
+                            <div class="archive-container collapsible-block">
+                                <div class="collapsible-header" data-target="archive-settings">
+                                    <h3><i class="fas fa-file-archive"></i> Загрузка данных из архива</h3>
+                                    <div class="collapsible-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                <div class="collapsible-content" id="archive-settings">
+                                    <div class="info-block" style="margin-bottom: 1rem;">
+                                        <p><i class="fas fa-info-circle"></i> Загрузите ZIP-архив, созданный скриптом скачивания баз данных.</p>
+                                        <p>Архив должен содержать папки: <code>epss/</code>, <code>exploitdb/</code>, <code>metasploit/</code>, <code>cve/</code></p>
+                                    </div>
+                                    
+                                    <form id="archive-upload-form" enctype="multipart/form-data">
+                                        <div class="form-group">
+                                            <label for="archive-file">Выберите ZIP-архив:</label>
+                                            <input type="file" id="archive-file" name="file" accept=".zip" required>
+                                            <small>Поддерживается только формат ZIP</small>
+                                        </div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-primary btn-sm" id="archive-upload-btn">
+                                                <i class="fas fa-upload"></i> Загрузить архив
+                                            </button>
+                                        </div>
+                                    </form>
+                                    
+                                    <div id="archive-status" class="mt-3"></div>
+                                </div>
+                            </div>
+
+                            <!-- EPSS -->
+                            <div class="epss-container collapsible-block">
+                                <div class="collapsible-header" data-target="epss-settings">
+                                    <h3>Загрузка базы EPSS</h3>
+                                    <div class="collapsible-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                <div class="collapsible-content" id="epss-settings">
+                                    <div class="info-block" style="margin-bottom: 1rem;">
+                                        <p><i class="fas fa-info-circle"></i> EPSS (Exploit Prediction Scoring System) - система прогнозирования эксплуатации уязвимостей.</p>
+                                        <p>Данные обновляются ежедневно и содержат вероятности эксплуатации для каждой CVE.</p>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button id="download-epss-btn" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download"></i> Скачать с сайта
+                                        </button>
+                                        <button id="cancel-epss-btn" class="btn btn-danger btn-sm" style="display: none;">
+                                            <i class="fas fa-stop"></i> Отменить загрузку
+                                        </button>
+                                        <button type="button" id="epss-preview-btn" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-eye"></i> Просмотр данных
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="epss-status" class="mt-3"></div>
+                                </div>
+                            </div>
+
+                            <!-- ExploitDB -->
+                            <div class="exploitdb-container collapsible-block">
+                                <div class="collapsible-header" data-target="exploitdb-settings">
+                                    <h3>Загрузка базы ExploitDB</h3>
+                                    <div class="collapsible-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                <div class="collapsible-content" id="exploitdb-settings">
+                                    <div class="info-block" style="margin-bottom: 1rem;">
+                                        <p><i class="fas fa-info-circle"></i> ExploitDB - база данных эксплойтов и proof-of-concept кодов.</p>
+                                        <p>Содержит информацию о доступных эксплойтах для различных уязвимостей.</p>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button id="download-exploitdb-btn" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download"></i> Скачать с сайта
+                                        </button>
+                                        <button id="cancel-exploitdb-btn" class="btn btn-danger btn-sm" style="display: none;">
+                                            <i class="fas fa-stop"></i> Отменить загрузку
+                                        </button>
+                                        <button type="button" id="exploitdb-preview-btn" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-eye"></i> Просмотр данных
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="exploitdb-status" class="mt-3"></div>
+                                </div>
+                            </div>
+
+                            <!-- Metasploit -->
+                            <div class="metasploit-container collapsible-block">
+                                <div class="collapsible-header" data-target="metasploit-settings">
+                                    <h3><i class="fas fa-bug"></i> Загрузка базы Metasploit</h3>
+                                    <div class="collapsible-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                <div class="collapsible-content" id="metasploit-settings">
+                                    <div class="info-block" style="margin-bottom: 1rem;">
+                                        <p><i class="fas fa-info-circle"></i> Metasploit Framework - платформа для тестирования на проникновение.</p>
+                                        <p>Содержит модули эксплуатации для различных уязвимостей.</p>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button id="download-metasploit-btn" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download"></i> Скачать с сайта
+                                        </button>
+                                        <button id="cancel-metasploit-btn" class="btn btn-danger btn-sm" style="display: none;">
+                                            <i class="fas fa-stop"></i> Отменить загрузку
+                                        </button>
+                                        <button type="button" id="metasploit-preview-btn" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-eye"></i> Просмотр данных
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="metasploit-status" class="mt-3"></div>
+                                </div>
+                            </div>
+
+                            <!-- CVE -->
+                            <div class="cve-container collapsible-block">
+                                <div class="collapsible-header" data-target="cve-settings">
+                                    <h3><i class="fas fa-bug"></i> Загрузка базы CVE</h3>
+                                    <div class="collapsible-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                <div class="collapsible-content" id="cve-settings">
+                                    <div class="info-block" style="margin-bottom: 1rem;">
+                                        <p><i class="fas fa-info-circle"></i> CVE (Common Vulnerabilities and Exposures) - база данных уязвимостей.</p>
+                                        <p>Содержит информацию о различных уязвимостях в программном обеспечении.</p>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button id="download-cve-btn" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download"></i> Скачать с сайта
+                                        </button>
+                                        <button id="cancel-cve-btn" class="btn btn-danger btn-sm" style="display: none;">
+                                            <i class="fas fa-stop"></i> Отменить загрузку
+                                        </button>
+                                        <button type="button" id="cve-preview-btn" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-eye"></i> Просмотр данных
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="cve-status" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Настройки VM MaxPatrol -->
                     <div class="collapsible-block">
                         <div class="collapsible-header" data-target="vm-settings">
@@ -901,247 +1063,10 @@
                 
                 
                 
-                <!-- Загрузка архива баз данных -->
-                <div class="archive-container collapsible-block">
-                    <div class="collapsible-header" data-target="archive-settings">
-                        <h3><i class="fas fa-file-archive"></i> Загрузка данных из архива</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="collapsible-content" id="archive-settings">
-                        <div class="info-block" style="margin-bottom: 1rem;">
-                            <p><i class="fas fa-info-circle"></i> Загрузите ZIP-архив, созданный скриптом скачивания баз данных.</p>
-                            <p>Архив должен содержать папки: <code>epss/</code>, <code>exploitdb/</code>, <code>metasploit/</code>, <code>cve/</code></p>
-                        </div>
-                        
-                        <!-- Скачивание скриптов -->
-                        <div class="form-group" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
-                                <i class="fas fa-download"></i> Скачать скрипты для создания архива:
-                            </label>
-                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <a href="/vulnanalizer/static/scripts/download_vulnerability_databases.sh" download class="btn btn-secondary btn-sm">
-                                    <i class="fab fa-linux"></i> Bash (Linux/macOS)
-                                </a>
-                                <a href="/vulnanalizer/static/scripts/download_vulnerability_databases.ps1" download class="btn btn-secondary btn-sm">
-                                    <i class="fab fa-windows"></i> PowerShell (Windows)
-                                </a>
-                                <a href="/vulnanalizer/static/scripts/DOWNLOAD_DATABASES_README.md" download class="btn btn-info btn-sm">
-                                    <i class="fas fa-book"></i> Инструкция
-                                </a>
-                            </div>
-                            <small style="display: block; margin-top: 0.5rem;">
-                                Скрипты автоматически скачают все необходимые базы данных и создадут ZIP-архив
-                            </small>
-                        </div>
-                        
-                        <form id="archive-upload-form" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="archive-file">Выберите ZIP-архив:</label>
-                                <input type="file" id="archive-file" name="file" accept=".zip" required>
-                                <small>Архив, созданный скриптом download_vulnerability_databases</small>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary btn-sm" id="archive-upload-btn">
-                                    <i class="fas fa-upload"></i> <span class="btn-text">Загрузить архив</span>
-                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                                </button>
-                            </div>
-                        </form>
-                        <div id="archive-status" style="margin-top:2rem;"></div>
-                    </div>
-                </div>
                 
-                <!-- EPSS -->
-                <div class="epss-container collapsible-block">
-                    <div class="collapsible-header" data-target="epss-settings">
-                        <h3>Загрузка базы EPSS</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="collapsible-content" id="epss-settings">
-                        <form id="epss-upload-form" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <label for="epss-file">Загрузить CSV-файл:</label>
-                            <input type="file" id="epss-file" name="file" accept=".csv" required>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm" id="epss-upload-btn">
-                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
-                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                            </button>
-                            <button type="button" id="epss-download-btn" class="btn btn-primary btn-sm">
-                                <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
-                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                            </button>
-                            <button type="button" id="epss-preview-btn" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-eye"></i> Просмотр данных
-                            </button>
-                        </div>
-                    </form>
-                    <div id="epss-status" style="margin-top:2rem;"></div>
-                    </div>
-                </div>
 
-                <!-- ExploitDB -->
-                <div class="exploitdb-container collapsible-block">
-                    <div class="collapsible-header" data-target="exploitdb-settings">
-                        <h3>Загрузка базы ExploitDB</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="collapsible-content" id="exploitdb-settings">
-                        <form id="exploitdb-upload-form" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <label for="exploitdb-file">Загрузить CSV-файл:</label>
-                            <input type="file" id="exploitdb-file" name="file" accept=".csv" required>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm" id="exploitdb-upload-btn">
-                                <i class="fas fa-upload"></i> <span class="btn-text">Загрузить CSV</span>
-                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                            </button>
-                            <button type="button" id="exploitdb-download-btn" class="btn btn-primary btn-sm">
-                                <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
-                                <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                            </button>
-                            <button type="button" id="exploitdb-preview-btn" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-eye"></i> Просмотр данных
-                            </button>
-                        </div>
-                    </form>
-                    <div id="exploitdb-status" style="margin-top:2rem;"></div>
-                    </div>
-                </div>
 
-                <!-- Metasploit -->
-                <div class="metasploit-container collapsible-block">
-                    <div class="collapsible-header" data-target="metasploit-settings">
-                        <h3><i class="fas fa-bug"></i> Загрузка базы Metasploit</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="collapsible-content" id="metasploit-settings">
-                        <form id="metasploit-upload-form" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="metasploit-file">Загрузить JSON-файл:</label>
-                                <input type="file" id="metasploit-file" name="file" accept=".json" required>
-                                <small>Файл modules_metadata_base.json с GitHub Metasploit</small>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary btn-sm" id="metasploit-upload-btn">
-                                    <i class="fas fa-upload"></i> <span class="btn-text">Загрузить JSON</span>
-                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                                </button>
-                                <button type="button" id="metasploit-download-btn" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-cloud-download-alt"></i> <span class="btn-text">Скачать с сайта</span>
-                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                                </button>
-                                <button type="button" id="metasploit-cancel-btn" class="btn btn-danger btn-sm" style="display: none;">
-                                    <i class="fas fa-stop"></i> <span class="btn-text">Остановить загрузку</span>
-                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                                </button>
-                                <button type="button" id="metasploit-preview-btn" class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-eye"></i> Просмотр данных
-                                </button>
-                            </div>
-                        </form>
-                        <div id="metasploit-status" style="margin-top:2rem;"></div>
-                    </div>
-                </div>
 
-                <!-- CVE -->
-                <div class="cve-container collapsible-block">
-                    <div class="collapsible-header" data-target="cve-settings">
-                        <h3><i class="fas fa-bug"></i> Загрузка базы CVE</h3>
-                        <div class="collapsible-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="collapsible-content" id="cve-settings">
-                    
-                    <!-- Выбор лет для загрузки -->
-                    <div class="cve-year-selector-container collapsible-block" style="margin-bottom: 1rem;">
-                        <div class="collapsible-header" data-target="cve-year-selector">
-                            <h4><i class="fas fa-calendar"></i> Выбор лет для загрузки</h4>
-                            <div class="collapsible-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <div class="collapsible-content" id="cve-year-selector">
-                            <div class="year-grid" id="year-grid">
-                                <!-- Годы будут добавлены через JavaScript -->
-                            </div>
-                            <div class="year-controls mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-years">
-                                    Выбрать все
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="select-recent-years">
-                                    Последние 5 лет
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-years">
-                                    Очистить
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Ссылки для скачивания CVE -->
-                    <div class="cve-download-links-container collapsible-block" style="margin-bottom: 1rem;">
-                        <div class="collapsible-header" data-target="cve-download-links">
-                            <h4><i class="fas fa-link"></i> Ссылки для скачивания CVE по годам</h4>
-                            <div class="collapsible-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <div class="collapsible-content" id="cve-download-links">
-                            <div id="cve-download-links-content">
-                                <!-- Ссылки будут добавлены через JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Кнопки управления -->
-                    <div class="form-actions">
-                        <button id="download-cve-btn" class="btn btn-primary btn-sm">
-                            <i class="fas fa-download"></i> Скачать с сайта
-                        </button>
-                        <button id="cancel-cve-btn" class="btn btn-danger btn-sm" style="display: none;">
-                            <i class="fas fa-stop"></i> Отменить загрузку
-                        </button>
-                        <button type="button" id="cve-preview-btn" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-eye"></i> Просмотр данных
-                        </button>
-                    </div>
-                    
-                    
-                    <!-- Статус загрузки -->
-                    <div id="cve-status" class="mt-3"></div>
-                    
-                    
-                    <!-- Загрузка файлов (legacy) -->
-                    <div class="mt-4">
-                        <h4><i class="fas fa-upload"></i> Загрузка файлов</h4>
-                        <form id="cve-upload-form" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="cve-file">Загрузить JSON-файл:</label>
-                                <input type="file" id="cve-file" name="file" accept=".json,.gz" required>
-                                <small>Поддерживаемые форматы: JSON, GZ (архив)</small>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary btn-sm" id="cve-upload-btn">
-                                    <i class="fas fa-upload"></i> <span class="btn-text">Загрузить файл</span>
-                                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    </div>
-                </div>
 
                 <!-- Очистка таблиц -->
                 <div class="clear-container collapsible-block">
