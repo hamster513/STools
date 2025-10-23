@@ -399,6 +399,67 @@
                         </div>
                     </div>
 
+                    <!-- Настройки VM MaxPatrol -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="vm-settings">
+                            <h3><i class="fas fa-server"></i> Интеграция с MaxPatrol VM</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="vm-settings">
+                            <form id="vm-settings-form">
+                            <div class="form-group">
+                                <label for="vm-host">Хост VM:</label>
+                                <input type="text" id="vm-host" name="vm_host" placeholder="msk01vm23.corp.local" required>
+                                <small>Адрес сервера MaxPatrol VM</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-username">Имя пользователя:</label>
+                                <input type="text" id="vm-username" name="vm_username" placeholder="username" required>
+                                <small>Логин для доступа к VM API</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-password">Пароль:</label>
+                                <input type="password" id="vm-password" name="vm_password" placeholder="password" required>
+                                <small>Пароль для доступа к VM API</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-client-secret">Client Secret:</label>
+                                <input type="password" id="vm-client-secret" name="vm_client_secret" placeholder="client_secret" required>
+                                <small>Секретный ключ для OAuth2 аутентификации</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-limit">Лимит записей:</label>
+                                <input type="number" id="vm-limit" name="vm_limit" placeholder="0" value="0" min="0">
+                                <small>Максимальное количество записей для импорта (0 = без ограничений)</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vm-detailed-logging">Подробное логирование:</label>
+                                <select id="vm-detailed-logging" name="vm_detailed_logging" required>
+                                    <option value="false">Отключено</option>
+                                    <option value="true">Включено</option>
+                                </select>
+                                <small>Включить подробное логирование процесса импорта</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
+                                    <i class="fas fa-save"></i> Сохранить настройки
+                                </button>
+                                <button type="button" id="vm-test-connection-btn" class="btn btn-info">
+                                    <i class="fas fa-plug"></i> Тест подключения
+                                </button>
+                                <button type="button" id="vm-import-btn" class="btn btn-success">
+                                    <i class="fas fa-download"></i> Импорт из VM
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Статус импорта VM -->
+                        <div id="vm-import-status" style="margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+
                     <!-- Настройки расчета риска -->
                     <div class="collapsible-block">
                         <div class="collapsible-header" data-target="risk-settings">
@@ -838,60 +899,6 @@
                     </div>
                 </div>
                 
-                <!-- Блок 3: Настройки VM MaxPatrol -->
-                <div class="vm-settings-container content-block" style="margin-top: 2rem;">
-                    <h3><i class="fas fa-cog"></i> Настройки VM MaxPatrol</h3>
-                    
-                    <form id="vm-settings-form">
-                        <div class="form-group">
-                            <label for="vm-host">Хост VM:</label>
-                            <input type="text" id="vm-host" name="vm_host" placeholder="msk01vm23.corp.local" required>
-                            <small>Адрес сервера MaxPatrol VM</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="vm-username">Имя пользователя:</label>
-                            <input type="text" id="vm-username" name="vm_username" placeholder="username" required>
-                            <small>Логин для доступа к VM API</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="vm-password">Пароль:</label>
-                            <input type="password" id="vm-password" name="vm_password" placeholder="password" required>
-                            <small>Пароль для доступа к VM API</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="vm-client-secret">Client Secret:</label>
-                            <input type="password" id="vm-client-secret" name="vm_client_secret" placeholder="client_secret" required>
-                            <small>Секретный ключ для OAuth2 аутентификации</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="vm-limit">Лимит записей:</label>
-                            <input type="number" id="vm-limit" name="vm_limit" placeholder="0" value="0" min="0">
-                            <small>Максимальное количество записей для импорта (0 = без ограничений)</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="vm-detailed-logging">Подробное логирование:</label>
-                            <select id="vm-detailed-logging" name="vm_detailed_logging" required>
-                                <option value="false">Отключено</option>
-                                <option value="true">Включено</option>
-                            </select>
-                            <small>Включить подробное логирование процесса импорта</small>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm" id="vm-settings-btn">
-                                <i class="fas fa-save"></i> Сохранить настройки
-                            </button>
-                            <button type="button" id="vm-test-connection-btn" class="btn btn-info">
-                                <i class="fas fa-plug"></i> Тест подключения
-                            </button>
-                            <button type="button" id="vm-import-btn" class="btn btn-success">
-                                <i class="fas fa-download"></i> Импорт из VM
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <!-- Статус импорта VM -->
-                    <div id="vm-import-status" style="margin-top: 1rem;"></div>
-                </div>
                 
                 <!-- Загрузка архива баз данных -->
                 <div class="archive-container collapsible-block">
