@@ -1,13 +1,13 @@
 /**
  * NotificationManager - Централизованное управление уведомлениями
- * v=7.1
+ * v=7.2
  */
 class NotificationManager {
     constructor(app) {
         this.app = app;
         this.notifications = [];
         this.maxNotifications = 5;
-        this.defaultTimeout = 5000;
+        this.defaultTimeout = 10000;
         this.container = null;
         this.init();
     }
