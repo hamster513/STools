@@ -85,11 +85,10 @@ class CVEService {
             if (data && data.urls) {
                 return data.urls;
             } else {
-                this.app.showNotification('Ошибка получения ссылок CVE', 'error');
                 return [];
             }
         } catch (error) {
-            this.app.handleError(error, 'получения ссылок CVE');
+            console.error('Ошибка получения ссылок CVE:', error);
             throw error;
         }
     }
@@ -324,9 +323,16 @@ class CVEService {
         const urlsBtn = this.app.getElementSafe('download-cve-btn');
         if (urlsBtn) {
             urlsBtn.addEventListener('click', async () => {
-                const urls = await this.getCVEDownloadUrls();
-                if (urls.length > 0) {
-                    this.app.showNotification(`Найдено ${urls.length} ссылок для загрузки`, 'info');
+                try {
+                    const urls = await this.getCVEDownloadUrls();
+                    if (urls.length > 0) {
+                        this.app.showNotification(`Найдено ${urls.length} ссылок для загрузки`, 'info');
+                    } else {
+                        this.app.showNotification('Ссылки для загрузки не найдены', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Ошибка получения ссылок CVE:', error);
+                    this.app.showNotification('Ошибка получения ссылок CVE', 'error');
                 }
             });
         }

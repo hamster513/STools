@@ -7,7 +7,7 @@ class NotificationManager {
         this.app = app;
         this.notifications = [];
         this.maxNotifications = 5;
-        this.defaultTimeout = 10000;
+        this.defaultTimeout = 5000;
         this.container = null;
         this.init();
     }
