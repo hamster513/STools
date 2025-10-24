@@ -319,23 +319,6 @@ class CVEService {
             });
         }
 
-        // Кнопка получения ссылок
-        const urlsBtn = this.app.getElementSafe('download-cve-btn');
-        if (urlsBtn) {
-            urlsBtn.addEventListener('click', async () => {
-                try {
-                    const urls = await this.getCVEDownloadUrls();
-                    if (urls.length > 0) {
-                        this.app.showNotification(`Найдено ${urls.length} ссылок для загрузки`, 'info');
-                    } else {
-                        this.app.showNotification('Ссылки для загрузки не найдены', 'warning');
-                    }
-                } catch (error) {
-                    console.error('Ошибка получения ссылок CVE:', error);
-                    this.app.showNotification('Ошибка получения ссылок CVE', 'error');
-                }
-            });
-        }
     }
 }
 
