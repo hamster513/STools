@@ -45,8 +45,9 @@ class SetupManager {
                         console.error('❌ Страница background-tasks-page не найдена');
                     }
                     
-                    // Загружаем данные о задачах
+                    // Загружаем данные о задачах и истории
                     await this.app.uiManager.loadBackgroundTasks();
+                    await this.app.uiManager.loadTaskHistory();
                     
                     // Эмитируем событие смены страницы
                     if (this.eventManager) {

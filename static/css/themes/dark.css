@@ -255,10 +255,10 @@
     background: var(--bg-dark, #1a1a1a);
 }
 
-.dark-theme .modal-content {
+/* .dark-theme .modal-content {
     background: var(--bg-darker, #2d2d2d);
     border-color: var(--border-color, #404040);
-}
+} */
 
 .dark-theme .modal-header h3,
 .dark-theme .formula-section h4,

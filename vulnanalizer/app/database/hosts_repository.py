@@ -442,10 +442,6 @@ class HostsRepository(DatabaseBase):
                 if cve == 'CVE-2015-1635':
                     print(f"🔍 DEBUG CVE-2015-1635: exploit_count={exploit_count}, exploitdb_data keys: {list(exploitdb_data.keys())[:10]}")
                 
-                if not epss_row or epss_row['epss'] is None:
-                    print(f"⚠️ Нет EPSS данных для {cve}")
-                    # Продолжаем обработку даже без EPSS для обновления информации об эксплойтах
-                
                 # Получаем хосты для этого CVE
                 hosts_query = "SELECT id, cvss, criticality, confidential_data, internet_access FROM vulnanalizer.hosts WHERE cve = $1"
                 hosts_rows = await conn.fetch(hosts_query, cve)
@@ -454,12 +450,27 @@ class HostsRepository(DatabaseBase):
                     print(f"⚠️ Нет хостов для CVE {cve}")
                     continue
                 
+                # Проверяем наличие EPSS данных
+                has_epss_data = epss_row and epss_row['epss'] is not None
+                
+                if not has_epss_data:
+                    print(f"⚠️ Нет EPSS данных для {cve}")
+                
                 # Рассчитываем риск для каждого хоста
                 for host_row in hosts_rows:
                     try:
-                        # Используем оригинальную формулу расчета риска
-                        epss_score = float(epss_row['epss'])
                         criticality = host_row['criticality'] or 'Medium'
+                        
+                        # Если нет EPSS данных, устанавливаем риск как n/a
+                        if not has_epss_data:
+                            epss_score = None
+                            epss_percentile = None
+                            risk_score = None
+                            raw_risk = None
+                        else:
+                            # Используем оригинальную формулу расчета риска
+                            epss_score = float(epss_row['epss'])
+                            epss_percentile = float(epss_row['percentile']) if epss_row['percentile'] else None
                         
                         # Определяем CVSS score (приоритет: CVE v3 > CVE v2 > хост)
                         cvss_score = None
@@ -475,62 +486,55 @@ class HostsRepository(DatabaseBase):
                             cvss_score = float(host_row['cvss'])
                             cvss_source = 'Host'
                         
-                        # Используем единую функцию расчета риска
-                        from database.risk_calculation import calculate_risk_score
-                        
-                        # Подготавливаем данные CVE для расчета
-                        cve_calculation_data = {}
-                        if cve_data_row:
-                            cve_calculation_data.update({
-                                'cvss_v3_attack_vector': cve_data_row.get('cvss_v3_attack_vector'),
-                                'cvss_v3_privileges_required': cve_data_row.get('cvss_v3_privileges_required'),
-                                'cvss_v3_user_interaction': cve_data_row.get('cvss_v3_user_interaction'),
-                                'cvss_v2_access_vector': cve_data_row.get('cvss_v2_access_vector'),
-                                'cvss_v2_access_complexity': cve_data_row.get('cvss_v2_access_complexity'),
-                                'cvss_v2_authentication': cve_data_row.get('cvss_v2_authentication')
-                            })
-                        
-                        # Получаем данные ExploitDB и Metasploit для CVE
-                        if exploit_count > 0:
-                            # Получаем тип эксплойта из ExploitDB
-                            exdb_query = "SELECT type FROM vulnanalizer.exploitdb WHERE codes LIKE $1 LIMIT 1"
-                            exdb_row = await conn.fetchrow(exdb_query, f'%{cve}%')
-                            if exdb_row and exdb_row['type']:
-                                cve_calculation_data['exploitdb_type'] = exdb_row['type']
-                        
-                        # Получаем ранг Metasploit для CVE (ищем в поле references)
-                        msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" LIKE $1 LIMIT 1"
-                        msf_row = await conn.fetchrow(msf_query, f'%{cve}%')
-                        if msf_row and msf_row['rank'] is not None:
-                            cve_calculation_data['msf_rank'] = msf_row['rank']
+                        # Рассчитываем риск только если есть EPSS данные
+                        if has_epss_data:
+                            # Используем единую функцию расчета риска
+                            from database.risk_calculation import calculate_risk_score
+                            
+                            # Подготавливаем данные CVE для расчета
+                            cve_calculation_data = {}
+                            if cve_data_row:
+                                cve_calculation_data.update({
+                                    'cvss_v3_attack_vector': cve_data_row.get('cvss_v3_attack_vector'),
+                                    'cvss_v3_privileges_required': cve_data_row.get('cvss_v3_privileges_required'),
+                                    'cvss_v3_user_interaction': cve_data_row.get('cvss_v3_user_interaction'),
+                                    'cvss_v2_access_vector': cve_data_row.get('cvss_v2_access_vector'),
+                                    'cvss_v2_access_complexity': cve_data_row.get('cvss_v2_access_complexity'),
+                                    'cvss_v2_authentication': cve_data_row.get('cvss_v2_authentication')
+                                })
+                            
+                            # Получаем данные ExploitDB и Metasploit для CVE
+                            if exploit_count > 0:
+                                # Получаем тип эксплойта из ExploitDB
+                                exdb_query = "SELECT type FROM vulnanalizer.exploitdb WHERE codes LIKE $1 LIMIT 1"
+                                exdb_row = await conn.fetchrow(exdb_query, f'%{cve}%')
+                                if exdb_row and exdb_row['type']:
+                                    cve_calculation_data['exploitdb_type'] = exdb_row['type']
+                            
+                            # Получаем ранг Metasploit для CVE (ищем в поле references)
+                            msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" LIKE $1 LIMIT 1"
+                            msf_row = await conn.fetchrow(msf_query, f'%{cve}%')
+                            if msf_row and msf_row['rank'] is not None:
+                                cve_calculation_data['msf_rank'] = msf_row['rank']
+                            else:
+                                cve_calculation_data['msf_rank'] = None
+                            
+                            # Рассчитываем риск с единой функцией
+                            risk_result = calculate_risk_score(
+                                epss=epss_score,
+                                cvss=cvss_score,
+                                criticality=criticality,
+                                settings=settings,
+                                cve_data=cve_calculation_data,
+                                confidential_data=host_row.get('confidential_data', False),
+                                internet_access=host_row.get('internet_access', False)
+                            )
+                            
+                            risk_score = risk_result['risk_score']
+                            raw_risk = risk_result['raw_risk']
                         else:
-                            cve_calculation_data['msf_rank'] = None
-                        
-                        # Рассчитываем риск с единой функцией
-                        risk_result = calculate_risk_score(
-                            epss=epss_score,
-                            cvss=cvss_score,
-                            criticality=criticality,
-                            settings=settings,
-                            cve_data=cve_calculation_data,
-                            confidential_data=host_row.get('confidential_data', False),
-                            internet_access=host_row.get('internet_access', False)
-                        )
-                        
-                        risk_score = risk_result['risk_score']
-                        raw_risk = risk_result['raw_risk']
-                        
-                        
-                        if cve_data_row and cve_data_row['cvss_v3_base_score'] is not None:
-                            cvss_score = float(cve_data_row['cvss_v3_base_score'])
-                            cvss_source = 'CVSS v3'
-                        elif cve_data_row and cve_data_row['cvss_v2_base_score'] is not None:
-                            cvss_score = float(cve_data_row['cvss_v2_base_score'])
-                            cvss_source = 'CVSS v2'
-                        elif host_row['cvss'] is not None:
-                            cvss_score = float(host_row['cvss'])
-                            cvss_source = 'Host'
-                        
+                            # Если нет EPSS данных, устанавливаем значения по умолчанию
+                            cve_calculation_data = {}
                         # Обновляем хост с информацией об эксплойтах
                         update_query = """
                             UPDATE vulnanalizer.hosts SET
@@ -553,7 +557,7 @@ class HostsRepository(DatabaseBase):
                             cvss_score,
                             cvss_source,
                             epss_score,
-                            float(epss_row['percentile']) if epss_row['percentile'] else None,
+                            epss_percentile,
                             exploit_count,
                             has_exploits,
                             risk_score,
@@ -561,7 +565,7 @@ class HostsRepository(DatabaseBase):
                             datetime.now(),
                             datetime.now(),
                             datetime.now(),
-                            cve_calculation_data.get('msf_rank'),
+                            cve_calculation_data.get('msf_rank') if has_epss_data else None,
                             host_row['id']
                         )
                         

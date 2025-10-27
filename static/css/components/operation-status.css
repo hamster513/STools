@@ -224,7 +224,7 @@
     overflow: visible;
 }
 
-.modal-content {
+/* .modal-content {
     background: var(--bg-light, #ffffff);
     border-radius: 12px;
     max-width: 800px;
@@ -236,7 +236,7 @@
     border: 2px solid var(--border-color, #dee2e6);
     z-index: 100000;
     position: relative;
-}
+} */
 
 @keyframes modalSlideIn {
     from {

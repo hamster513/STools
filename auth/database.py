@@ -739,3 +739,19 @@ class AuthDatabase:
             except Exception as e:
                 print(f"Error getting audit stats: {e}")
                 return {}
+    
+    async def delete_user(self, user_id: int) -> bool:
+        """Удаление пользователя"""
+        async with self.pool.acquire() as conn:
+            try:
+                # Проверяем, что пользователь существует
+                user = await conn.fetchrow('SELECT id FROM auth.users WHERE id = $1', user_id)
+                if not user:
+                    return False
+                
+                # Удаляем пользователя (каскадное удаление удалит связанные записи)
+                await conn.execute('DELETE FROM auth.users WHERE id = $1', user_id)
+                return True
+            except Exception as e:
+                print(f"Error deleting user: {e}")
+                return False

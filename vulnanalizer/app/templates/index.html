@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/static/css/components/sidebar.css?v=1.0">
     <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=5.2&nocache={{ range(1, 999999) | random }}">
     <link rel="stylesheet" href="/static/css/components/cve-search.css?v=1.1">
-    <link rel="stylesheet" href="/static/css/components/modals.css?v=1.5">
+    <!-- <link rel="stylesheet" href="/static/css/components/user-modals.css?v=1.0"> -->
     <link rel="stylesheet" href="/static/css/components/progress.css?v=2.0">
     <link rel="stylesheet" href="/static/css/components/operation-status.css?v=1.0">
             <link rel="stylesheet" href="/vulnanalizer/css-debug/collapsible.css?v=4.4&nocache={{ range(1, 999999) | random }}">
@@ -419,6 +419,24 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="content-block">
+                        <div class="content-block-header">
+                            <h3 class="content-block-title">
+                                <i class="fas fa-history"></i> История задач
+                            </h3>
+                            <div class="content-block-actions">
+                                <button id="load-task-history" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-refresh"></i> Обновить
+                                </button>
+                            </div>
+                        </div>
+                        <div id="task-history-content">
+                            <div class="loading-container">
+                                <span>Загрузка истории...</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -463,20 +481,47 @@
                                     <label for="db-password">Пароль БД:</label>
                                     <input type="password" id="db-password" name="db_password" placeholder="stools_pass" value="stools_pass" required>
                                 </div>
-                                <div class="form-group">
-                                    <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
-                                    <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
-                                    <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-save"></i> Сохранить
-                                    </button>
+                            <div class="form-group">
+                                <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
+                                <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
+                                <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-save"></i> Сохранить
+                                </button>
                                     <button type="button" class="btn btn-secondary btn-sm" id="test-connection">
                                         <i class="fas fa-plug"></i> Проверить подключение
-                                    </button>
+                                </button>
+                            </div>
+                        </form>
+                        </div>
+                    </div>
+
+                    <!-- Управление пользователями -->
+                    <div class="collapsible-block" id="user-management-block">
+                        <div class="collapsible-header" data-target="users-management">
+                            <h3><i class="fas fa-users"></i> Управление пользователями</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="users-management">
+                            <div class="info-block">
+                                <p><i class="fas fa-info-circle"></i> Управление пользователями системы. Роли: аналитик, администратор.</p>
+                            </div>
+                            
+                            <div class="users-controls">
+                                <button type="button" class="btn btn-primary btn-sm" id="create-user-btn">
+                                    <i class="fas fa-plus"></i> Создать пользователя
+                                </button>
+                            </div>
+
+                            <div class="users-list" id="users-list">
+                                <div class="loading-spinner">
+                                    <i class="fas fa-spinner fa-spin"></i> Загрузка пользователей...
                                 </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
 
@@ -1220,6 +1265,19 @@
 
 
 
+                <!-- Управление логами -->
+                <div class="collapsible-block">
+                    <div class="collapsible-header" data-target="logs-management">
+                        <h3><i class="fas fa-file-alt"></i> Управление логами</h3>
+                        <div class="collapsible-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="logs-management">
+                        <iframe src="/logs/" style="width: 100%; height: 600px; border: none;"></iframe>
+                    </div>
+                </div>
+
                 <!-- Очистка таблиц -->
                 <div class="clear-container collapsible-block">
                     <div class="collapsible-header" data-target="clear-settings">
@@ -1502,32 +1560,7 @@
                 </div>
             </div>
 
-                    <!-- Управление пользователями -->
-                    <div class="collapsible-block">
-                        <div class="collapsible-header" data-target="users-management">
-                            <h3><i class="fas fa-users"></i> Управление пользователями</h3>
-                            <div class="collapsible-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <div class="collapsible-content" id="users-management">
-                            <iframe src="/users-iframe/" style="width: 100%; height: 600px; border: none;"></iframe>
-                        </div>
-                    </div>
 
-
-                    <!-- Управление логами -->
-                    <div class="collapsible-block">
-                        <div class="collapsible-header" data-target="logs-management">
-                            <h3><i class="fas fa-file-alt"></i> Управление логами</h3>
-                            <div class="collapsible-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <div class="collapsible-content" id="logs-management">
-                            <iframe src="/logs/" style="width: 100%; height: 600px; border: none;"></iframe>
-                        </div>
-                    </div>
 
                     <!-- Управление очередями -->
                     <div class="collapsible-block">
@@ -1691,7 +1724,7 @@
     <script src="/vulnanalizer/static/js/modules/cve-manager.js?v=1.0"></script>
                     <script src="/vulnanalizer/static/js/modules/cve-modal.js?v=1.5"></script>
         <script src="/vulnanalizer/static/js/modules/risk-modal.js?v=1.6"></script>
-        <script src="/vulnanalizer/static/js/modules/settings.js?v=3.2"></script>
+        <script src="/vulnanalizer/static/js/modules/settings.js?v=3.4"></script>
         <script src="/vulnanalizer/static/js/modules/base-modal.js?v=2.1"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit.js?v=1.7"></script>
         <script src="/vulnanalizer/static/js/modules/metasploit-modal.js?v=1.2"></script>
@@ -1706,10 +1739,10 @@
     <script src="/vulnanalizer/static/js/modules/core/ApiManager.js?v=7.1"></script>
     <script src="/vulnanalizer/static/js/modules/core/StorageManager.js?v=8.0"></script>
     <script src="/vulnanalizer/static/js/modules/core/EventManager.js?v=7.1"></script>
-    <script src="/vulnanalizer/static/js/modules/core/AuthManager.js?v=8.0"></script>
+    <script src="/vulnanalizer/static/js/modules/core/AuthManager.js?v=8.5"></script>
     <script src="/vulnanalizer/static/js/modules/ui/NotificationManager.js?v=7.2"></script>
-    <script src="/vulnanalizer/static/js/modules/ui/UIManager.js?v=8.29"></script>
-    <script src="/vulnanalizer/static/js/modules/ui/SetupManager.js?v=7.9"></script>
+        <script src="/vulnanalizer/static/js/modules/ui/UIManager.js?v=8.15"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/SetupManager.js?v=8.0"></script>
     <script src="/vulnanalizer/static/js/modules/ui/HostsUIManager.js?v=7.1"></script>
     <script src="/vulnanalizer/static/js/modules/utils/Helpers.js?v=7.1"></script>
     <script src="/vulnanalizer/static/js/modules/services/HostsService.js?v=7.1"></script>
@@ -1908,5 +1941,106 @@
             padding: 0.25rem 0.5rem;
         }
     </style>
+
+    <!-- Модальное окно для создания пользователя -->
+    <div id="create-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Создать пользователя</h3>
+                <button type="button" class="modal-close" id="close-create-user-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="create-user-form">
+                    <div class="form-group">
+                        <label for="new-username">Имя пользователя:</label>
+                        <input type="text" id="new-username" name="username" required>
+                        <small>Уникальное имя для входа в систему</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-fullname">Полное имя:</label>
+                        <input type="text" id="new-fullname" name="fullname">
+                        <small>Отображаемое имя пользователя (необязательно)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Пароль:</label>
+                        <input type="password" id="new-password" name="password" required>
+                        <small>Минимум 6 символов</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-role">Роль:</label>
+                        <select id="new-role" name="role" required>
+                            <option value="">Выберите роль</option>
+                            <option value="analyst">Аналитик</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                        <small>Аналитик - просмотр данных, Администратор - полный доступ</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-create-user">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-create-user">
+                    <i class="fas fa-save"></i> Создать
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования пользователя -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit"></i> Редактировать пользователя</h3>
+                <button type="button" class="modal-close" id="close-edit-user-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id" name="user_id">
+                    <div class="form-group">
+                        <label for="edit-username">Имя пользователя:</label>
+                        <input type="text" id="edit-username" name="username" required>
+                        <small>Уникальное имя для входа в систему</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-fullname">Полное имя:</label>
+                        <input type="text" id="edit-fullname" name="fullname">
+                        <small>Отображаемое имя пользователя (необязательно)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-password">Новый пароль:</label>
+                        <input type="password" id="edit-password" name="password">
+                        <small>Оставьте пустым, чтобы не изменять пароль</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-role">Роль:</label>
+                        <select id="edit-role" name="role" required>
+                            <option value="">Выберите роль</option>
+                            <option value="analyst">Аналитик</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                        <small>Аналитик - просмотр данных, Администратор - полный доступ</small>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="edit-active" name="is_active">
+                            Активный пользователь
+                        </label>
+                        <small>Неактивные пользователи не могут войти в систему</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-edit-user">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-edit-user">
+                    <i class="fas fa-save"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

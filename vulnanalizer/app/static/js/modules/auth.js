@@ -35,10 +35,13 @@ class AuthModule {
                 throw new Error('Auth failed');
             }
         }).then(userData => {
+            console.log('🔍 API /auth/api/me вернул:', userData);
             
             if (userData.user) {
+                console.log('🔍 Сохраняем userData.user:', userData.user);
                 localStorage.setItem('user_info', JSON.stringify(userData.user));
             } else {
+                console.log('🔍 Сохраняем userData:', userData);
                 localStorage.setItem('user_info', JSON.stringify(userData));
             }
         }).catch((error) => {

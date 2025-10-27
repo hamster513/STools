@@ -93,18 +93,26 @@ def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Получение текущего пользователя из токена"""
     token = credentials.credentials
+    print(f"🔍 get_current_user вызван с токеном: {token[:20]}...")
+    
     payload = verify_token(token)
     if payload is None:
+        print(f"🔍 JWT токен не декодирован")
         raise HTTPException(status_code=401, detail="Invalid token")
     
     username = payload.get("sub")
     if username is None:
+        print(f"🔍 Username не найден в payload")
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+    print(f"🔍 JWT декодирован, username: {username}")
     
     user = await auth_db.get_user_by_username(username)
     if user is None:
+        print(f"🔍 Пользователь {username} не найден в БД")
         raise HTTPException(status_code=401, detail="User not found")
     
+    print(f"🔍 Пользователь найден: {user}")
     return user
 
 @app.on_event("startup")
@@ -448,11 +456,18 @@ async def get_version():
 @app.get("/api/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """Получение информации о текущем пользователе"""
+    print(f"🔍 /api/me вызван для пользователя: {current_user}")
+    # Получаем роли пользователя
+    user_roles = await auth_db.get_user_roles(current_user['id'])
+    roles = [role['name'] for role in user_roles]
+    print(f"🔍 Роли пользователя {current_user['username']}: {roles}")
+    
     return {
         "id": current_user['id'],
         "username": current_user['username'],
         "email": current_user['email'],
-        "is_admin": current_user['is_admin']
+        "is_admin": current_user['is_admin'],
+        "roles": roles
     }
 
 @app.get("/api/me-test")
@@ -492,11 +507,18 @@ async def get_current_user_info_simple(request: Request):
             # Получаем пользователя из базы данных
             user = await auth_db.get_user_by_username(username)
             if user:
+                print(f"🔍 Пользователь найден: {user}")
+                # Получаем роли пользователя
+                user_roles = await auth_db.get_user_roles(user['id'])
+                roles = [role['name'] for role in user_roles]
+                print(f"🔍 Роли пользователя: {roles}")
+                
                 return {
                     "id": user['id'],
                     "username": user['username'],
                     "email": user['email'],
-                    "is_admin": user['is_admin']
+                    "is_admin": user['is_admin'],
+                    "roles": roles
                 }
             else:
                 # Если пользователь не найден в БД, возвращаем админа по умолчанию
@@ -714,27 +736,36 @@ async def delete_role(role_id: int):
         print(f"Error deleting role: {e}")
         raise HTTPException(status_code=500, detail="Ошибка удаления роли")
 
+@app.delete("/api/users/{user_id}")
+async def delete_user(user_id: int):
+    """Удалить пользователя"""
+    try:
+        success = await auth_db.delete_user(user_id)
+        if success:
+            return {"message": "Пользователь удален успешно"}
+        else:
+            raise HTTPException(status_code=500, detail="Ошибка удаления пользователя")
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка удаления пользователя")
+
 @app.post("/api/verify")
-async def verify_token_endpoint(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def verify_token_endpoint(current_user: dict = Depends(get_current_user)):
     """Проверка токена"""
-    payload = verify_token(credentials.credentials)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
     
-    # Получаем полную информацию о пользователе
-    username = payload.get("sub")
-    user = await auth_db.get_user_by_username(username)
+    # Получаем роли пользователя
+    user_roles = await auth_db.get_user_roles(current_user['id'])
+    roles = [role['name'] for role in user_roles]
     
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    
-    return {
+    result = {
         "valid": True, 
-        "username": username,
+        "username": current_user['username'],
         "user": {
-            "id": user['id'],
-            "username": user['username'],
-            "email": user['email'],
-            "is_admin": user['is_admin']
+            "id": current_user['id'],
+            "username": current_user['username'],
+            "email": current_user['email'],
+            "is_admin": current_user['is_admin'],
+            "roles": roles
         }
     }
+    return result

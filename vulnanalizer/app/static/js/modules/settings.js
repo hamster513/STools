@@ -1,6 +1,6 @@
 /**
  * Модуль для управления настройками
- * v=3.2
+ * v=3.4
  */
 class SettingsModule {
     constructor(app) {
@@ -236,6 +236,67 @@ class SettingsModule {
                 e.preventDefault();
                 e.stopPropagation();
                 this.testConnection();
+            });
+        }
+
+        // Управление пользователями
+        const createUserBtn = document.getElementById('create-user-btn');
+        if (createUserBtn && !createUserBtn.hasAttribute('data-listener-added')) {
+            createUserBtn.setAttribute('data-listener-added', 'true');
+            createUserBtn.addEventListener('click', () => {
+                this.openCreateUserModal();
+            });
+        }
+
+        // Модальное окно создания пользователя
+        const closeModalBtn = document.getElementById('close-create-user-modal');
+        const cancelBtn = document.getElementById('cancel-create-user');
+        const saveBtn = document.getElementById('save-create-user');
+        
+        if (closeModalBtn && !closeModalBtn.hasAttribute('data-listener-added')) {
+            closeModalBtn.setAttribute('data-listener-added', 'true');
+            closeModalBtn.addEventListener('click', () => {
+                this.closeCreateUserModal();
+            });
+        }
+        
+        if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
+            cancelBtn.setAttribute('data-listener-added', 'true');
+            cancelBtn.addEventListener('click', () => {
+                this.closeCreateUserModal();
+            });
+        }
+        
+        if (saveBtn && !saveBtn.hasAttribute('data-listener-added')) {
+            saveBtn.setAttribute('data-listener-added', 'true');
+            saveBtn.addEventListener('click', () => {
+                this.createUser();
+            });
+        }
+
+        // Модальное окно редактирования пользователя
+        const closeEditModalBtn = document.getElementById('close-edit-user-modal');
+        const cancelEditBtn = document.getElementById('cancel-edit-user');
+        const saveEditBtn = document.getElementById('save-edit-user');
+        
+        if (closeEditModalBtn && !closeEditModalBtn.hasAttribute('data-listener-added')) {
+            closeEditModalBtn.setAttribute('data-listener-added', 'true');
+            closeEditModalBtn.addEventListener('click', () => {
+                this.closeEditUserModal();
+            });
+        }
+        
+        if (cancelEditBtn && !cancelEditBtn.hasAttribute('data-listener-added')) {
+            cancelEditBtn.setAttribute('data-listener-added', 'true');
+            cancelEditBtn.addEventListener('click', () => {
+                this.closeEditUserModal();
+            });
+        }
+        
+        if (saveEditBtn && !saveEditBtn.hasAttribute('data-listener-added')) {
+            saveEditBtn.setAttribute('data-listener-added', 'true');
+            saveEditBtn.addEventListener('click', () => {
+                this.updateUser();
             });
         }
     }
@@ -568,6 +629,12 @@ class SettingsModule {
 
     async loadSettings() {
         try {
+            // Скрываем блок управления пользователями для аналитика
+            const userManagementBlock = document.getElementById('user-management-block');
+            if (userManagementBlock && this.app.authManager.isAnalyst()) {
+                userManagementBlock.style.display = 'none';
+            }
+            
             const settings = await this.app.api.getSettings();
             
             // Загружаем Impact настройки
@@ -575,6 +642,11 @@ class SettingsModule {
             
             // Загружаем CVSS настройки
             this.loadCVSSSettings(settings);
+            
+            // Загружаем пользователей только если у пользователя есть права администратора
+            if (this.app.authManager.isAdmin()) {
+                await this.loadUsers();
+            }
             
             // Загружаем настройки порога риска
             this.loadThresholdSettings(settings);
@@ -932,6 +1004,304 @@ class SettingsModule {
         if (modal) {
             modal.style.display = 'none';
             document.body.style.overflow = ''; // Восстанавливаем прокрутку страницы
+        }
+    }
+
+    // Методы для управления пользователями
+    openCreateUserModal() {
+        const modal = document.getElementById('create-user-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            // Очищаем форму
+            document.getElementById('create-user-form').reset();
+        }
+    }
+
+    closeCreateUserModal() {
+        const modal = document.getElementById('create-user-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    async createUser() {
+        const form = document.getElementById('create-user-form');
+        const formData = new FormData(form);
+        const userData = Object.fromEntries(formData.entries());
+
+        // Валидация
+        if (!userData.username || !userData.password || !userData.role) {
+            window.notifications.show('Заполните все обязательные поля', 'error');
+            return;
+        }
+
+        if (userData.password.length < 6) {
+            window.notifications.show('Пароль должен содержать минимум 6 символов', 'error');
+            return;
+        }
+
+        // Преобразуем данные для API
+        const apiData = {
+            username: userData.username,
+            email: userData.fullname || null,
+            password: userData.password,
+            is_admin: userData.role === 'admin',
+            is_active: true
+        };
+
+        try {
+            const saveBtn = document.getElementById('save-create-user');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+            saveBtn.disabled = true;
+
+            const response = await fetch('/auth/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.app.storage.get('auth_token')}`
+                },
+                body: JSON.stringify(apiData)
+            });
+
+            const result = await response.json();
+
+            if (result.message && result.message.includes('successfully')) {
+                window.notifications.show('Пользователь успешно создан', 'success');
+                this.closeCreateUserModal();
+                this.loadUsers(); // Перезагружаем список пользователей
+            } else {
+                window.notifications.show(result.message || 'Ошибка создания пользователя', 'error');
+            }
+        } catch (error) {
+            console.error('Create user failed:', error);
+            window.notifications.show('Ошибка создания пользователя', 'error');
+        } finally {
+            const saveBtn = document.getElementById('save-create-user');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Создать';
+            saveBtn.disabled = false;
+        }
+    }
+
+    async loadUsers() {
+        try {
+            const response = await fetch('/auth/api/users', {
+                headers: {
+                    'Authorization': `Bearer ${this.app.storage.get('auth_token')}`
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.users) {
+                this.renderUsers(result.users);
+            } else {
+                document.getElementById('users-list').innerHTML = 
+                    '<div class="error-message">Ошибка загрузки пользователей</div>';
+            }
+        } catch (error) {
+            console.error('Load users failed:', error);
+            document.getElementById('users-list').innerHTML = 
+                '<div class="error-message">Ошибка загрузки пользователей</div>';
+        }
+    }
+
+    renderUsers(users) {
+        const usersList = document.getElementById('users-list');
+        
+        if (!users || users.length === 0) {
+            usersList.innerHTML = '<div class="no-data">Пользователи не найдены</div>';
+            return;
+        }
+
+        const usersHTML = users.map(user => `
+            <div class="user-item">
+                <div class="user-info">
+                    <div class="user-name">${user.username}</div>
+                    <div class="user-role">${user.is_admin ? 'Администратор' : 'Аналитик'}</div>
+                    <div class="user-status ${user.is_active ? 'active' : 'inactive'}">
+                        ${user.is_active ? 'Активен' : 'Заблокирован'}
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <button class="btn btn-sm btn-secondary edit-user-btn" data-user-id="${user.id}">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}">
+                        <i class="fas fa-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        usersList.innerHTML = usersHTML;
+        
+        // Добавляем обработчики событий для кнопок
+        this.addUserActionListeners();
+    }
+
+    addUserActionListeners() {
+        // Обработчики для кнопок редактирования
+        const editButtons = document.querySelectorAll('.edit-user-btn');
+        editButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = e.target.closest('.edit-user-btn').getAttribute('data-user-id');
+                this.editUser(userId);
+            });
+        });
+
+        // Обработчики для кнопок удаления
+        const deleteButtons = document.querySelectorAll('.delete-user-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = e.target.closest('.delete-user-btn').getAttribute('data-user-id');
+                this.deleteUser(userId);
+            });
+        });
+    }
+
+    editUser(userId) {
+        // Загружаем данные пользователя
+        this.loadUserData(userId);
+    }
+
+    async loadUserData(userId) {
+        try {
+            const response = await fetch(`/auth/api/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.app.storage.get('auth_token')}`
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.id) {
+                this.openEditUserModal(result);
+            } else {
+                window.notifications.show('Ошибка загрузки данных пользователя', 'error');
+            }
+        } catch (error) {
+            console.error('Load user data failed:', error);
+            window.notifications.show('Ошибка загрузки данных пользователя', 'error');
+        }
+    }
+
+    openEditUserModal(user) {
+        const modal = document.getElementById('edit-user-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            
+            // Заполняем форму данными пользователя
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-username').value = user.username;
+            document.getElementById('edit-fullname').value = user.email || '';
+            document.getElementById('edit-password').value = '';
+            document.getElementById('edit-role').value = user.is_admin ? 'admin' : 'analyst';
+            document.getElementById('edit-active').checked = user.is_active;
+        }
+    }
+
+    closeEditUserModal() {
+        const modal = document.getElementById('edit-user-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    async updateUser() {
+        const form = document.getElementById('edit-user-form');
+        const formData = new FormData(form);
+        const userData = Object.fromEntries(formData.entries());
+
+        // Валидация
+        if (!userData.username || !userData.role) {
+            window.notifications.show('Заполните все обязательные поля', 'error');
+            return;
+        }
+
+        if (userData.password && userData.password.length < 6) {
+            window.notifications.show('Пароль должен содержать минимум 6 символов', 'error');
+            return;
+        }
+
+        // Преобразуем данные для API
+        const apiData = {
+            username: userData.username,
+            email: userData.fullname || null,
+            is_admin: userData.role === 'admin',
+            is_active: userData.is_active === 'on'
+        };
+
+        // Добавляем пароль только если он указан
+        if (userData.password) {
+            apiData.password = userData.password;
+        }
+
+        try {
+            const saveBtn = document.getElementById('save-edit-user');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+            saveBtn.disabled = true;
+
+            const response = await fetch(`/auth/api/users/${userData.user_id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.app.storage.get('auth_token')}`
+                },
+                body: JSON.stringify(apiData)
+            });
+
+            const result = await response.json();
+
+            if (result.message && result.message.includes('successfully')) {
+                window.notifications.show('Пользователь успешно обновлен', 'success');
+                this.closeEditUserModal();
+                this.loadUsers(); // Перезагружаем список пользователей
+            } else {
+                window.notifications.show(result.message || 'Ошибка обновления пользователя', 'error');
+            }
+        } catch (error) {
+            console.error('Update user failed:', error);
+            window.notifications.show('Ошибка обновления пользователя', 'error');
+        } finally {
+            const saveBtn = document.getElementById('save-edit-user');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
+            saveBtn.disabled = false;
+        }
+    }
+
+    async deleteUser(userId) {
+        try {
+            // Подтверждение удаления
+            if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+                return;
+            }
+
+            const token = this.app.storage.get('auth_token');
+            if (!token) {
+                window.notifications.show('Токен авторизации не найден. Пожалуйста, войдите в систему заново.', 'error');
+                return;
+            }
+            const response = await fetch(`/auth/api/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                window.notifications.show(result.message || 'Пользователь удален успешно', 'success');
+                await this.loadUsers(); // Перезагружаем список пользователей
+            } else {
+                window.notifications.show(result.detail || 'Ошибка удаления пользователя', 'error');
+            }
+        } catch (error) {
+            console.error('Delete user error:', error);
+            window.notifications.show('Ошибка удаления пользователя', 'error');
         }
     }
 }

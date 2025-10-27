@@ -86,6 +86,58 @@ async def get_background_tasks_status():
     finally:
         await db.release_connection(conn)
 
+@router.get("/api/background-tasks/history")
+async def get_background_tasks_history():
+    """Получить историю фоновых задач (последние 20)"""
+    try:
+        db = get_db()
+        conn = await db.get_connection()
+        
+        # Получаем последние 20 задач
+        query = """
+            SELECT id, task_type, status, current_step, total_items, processed_items,
+                   total_records, processed_records, updated_records, progress_percent, start_time, end_time, error_message, 
+                   cancelled, parameters, description, created_at, updated_at
+            FROM vulnanalizer.background_tasks 
+            ORDER BY created_at DESC
+            LIMIT 20
+        """
+        tasks = await conn.fetch(query)
+        
+        # Форматируем результаты
+        def format_task(task):
+            return {
+                'id': task['id'],
+                'task_type': task['task_type'],
+                'status': task['status'],
+                'current_step': task['current_step'],
+                'total_items': task['total_items'],
+                'processed_items': task['processed_items'],
+                'total_records': task['total_records'],
+                'processed_records': task['processed_records'],
+                'updated_records': task['updated_records'],
+                'progress_percent': task['progress_percent'],
+                'start_time': task['start_time'].isoformat() if task['start_time'] else None,
+                'end_time': task['end_time'].isoformat() if task['end_time'] else None,
+                'error_message': task['error_message'],
+                'cancelled': task['cancelled'],
+                'parameters': task['parameters'],
+                'description': task['description'],
+                'created_at': task['created_at'].isoformat() if task['created_at'] else None,
+                'updated_at': task['updated_at'].isoformat() if task['updated_at'] else None
+            }
+        
+        return {
+            "success": True,
+            "tasks": [format_task(task) for task in tasks]
+        }
+        
+    except Exception as e:
+        print(f"Error getting background tasks history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await db.release_connection(conn)
+
 
 def calculate_task_progress(task):
     """Рассчитать прогресс задачи с учетом типа задачи"""

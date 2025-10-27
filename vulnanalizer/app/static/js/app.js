@@ -1,6 +1,6 @@
 /**
  * VulnAnalizer - Основное приложение
- * v=7.2
+ * v=7.3
  */
 
 // Подключение модулей
@@ -1076,6 +1076,7 @@ class VulnAnalizer {
 // Инициализация приложения при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     window.vulnAnalizer = new VulnAnalizer();
+    window.app = window.vulnAnalizer; // Добавляем алиас для совместимости
     
     // Обработчик изменения хэша URL
     window.addEventListener('hashchange', () => {

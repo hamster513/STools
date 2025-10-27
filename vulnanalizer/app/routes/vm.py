@@ -250,15 +250,22 @@ async def get_vm_file_status():
                 })
         
         if vm_files:
-            # Берем самый новый файл
-            latest_file = max(vm_files, key=lambda x: x["created_at"])
+            # Приоритизируем исходный файл (без _filtered)
+            original_files = [f for f in vm_files if not f["filename"].endswith("_filtered.json")]
+            if original_files:
+                # Если есть исходные файлы, берем самый новый из них
+                selected_file = max(original_files, key=lambda x: x["created_at"])
+            else:
+                # Если исходных файлов нет, берем самый новый из всех
+                selected_file = max(vm_files, key=lambda x: x["created_at"])
+            
             return {
                 "success": True,
                 "file_exists": True,
-                "filename": latest_file["filename"],
-                "file_size": latest_file["file_size"],
-                "file_size_mb": latest_file["file_size_mb"],
-                "created_at": latest_file["created_at"]
+                "filename": selected_file["filename"],
+                "file_size": selected_file["file_size"],
+                "file_size_mb": selected_file["file_size_mb"],
+                "created_at": selected_file["created_at"]
             }
         else:
             return {

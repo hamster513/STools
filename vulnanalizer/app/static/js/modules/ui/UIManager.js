@@ -1,6 +1,6 @@
 /**
  * UIManager - Менеджер пользовательского интерфейса
- * v=7.5
+ * v=7.7
  */
 class UIManager {
     constructor(app) {
@@ -73,8 +73,12 @@ class UIManager {
 
     // Обновление видимости сайдбара
     updateSidebarVisibility(isAdmin) {
-        const adminTabs = ['users', 'background-tasks', 'settings'];
+            const adminTabs = ['users', 'background-tasks'];
+            const settingsTab = document.getElementById('settings-tab');
+            const isAnalyst = this.app.authManager.isAnalyst();
+            
         
+            // Скрываем админские вкладки для не-админов
         adminTabs.forEach(tabId => {
             const tab = document.getElementById(`${tabId}-tab`);
             if (tab) {
@@ -85,6 +89,41 @@ class UIManager {
                 }
             }
         });
+            
+            // Скрываем настройки для аналитика (даже если он админ)
+            if (settingsTab) {
+                const hasSettingsAccess = isAdmin && !isAnalyst;
+                if (hasSettingsAccess) {
+                    settingsTab.style.setProperty('display', 'flex', 'important');
+                } else {
+                    settingsTab.style.setProperty('display', 'none', 'important');
+                }
+            } else {
+            }
+            
+            // Также скрываем страницу настроек
+            const settingsPage = document.getElementById('settings-page');
+            if (settingsPage) {
+                const hasSettingsAccess = isAdmin && !isAnalyst;
+                if (hasSettingsAccess) {
+                    settingsPage.style.display = 'block';
+                } else {
+                    settingsPage.style.setProperty('display', 'none', 'important');
+                    settingsPage.style.setProperty('visibility', 'hidden', 'important');
+                    settingsPage.style.setProperty('opacity', '0', 'important');
+                    settingsPage.style.setProperty('height', '0', 'important');
+                    settingsPage.style.setProperty('overflow', 'hidden', 'important');
+                }
+            } else {
+            }
+            
+            // Проверим, есть ли у settings-page класс active
+            if (settingsPage) {
+                if (settingsPage.classList.contains('active')) {
+                    settingsPage.classList.remove('active');
+                }
+            }
+            
     }
 
     // Обновление видимости меню
@@ -125,8 +164,19 @@ class UIManager {
                 this.app.loadDatabaseSettings();
                 break;
             case 'background-tasks':
-                // Перенаправляем на отдельную страницу фоновых задач
-                window.location.href = '/background-tasks/';
+                // Загружаем активные задачи и историю
+                this.loadBackgroundTasks();
+                this.loadTaskHistory();
+                
+                // Добавляем обработчик для кнопки обновления истории
+                setTimeout(() => {
+                    const loadHistoryBtn = document.getElementById('load-task-history');
+                    if (loadHistoryBtn) {
+                        loadHistoryBtn.addEventListener('click', () => {
+                            this.loadTaskHistory();
+                        });
+                    }
+                }, 100);
                 break;
             default:
                 break;
@@ -268,6 +318,54 @@ class UIManager {
         }
     }
 
+    // Загрузка истории задач
+    async loadTaskHistory() {
+        const contentDiv = document.getElementById('task-history-content');
+        if (!contentDiv) {
+            console.error('❌ Не найден контейнер для истории задач');
+            return;
+        }
+        
+        try {
+            // Показываем спиннер
+            contentDiv.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Загрузка истории...</span>
+                </div>
+            `;
+            
+            const response = await fetch('/vulnanalizer/api/background-tasks/history', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.storage.get('auth_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderTaskHistory(data.tasks);
+            } else {
+                throw new Error(data.message || 'Ошибка загрузки истории задач');
+            }
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки истории задач:', error);
+            contentDiv.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Ошибка загрузки истории: ${error.message}</span>
+                </div>
+            `;
+        }
+    }
+
     // Отрисовка фоновых задач
     renderBackgroundTasks(tasks) {
         const contentDiv = document.getElementById('background-tasks-content');
@@ -286,42 +384,55 @@ class UIManager {
             return;
         }
         
-        contentDiv.innerHTML = tasks.map(task => `
-            <div class="content-block task-item ${task.status}">
-                <div class="content-block-header">
-                    <div class="content-block-title">
-                        <i class="fas fa-tasks"></i>
-                        <span>${task.task_type}</span>
+        contentDiv.innerHTML = tasks.map(task => {
+            const hasCancelButton = task.status === 'running' || task.status === 'processing';
+            
+            return `
+                <div class="content-block task-item ${task.status}">
+                    <div class="content-block-header">
+                        <div class="content-block-title">
+                            <i class="fas fa-tasks"></i>
+                            <span>${task.task_type}</span>
+                        </div>
+                        <div class="content-block-actions">
+                            <span class="badge ${task.status}">${task.status}</span>
+                        </div>
                     </div>
-                    <div class="content-block-actions">
-                        <span class="badge ${task.status}">${task.status}</span>
-                    </div>
-                </div>
-                <div class="content-block-body">
-                    <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
-                    <p><strong>Создано:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'Неизвестно'}</p>
-                    ${task.updated_at ? `<p><strong>Обновлено:</strong> ${new Date(task.updated_at).toLocaleString()}</p>` : ''}
-                    ${task.current_step ? `<p><strong>Текущий шаг:</strong> ${task.current_step}</p>` : ''}
-                    ${task.progress_percent !== null && task.progress_percent !== undefined ? `
-                        <div class="progress-bar">
-                            <div class="progress-track">
-                                <div class="progress-fill" style="width: ${task.progress_percent}%"></div>
+                    <div class="content-block-body">
+                        <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
+                        <p><strong>Создано:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'Неизвестно'}</p>
+                        ${task.updated_at ? `<p><strong>Обновлено:</strong> ${new Date(task.updated_at).toLocaleString()}</p>` : ''}
+                        ${task.current_step ? `<p><strong>Текущий шаг:</strong> ${task.current_step}</p>` : ''}
+                        ${task.progress_percent !== null && task.progress_percent !== undefined ? `
+                            <div class="progress-bar">
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width: ${task.progress_percent}%"></div>
+                                </div>
+                                <div class="progress-text">${task.progress_percent}%</div>
                             </div>
-                            <div class="progress-text">${task.progress_percent}%</div>
-                        </div>
-                    ` : ''}
-                    ${task.status === 'running' ? `
-                        <div class="task-actions">
-                            <button onclick="cancelTask('${task.id}')" class="btn btn-danger btn-sm">
-                                <i class="fas fa-stop"></i> Остановить
-                            </button>
-                        </div>
-                    ` : ''}
-                    ${task.total_records ? `<p><strong>Записей:</strong> ${task.processed_records || 0}/${task.total_records}</p>` : ''}
-                    ${task.error_message ? `<p class="error-text"><strong>Ошибка:</strong> ${task.error_message}</p>` : ''}
+                        ` : ''}
+                        ${hasCancelButton ? `
+                            <div class="task-actions">
+                                <button onclick="cancelTask('${task.id}')" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-stop"></i> Остановить
+                                </button>
+                            </div>
+                        ` : ''}
+                        ${task.total_records ? `<p><strong>Записей:</strong> ${task.processed_records || 0}/${task.total_records}</p>` : ''}
+                        ${task.error_message ? `<p class="error-text"><strong>Ошибка:</strong> ${task.error_message}</p>` : ''}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+        
+        // Добавляем обработчики событий для кнопок
+        const cancelButtons = contentDiv.querySelectorAll('button[onclick*="cancelTask"]');
+        
+        cancelButtons.forEach((button, index) => {
+            button.addEventListener('click', function(e) {
+                const taskId = this.getAttribute('onclick').match(/cancelTask\('(\d+)'\)/)?.[1];
+            });
+        });
     }
 
     // Отмена задачи
@@ -345,6 +456,92 @@ class UIManager {
         } catch (error) {
             console.error('Ошибка отмены задачи:', error);
             this.app.notificationManager.showNotification('Ошибка отмены задачи', 'error');
+        }
+    }
+
+    // Отрисовка истории задач
+    renderTaskHistory(tasks) {
+        const contentDiv = document.getElementById('task-history-content');
+        if (!contentDiv) {
+            console.error('❌ Не найден контейнер для истории задач');
+            return;
+        }
+        
+        if (!tasks || tasks.length === 0) {
+            contentDiv.innerHTML = `
+                <div class="no-tasks-message">
+                    <i class="fas fa-history"></i>
+                    <span>История задач пуста</span>
+                </div>
+            `;
+            return;
+        }
+        
+        contentDiv.innerHTML = tasks.map(task => {
+            const statusClass = task.status === 'completed' ? 'completed-task' : 
+                               task.status === 'error' ? 'error' : 
+                               task.status === 'cancelled' ? 'cancelled' : 'active-task';
+            
+            const statusText = task.status === 'completed' ? 'Завершено' :
+                              task.status === 'error' ? 'Ошибка' :
+                              task.status === 'cancelled' ? 'Отменено' :
+                              task.status === 'processing' ? 'Выполняется' :
+                              task.status === 'running' ? 'Запущено' : task.status;
+            
+            const duration = this.calculateTaskDuration(task.start_time, task.end_time);
+            
+            return `
+                <div class="content-block task-item ${statusClass}">
+                    <div class="content-block-header">
+                        <div class="content-block-title">
+                            <i class="fas fa-tasks"></i>
+                            <span>${task.task_type}</span>
+                        </div>
+                        <div class="content-block-actions">
+                            <span class="badge ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="content-block-body">
+                        <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
+                        <p><strong>Создано:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'Неизвестно'}</p>
+                        ${task.start_time ? `<p><strong>Начато:</strong> ${new Date(task.start_time).toLocaleString()}</p>` : ''}
+                        ${task.end_time ? `<p><strong>Завершено:</strong> ${new Date(task.end_time).toLocaleString()}</p>` : ''}
+                        ${duration ? `<p><strong>Длительность:</strong> ${duration}</p>` : ''}
+                        ${task.current_step ? `<p><strong>Последний шаг:</strong> ${task.current_step}</p>` : ''}
+                        ${task.progress_percent !== null && task.progress_percent !== undefined ? `
+                            <div class="progress-bar">
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width: ${task.progress_percent}%"></div>
+                                </div>
+                                <div class="progress-text">${task.progress_percent}%</div>
+                            </div>
+                        ` : ''}
+                        ${task.total_records ? `<p><strong>Записей:</strong> ${task.processed_records || 0}/${task.total_records}</p>` : ''}
+                        ${task.error_message ? `<p class="error-text"><strong>Ошибка:</strong> ${task.error_message}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Расчет длительности задачи
+    calculateTaskDuration(startTime, endTime) {
+        if (!startTime) return null;
+        
+        const start = new Date(startTime);
+        const end = endTime ? new Date(endTime) : new Date();
+        const durationMs = end - start;
+        
+        const seconds = Math.floor(durationMs / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        
+        if (hours > 0) {
+            return `${hours}ч ${minutes % 60}м ${seconds % 60}с`;
+        } else if (minutes > 0) {
+            return `${minutes}м ${seconds % 60}с`;
+        } else {
+            return `${seconds}с`;
         }
     }
 }

@@ -1,6 +1,6 @@
 /**
  * AuthManager - Менеджер аутентификации
- * v=8.0 - Унифицированная система токенов
+ * v=8.2 - Унифицированная система токенов
  */
 class AuthManager {
     constructor(app) {
@@ -94,10 +94,12 @@ class AuthManager {
     // Проверка прав пользователя
     checkUserPermissions() {
         const userInfo = this.storage.get('user_info');
+        
         if (userInfo) {
             try {
                 const user = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo;
                 const isAdmin = user.is_admin === true;
+                const isAnalyst = this.isAnalyst();
                 
                 this.app.updateSidebarVisibility(isAdmin);
                 this.app.updateMenuVisibility(isAdmin);
@@ -139,15 +141,29 @@ class AuthManager {
     // Проверка роли пользователя
     hasRole(role) {
         const user = this.getCurrentUser();
+        
+        if (!user) return false;
+        
         if (role === 'admin') {
-            return user && user.is_admin === true;
+            return user.is_admin === true;
         }
-        return user && user.role === role;
+        
+        // Проверяем роли из массива roles
+        if (user.roles && Array.isArray(user.roles)) {
+            return user.roles.includes(role);
+        }
+        
+        return false;
     }
 
     // Проверка прав администратора
     isAdmin() {
         return this.hasRole('admin');
+    }
+
+    // Проверка, является ли пользователь аналитиком
+    isAnalyst() {
+        return this.hasRole('analyst');
     }
 
     // Открытие страницы управления пользователями

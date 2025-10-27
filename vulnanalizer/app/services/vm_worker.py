@@ -568,6 +568,62 @@ class VMWorker:
             
             return {"success": False, "message": error_msg}
     
+    async def _cleanup_vm_imports_folder(self, task_id: int, keep_original_file: str = None) -> None:
+        """
+        Очистить папку vm_imports от всех созданных файлов, кроме исходного
+        
+        Args:
+            task_id: ID задачи для обновления прогресса
+            keep_original_file: Путь к исходному файлу, который нужно сохранить
+        """
+        try:
+            vm_imports_dir = os.path.join(self.data_dir, 'vm_imports')
+            if not os.path.exists(vm_imports_dir):
+                return
+            
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Очистка временных файлов',
+                'progress_percent': 0
+            })
+            await self._update_task_activity(task_id, "Очистка временных файлов")
+            
+            deleted_files = []
+            kept_files = []
+            
+            for filename in os.listdir(vm_imports_dir):
+                file_path = os.path.join(vm_imports_dir, filename)
+                
+                # Пропускаем директории
+                if os.path.isdir(file_path):
+                    continue
+                
+                # Сохраняем исходный файл
+                if keep_original_file and os.path.samefile(file_path, keep_original_file):
+                    kept_files.append(filename)
+                    continue
+                
+                # Удаляем все остальные файлы
+                try:
+                    os.remove(file_path)
+                    deleted_files.append(filename)
+                except Exception as e:
+                    print(f"⚠️ Не удалось удалить файл {filename}: {e}")
+            
+            print(f"🧹 Очистка завершена: удалено {len(deleted_files)} файлов, сохранено {len(kept_files)} файлов")
+            if deleted_files:
+                print(f"🗑️ Удаленные файлы: {', '.join(deleted_files)}")
+            if kept_files:
+                print(f"💾 Сохраненные файлы: {', '.join(kept_files)}")
+                
+            await self._log('info', f"Очистка папки vm_imports завершена", {
+                "deleted_files": deleted_files,
+                "kept_files": kept_files
+            })
+            
+        except Exception as e:
+            print(f"❌ Ошибка очистки папки vm_imports: {e}")
+            await self._log('error', f"Ошибка очистки папки vm_imports: {e}")
+
     async def start_manual_import(self, task_id: int, parameters: Dict[str, Any]) -> Dict:
         """Запустить ручной импорт данных из сохраненного файла VM с предварительной очисткой"""
         try:
@@ -586,7 +642,7 @@ class VMWorker:
             # Обновляем статус
             await self.db.update_background_task(task_id, **{
                 'status': 'processing',
-                'current_step': 'Загрузка данных из файла'
+                'current_step': 'Инициализация импорта'
             })
             
             # Создаем логгер только если включено подробное логирование
@@ -607,6 +663,9 @@ class VMWorker:
                 raise Exception(f"Файл данных VM не найден: {vm_data_file_path}")
             
             await self._log('info', f"Найден файл данных VM: {vm_data_file_path}")
+            
+            # Этап 1.5: Очищаем папку vm_imports от временных файлов
+            await self._cleanup_vm_imports_folder(task_id, vm_data_file_path)
             
             # Этап 2: Применяем фильтры ДО разбивки файла
             file_to_process = vm_data_file_path
