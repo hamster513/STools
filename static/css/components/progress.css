@@ -1,20 +1,6 @@
-/* Progress Components */
+/* Progress Components - Унифицированные стили */
 
-.progress {
-    width: 100%;
-    height: 8px;
-    background-color: var(--border-color);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-}
-
-/* Progress Indicators - унифицированные стили */
-.progress-container {
-    display: grid;
-    gap: var(--spacing-sm);
-}
-
+/* Основной прогресс-бар (универсальный) */
 .progress-bar {
     display: flex;
     align-items: center;
@@ -24,32 +10,50 @@
 
 .progress-track {
     flex: 1;
-    height: 16px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid #dee2e6;
+    background-color: var(--progress-bg, #e9ecef);
     border-radius: 8px;
+    height: 8px;
+    margin: 12px 0 8px 0;
     overflow: hidden;
     position: relative;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
 .progress-fill {
+    background: linear-gradient(90deg, var(--progress-fill-start, #007bff) 0%, var(--progress-fill-end, #0056b3) 100%);
     height: 100%;
-    background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
     border-radius: 8px;
     transition: width 0.3s ease;
     position: relative;
-    box-shadow: 0 1px 3px rgba(0, 123, 255, 0.3);
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
+    width: 0%; /* Начальная ширина */
 }
 
 .progress-fill::after {
-    display: none;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    animation: shimmer 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 .progress-text {
-    font-size: var(--font-size-sm);
+    text-align: center;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-muted, #6c757d);
+    margin-top: 4px;
     min-width: 60px;
     text-align: right;
     padding: 4px 0;
@@ -58,22 +62,93 @@
     border: none;
 }
 
+/* Совместимость со старыми классами */
+.progress {
+    width: 100%;
+    height: 8px;
+    background-color: var(--progress-bg, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-container {
+    display: grid;
+    gap: var(--spacing-sm);
+}
+
 /* Темная тема для прогресс-бара */
 .dark-theme .progress-track {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    background-color: rgba(255, 255, 255, 0.1);
     border-color: var(--border-color);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .dark-theme .progress-fill {
-    background: linear-gradient(90deg, var(--success-color) 0%, var(--success-color-dark) 100%);
-    box-shadow: 0 1px 3px rgba(74, 222, 128, 0.3);
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
+    box-shadow: 0 1px 3px rgba(74, 158, 255, 0.3);
 }
 
 .dark-theme .progress-text {
     color: var(--text-primary);
     background: transparent;
     border: none;
+}
+
+/* Совместимость с operation- классами */
+.operation-progress-bar {
+    background-color: var(--progress-bg, #e9ecef);
+    border-radius: 8px;
+    height: 8px;
+    margin: 12px 0 8px 0;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+
+.operation-progress-fill {
+    background: linear-gradient(90deg, var(--progress-fill-start, #007bff) 0%, var(--progress-fill-end, #0056b3) 100%);
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
+    width: 0%;
+}
+
+.operation-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    animation: shimmer 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.operation-progress-text {
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted, #6c757d);
+    margin-top: 4px;
+}
+
+/* Темная тема для operation- классов */
+.dark-theme .operation-progress-bar {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .operation-progress-fill {
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
+}
+
+.dark-theme .operation-progress-text {
+    color: var(--text-primary);
 }
 
 /* Progress variants */

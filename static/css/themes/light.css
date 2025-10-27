@@ -200,9 +200,7 @@
     background-color: var(--border-color);
 }
 
-.light-theme .progress-bar {
-    background-color: var(--primary-color);
-}
+/* Стили прогресс-баров теперь в progress.css */
 
 .light-theme .sidebar {
     background-color: var(--surface-color);

@@ -26,6 +26,7 @@ services:
       POSTGRES_DB: stools_db
       POSTGRES_USER: stools_user
       POSTGRES_PASSWORD: stools_pass
+      TZ: Europe/Moscow
       # Увеличиваем лимиты для больших импортов
       POSTGRES_SHARED_BUFFERS: 2GB
       POSTGRES_EFFECTIVE_CACHE_SIZE: 6GB
@@ -56,14 +57,15 @@ services:
     container_name: auth_web
     volumes:
       - ./data:/app/data
-
       - ./auth:/app
       - ./VERSION:/app/VERSION
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - AUTH_DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - JWT_SECRET_KEY=your-secret-key-change-in-production
       - REDIS_URL=redis://redis:6379
       - SHARED_TEMPLATES_PATH=/shared_templates
+      - TZ=Europe/Moscow
     depends_on:
       postgres:
         condition: service_started
@@ -116,10 +118,12 @@ services:
       - ./templates:/shared_templates
       - ./VERSION:/app/VERSION
       - ./backups:/app/backups
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
       - SHARED_TEMPLATES_PATH=/shared_templates
+      - TZ=Europe/Moscow
     depends_on:
       postgres:
         condition: service_healthy
@@ -142,9 +146,11 @@ services:
       - ./vulnanalizer/app:/app
       - ./VERSION:/app/VERSION
       - ./backups:/app/backups
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
       - REDIS_URL=redis://redis:6379
+      - TZ=Europe/Moscow
     depends_on:
       postgres:
         condition: service_healthy

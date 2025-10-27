@@ -749,6 +749,19 @@
     }
 }
 
+/* Стили для страницы управления очередями */
+.background-tasks-page {
+    padding: var(--spacing-lg);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .background-tasks-page {
+        padding: var(--spacing-md);
+    }
+}
+
 /* Удалено - стили темной темы для прогресс-бара перенесены в progress.css */
 .task-item.active-task {
     border-left: 4px solid var(--primary-color);
@@ -810,6 +823,57 @@
 #records-count-value {
     font-weight: 600;
     color: var(--primary-color);
+}
+
+/* CVE Year Selector */
+.year-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.year-grid label {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--surface-color);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-ease);
+    color: var(--text-primary);
+}
+
+.year-grid label:hover {
+    background: var(--surface-color-secondary);
+    border-color: var(--primary-color);
+}
+
+.year-grid input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.year-grid label:has(input:checked) {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Dark theme for year grid */
+.dark-theme .year-grid label {
+    background: var(--surface-color);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .year-grid label:hover {
+    background: var(--surface-color-secondary);
+}
+
+.dark-theme .year-grid label:has(input:checked) {
+    background: var(--primary-color);
+    color: white;
 }
 
 

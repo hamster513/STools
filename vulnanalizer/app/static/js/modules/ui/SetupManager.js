@@ -32,7 +32,6 @@ class SetupManager {
                 
                 // Специальная обработка для background-tasks
                 if (targetPage === 'background-tasks') {
-                    console.log('🚀 Обработка background-tasks как обычной страницы');
                     
                     // Скрываем все страницы
                     const allPages = document.querySelectorAll('.page-content');
@@ -42,21 +41,18 @@ class SetupManager {
                     const backgroundTasksPage = document.getElementById('background-tasks-page');
                     if (backgroundTasksPage) {
                         backgroundTasksPage.classList.add('active');
-                        console.log('✅ Страница background-tasks активирована');
                     } else {
                         console.error('❌ Страница background-tasks-page не найдена');
                     }
                     
                     // Загружаем данные о задачах
-                    // await this.app.uiManager.loadBackgroundTasks(); // Метод временно отключен
-                    console.log('📊 Данные о задачах загружены');
+                    await this.app.uiManager.loadBackgroundTasks();
                     
                     // Эмитируем событие смены страницы
                     if (this.eventManager) {
                         this.eventManager.emitPageChange('background-tasks');
                     }
                     
-                    console.log('🔄 Переключение на background-tasks завершено');
                     return;
                 }
                 
@@ -85,7 +81,6 @@ class SetupManager {
     setupSettings() {
         // Элементы settings-toggle и settings-dropdown удалены
         // Настройки теперь доступны через меню пользователя
-        console.log('ℹ️ Настройки теперь доступны через меню пользователя');
     }
 
     // Настройка меню пользователя

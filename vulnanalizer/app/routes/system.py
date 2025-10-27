@@ -88,14 +88,21 @@ async def get_background_tasks_status():
 
 def calculate_task_progress(task):
     """Рассчитать прогресс задачи с учетом типа задачи"""
-    if task['task_type'] == 'hosts_import':
-        # Для задач импорта хостов используем processed_records и total_records
+    if task['task_type'] in ['hosts_import', 'vm_manual_import']:
+        # Для задач импорта хостов и ручного импорта VM используем processed_records и total_records
         if task['status'] == 'processing':
             current_step = task['current_step'] or ''
             
             # Если есть данные о записях, используем их для расчета прогресса
             if task['total_records'] and task['total_records'] > 0:
-                base_progress = (task['processed_records'] or 0) / task['total_records'] * 80  # 80% за импорт
+                processed = task['processed_records'] or 0
+                total = task['total_records']
+                base_progress = (processed / total) * 80  # 80% за импорт
+                
+                # Для больших чисел показываем более детальный прогресс
+                if total > 100000:  # Для больших импортов
+                    # Используем более точный расчет
+                    base_progress = (processed / total) * 100
                 
                 # Если идет расчет рисков, добавляем дополнительный прогресс
                 if 'Расчет рисков' in current_step:
@@ -255,6 +262,37 @@ async def get_background_task(task_id: int):
         raise
     except Exception as e:
         print(f"Error getting background task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await db.release_connection(conn)
+
+
+@router.post("/api/background-tasks/{task_id}/cancel")
+async def cancel_background_task_by_id(task_id: int):
+    """Отменить фоновую задачу по ID"""
+    try:
+        db = get_db()
+        conn = await db.get_connection()
+        
+        # Получаем информацию о задаче
+        task_query = """
+            SELECT id, task_type, status FROM vulnanalizer.background_tasks 
+            WHERE id = $1 AND status IN ('running', 'processing', 'initializing')
+        """
+        task = await conn.fetchrow(task_query, task_id)
+        
+        if not task:
+            return {"success": False, "message": f"Задача {task_id} не найдена или не активна"}
+        
+        # Отменяем задачу
+        cancelled = await db.cancel_background_task(task['task_type'])
+        
+        if cancelled:
+            return {"success": True, "message": f"Задача {task_id} ({task['task_type']}) отменена"}
+        else:
+            return {"success": False, "message": f"Не удалось отменить задачу {task_id}"}
+    except Exception as e:
+        print(f"Error cancelling background task {task_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         await db.release_connection(conn)

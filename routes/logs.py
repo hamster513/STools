@@ -123,7 +123,6 @@ async def users_iframe_page():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Управление пользователями - STools</title>
         <link rel="stylesheet" href="/static/css/main.css?v=1.0">
-        <link rel="stylesheet" href="/static/css/pages/admin.css?v=1.0">
         <link rel="stylesheet" href="/static/css/components/tables.css?v=1.0">
         <link rel="stylesheet" href="/static/css/components/buttons.css?v=1.0">
         <link rel="stylesheet" href="/static/css/components/cards.css?v=1.0">
@@ -312,7 +311,6 @@ async def logs_page():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Управление логами - STools</title>
         <link rel="stylesheet" href="/static/css/main.css?v=1.0">
-        <link rel="stylesheet" href="/static/css/pages/admin.css?v=1.0">
         <link rel="stylesheet" href="/static/css/components/tables.css?v=1.0">
         <link rel="stylesheet" href="/static/css/components/buttons.css?v=1.0">
         <link rel="stylesheet" href="/static/css/components/cards.css?v=1.0">

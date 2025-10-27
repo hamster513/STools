@@ -25,14 +25,13 @@
 @import url('./components/operation-status.css');
 @import url('./components/alerts.css');
 @import url('./components/progress.css');
-/* collapsible.css и backup.css теперь подключаются напрямую в HTML */
+/* collapsible.css подключается напрямую в HTML */
 
 /* ===== PAGES ===== */
 @import url('./pages/vulnanalizer.css');
 @import url('./pages/loganalizer.css');
 @import url('./pages/dashboard.css');
 @import url('./pages/auth.css');
-@import url('./pages/admin.css');
 
 /* ===== UTILITIES ===== */
 @import url('./utilities/spacing.css');

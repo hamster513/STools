@@ -216,7 +216,145 @@ class UIManager {
             }, 5000);
         }
     }
+
+    // Загрузка данных о фоновых задачах
+    async loadBackgroundTasks() {
+        const contentDiv = document.getElementById('background-tasks-content');
+        if (!contentDiv) {
+            console.error('❌ Не найден контейнер для задач');
+            return;
+        }
+        
+        try {
+            // Показываем спиннер
+            contentDiv.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Загрузка задач...</span>
+                </div>
+            `;
+            
+            // Загружаем данные через API
+            const response = await fetch('/vulnanalizer/api/background-tasks/status', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.storage.get('auth_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Объединяем активные и завершенные задачи
+            const allTasks = [
+                ...(data.active_tasks || []),
+                ...(data.completed_tasks || [])
+            ];
+            
+            this.renderBackgroundTasks(allTasks);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки фоновых задач:', error);
+            contentDiv.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Ошибка загрузки задач: ${error.message}</span>
+                </div>
+            `;
+        }
+    }
+
+    // Отрисовка фоновых задач
+    renderBackgroundTasks(tasks) {
+        const contentDiv = document.getElementById('background-tasks-content');
+        if (!contentDiv) {
+            console.error('❌ Не найден контейнер для задач');
+            return;
+        }
+        
+        if (!tasks || tasks.length === 0) {
+            contentDiv.innerHTML = `
+                <div class="no-tasks-message">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Нет активных задач</span>
+                </div>
+            `;
+            return;
+        }
+        
+        contentDiv.innerHTML = tasks.map(task => `
+            <div class="content-block task-item ${task.status}">
+                <div class="content-block-header">
+                    <div class="content-block-title">
+                        <i class="fas fa-tasks"></i>
+                        <span>${task.task_type}</span>
+                    </div>
+                    <div class="content-block-actions">
+                        <span class="badge ${task.status}">${task.status}</span>
+                    </div>
+                </div>
+                <div class="content-block-body">
+                    <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
+                    <p><strong>Создано:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'Неизвестно'}</p>
+                    ${task.updated_at ? `<p><strong>Обновлено:</strong> ${new Date(task.updated_at).toLocaleString()}</p>` : ''}
+                    ${task.current_step ? `<p><strong>Текущий шаг:</strong> ${task.current_step}</p>` : ''}
+                    ${task.progress_percent !== null && task.progress_percent !== undefined ? `
+                        <div class="progress-bar">
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: ${task.progress_percent}%"></div>
+                            </div>
+                            <div class="progress-text">${task.progress_percent}%</div>
+                        </div>
+                    ` : ''}
+                    ${task.status === 'running' ? `
+                        <div class="task-actions">
+                            <button onclick="cancelTask('${task.id}')" class="btn btn-danger btn-sm">
+                                <i class="fas fa-stop"></i> Остановить
+                            </button>
+                        </div>
+                    ` : ''}
+                    ${task.total_records ? `<p><strong>Записей:</strong> ${task.processed_records || 0}/${task.total_records}</p>` : ''}
+                    ${task.error_message ? `<p class="error-text"><strong>Ошибка:</strong> ${task.error_message}</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Отмена задачи
+    async cancelTask(taskId) {
+        try {
+            const response = await fetch(`/vulnanalizer/api/background-tasks/${taskId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.storage.get('auth_token')}`
+                }
+            });
+            
+            if (response.ok) {
+                this.app.notificationManager.showNotification('Задача отменена', 'success');
+                this.loadBackgroundTasks(); // Обновляем список
+            } else {
+                const error = await response.json();
+                this.app.notificationManager.showNotification(`Ошибка отмены задачи: ${error.detail}`, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка отмены задачи:', error);
+            this.app.notificationManager.showNotification('Ошибка отмены задачи', 'error');
+        }
+    }
 }
+
+// Глобальная функция для отмены задач
+window.cancelTask = function(taskId) {
+    if (window.app && window.app.uiManager) {
+        window.app.uiManager.cancelTask(taskId);
+    }
+};
 
 // Экспорт для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {

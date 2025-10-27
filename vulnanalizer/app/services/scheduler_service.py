@@ -651,12 +651,12 @@ class SchedulerService:
         try:
             conn = await self.db.get_connection()
             
-            # Ищем задачи в статусе processing с динамическими лимитами
+            # Ищем задачи в статусе processing, initializing и running с динамическими лимитами
             query = """
                 SELECT id, task_type, status, current_step, created_at, updated_at, start_time,
                        last_activity_at, activity_count
                 FROM vulnanalizer.background_tasks 
-                WHERE status IN ('processing', 'initializing')
+                WHERE status IN ('processing', 'initializing', 'running')
                 AND (
                     -- Если нет активности более 5 минут - зависла
                     (last_activity_at IS NULL AND updated_at < NOW() - INTERVAL '5 minutes')
