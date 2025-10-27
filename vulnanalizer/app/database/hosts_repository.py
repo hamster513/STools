@@ -12,6 +12,137 @@ from .hosts_update_service import HostsUpdateService
 class HostsRepository(DatabaseBase):
     """Repository for hosts operations"""
     
+    async def insert_hosts_records_with_duplicate_check(self, records: list, progress_callback=None):
+        """Вставить записи хостов с проверкой дублей и расчетом риска"""
+        conn = None
+        try:
+            conn = await asyncpg.connect(self.database_url)
+            await conn.execute("SELECT 1")
+            
+            # Подсчитываем только записи с CVE
+            valid_records = [rec for rec in records if rec.get('cve', '').strip()]
+            total_records = len(valid_records)
+            skipped_records = len(records) - total_records
+            
+            print(f"📊 Начинаем импорт {total_records} записей с проверкой дублей")
+            print(f"📊 Пропущено {skipped_records} записей без CVE")
+            
+            # Этап 1: Подготовка к импорту (5%)
+            if progress_callback:
+                await progress_callback('preparing', 'Подготовка к импорту с проверкой дублей...', 5)
+            
+            # Этап 2: Вставка записей с проверкой дублей (70%)
+            batch_size = 100
+            inserted_count = 0
+            duplicate_count = 0
+            
+            # Запрос для проверки дублей и вставки
+            insert_query = """
+                INSERT INTO vulnanalizer.hosts (hostname, ip_address, cve, cvss, criticality, status, os_name, zone)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (hostname, ip_address, cve) DO NOTHING
+                RETURNING id
+            """
+            
+            # Запрос для подсчета дублей
+            check_duplicate_query = """
+                SELECT COUNT(*) FROM vulnanalizer.hosts 
+                WHERE hostname = $1 AND ip_address = $2 AND cve = $3
+            """
+            
+            for i in range(0, total_records, batch_size):
+                batch_records = valid_records[i:i + batch_size]
+                try:
+                    await conn.execute("SELECT 1")
+                except Exception as e:
+                    # Connection lost, reconnecting
+                    await conn.close()
+                    conn = await asyncpg.connect(self.database_url)
+                
+                # Обрабатываем каждую запись
+                for rec in batch_records:
+                    try:
+                        async with conn.transaction():
+                            # Проверяем, есть ли дубль
+                            duplicate_result = await conn.fetchval(check_duplicate_query, 
+                                rec['hostname'], rec['ip_address'], rec['cve'])
+                            
+                            if duplicate_result > 0:
+                                duplicate_count += 1
+                                print(f"⚠️ Дубль найден: {rec['hostname']} - {rec['cve']}")
+                            else:
+                                # Вставляем запись
+                                result = await conn.fetchval(insert_query, 
+                                    rec['hostname'], rec['ip_address'], rec['cve'],
+                                    rec['cvss'], rec['criticality'], rec['status'],
+                                    rec.get('os_name', ''), rec.get('zone', ''))
+                                
+                                if result:
+                                    inserted_count += 1
+                                
+                                if inserted_count % 10 == 0:
+                                    progress_percent = 5 + (inserted_count / total_records) * 70
+                                    if progress_callback:
+                                        await progress_callback('inserting', 
+                                            f'Сохранение записей... ({inserted_count}/{total_records})', 
+                                            progress_percent, processed_records=inserted_count)
+                                    
+                    except Exception as e:
+                        print(f"⚠️ Ошибка обработки записи {rec['hostname']}: {e}")
+                        continue
+                
+                # Обновляем прогресс после каждой партии
+                progress_percent = 5 + (inserted_count / total_records) * 70
+                if progress_callback:
+                    await progress_callback('inserting', 
+                        f'Сохранение записей... ({inserted_count}/{total_records})', 
+                        progress_percent, processed_records=inserted_count)
+            
+            print(f"✅ Импорт завершен: {inserted_count} записей сохранено, {duplicate_count} дублей пропущено")
+            
+            # Этап 3: Расчет рисков (25%)
+            if inserted_count > 0:
+                if progress_callback:
+                    await progress_callback('calculating_risk', 'Расчет рисков для новых записей...', 75)
+                
+                # Получаем настройки для расчета рисков
+                settings = await self.db.get_settings()
+                
+                # Получаем CVE для расчета рисков
+                cve_rows = await conn.fetch("""
+                    SELECT DISTINCT cve FROM vulnanalizer.hosts 
+                    WHERE cve IS NOT NULL AND cve != ''
+                """)
+                
+                if cve_rows:
+                    print(f"🔄 Начинаем расчет рисков для {len(cve_rows)} CVE...")
+                    
+                    try:
+                        # Используем улучшенный расчет рисков с анализом эксплойтов
+                        await self._calculate_risks_with_exploits_during_import(cve_rows, conn, settings, progress_callback)
+                        print("✅ Расчет рисков завершен успешно")
+                    except Exception as risk_error:
+                        print(f"❌ Ошибка в расчете рисков: {risk_error}")
+                        import traceback
+                        print(f"❌ Детали ошибки: {traceback.format_exc()}")
+                else:
+                    print("⚠️ Нет CVE для расчета рисков")
+            
+            # Завершение
+            if progress_callback:
+                await progress_callback('completed', 'Импорт и расчет рисков завершены', 100, 
+                                      processed_records=inserted_count)
+            
+            return inserted_count
+            
+        except Exception as e:
+            if progress_callback:
+                await progress_callback('error', f'Ошибка импорта: {str(e)}', 0)
+            raise
+        finally:
+            if conn:
+                await conn.close()
+
     async def get_hosts_count(self) -> int:
         """Получить количество хостов"""
         conn = await self.get_connection()

@@ -202,8 +202,6 @@ class UIManager {
         const tabId = activeTab.id;
         if (tabId === 'vulnanalizer-tab') {
             window.location.href = '/vulnanalizer/';
-        } else if (tabId === 'loganalizer-tab') {
-            window.location.href = '/loganalizer/';
         }
     }
 
@@ -241,8 +239,6 @@ class UIManager {
             
             if (currentPath.includes('/vulnanalizer/')) {
                 apiBasePath = '/vulnanalizer/api';
-            } else if (currentPath.includes('/loganalizer/')) {
-                apiBasePath = '/loganalizer/api';
             }
             
             const response = await fetch(`${apiBasePath}/version`);
@@ -325,9 +321,9 @@ class UIManager {
         }
 
         // Обработка перехода к настройкам системы
-        const settingsLink = document.getElementById('settings-link');
-        if (settingsLink) {
-            settingsLink.addEventListener('click', (e) => {
+        const systemSettingsLink = document.getElementById('system-settings-link');
+        if (systemSettingsLink) {
+            systemSettingsLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.navigateToSystemSettings();
             });
@@ -351,7 +347,7 @@ class UIManager {
 
     navigateToBackgroundTasks() {
         // Закрываем выпадающее меню
-        this.closeDropdown('settings-toggle');
+        this.closeDropdown('user-toggle');
         
         // Переходим к странице управления очередями
         window.location.href = '/background-tasks/';
@@ -359,10 +355,10 @@ class UIManager {
 
     navigateToSystemSettings() {
         // Закрываем выпадающее меню
-        this.closeDropdown('settings-toggle');
+        this.closeDropdown('user-toggle');
         
         // Переходим к странице настроек системы
-        window.location.href = '/settings/';
+        window.location.href = '/system-settings/';
     }
 
 
@@ -427,8 +423,7 @@ class UIManager {
     updateMenuVisibility(isAdmin) {
         // Скрываем/показываем админские меню
         const adminMenus = [
-            'settings-link',
-            'users-link', 
+            'system-settings-link',
             'background-tasks-link'
         ];
         

@@ -206,28 +206,43 @@ class SettingsManager {
 
     async updateSystemInfo() {
         try {
-            // Получаем версию системы из API
-            const versionResponse = await fetch('/api/version');
-            if (versionResponse.ok) {
-                const versionData = await versionResponse.json();
-                document.getElementById('system-version').textContent = versionData.version;
-            } else {
-                // Fallback если API недоступен
-                document.getElementById('system-version').textContent = 'Неизвестно';
+            // Проверяем, существуют ли элементы перед их обновлением
+            const versionElement = document.getElementById('system-version');
+            const activeUsersElement = document.getElementById('active-users');
+            const uptimeElement = document.getElementById('system-uptime');
+            const dbStatusElement = document.getElementById('db-status');
+            
+            if (versionElement) {
+                // Получаем версию системы из API
+                const versionResponse = await fetch('/api/version');
+                if (versionResponse.ok) {
+                    const versionData = await versionResponse.json();
+                    versionElement.textContent = versionData.version;
+                } else {
+                    // Fallback если API недоступен
+                    versionElement.textContent = 'Неизвестно';
+                }
             }
             
-            document.getElementById('active-users').textContent = '1';
-            document.getElementById('system-uptime').textContent = 'Менее часа';
+            if (activeUsersElement) {
+                activeUsersElement.textContent = '1';
+            }
             
-            // Проверяем статус БД
-            document.getElementById('db-status').textContent = 'Проверка...';
-            document.getElementById('db-status').className = 'info-value status-checking';
+            if (uptimeElement) {
+                uptimeElement.textContent = 'Менее часа';
+            }
             
-            // Имитация проверки БД
-            setTimeout(() => {
-                document.getElementById('db-status').textContent = 'Подключено';
-                document.getElementById('db-status').className = 'info-value status-success';
-            }, 1000);
+            if (dbStatusElement) {
+                // Проверяем статус БД
+                dbStatusElement.textContent = 'Проверка...';
+                dbStatusElement.className = 'info-value status-checking';
+                
+                // Имитация проверки БД
+                setTimeout(() => {
+                    dbStatusElement.textContent = 'Подключено';
+                    dbStatusElement.className = 'info-value status-success';
+                }, 1000);
+            }
             
         } catch (error) {
             console.error('Error updating system info:', error);
@@ -293,7 +308,7 @@ class SettingsManager {
         const container = document.getElementById('tables-selection');
         console.log('🔍 [DEBUG] Контейнер найден:', container);
         if (!container) {
-            console.error('❌ Контейнер tables-selection не найден!');
+            console.log('ℹ️ Контейнер tables-selection не найден (блок Backup/Restore удален)');
             return;
         }
 

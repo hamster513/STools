@@ -7,9 +7,9 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     
     <!-- Основные CSS файлы -->
-    <link rel="stylesheet" href="/static/css/main.css?v=6.26">
+    <link rel="stylesheet" href="/static/css/main.css?v=6.28">
     <link rel="stylesheet" href="/static/css/components/sidebar.css?v=1.0">
-    <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=4.5">
+    <link rel="stylesheet" href="/static/css/pages/vulnanalizer.css?v=5.1&nocache={{ range(1, 999999) | random }}">
     <link rel="stylesheet" href="/static/css/components/cve-search.css?v=1.1">
     <link rel="stylesheet" href="/static/css/components/modals.css?v=1.5">
             <link rel="stylesheet" href="/vulnanalizer/css-debug/collapsible.css?v=4.4&nocache={{ range(1, 999999) | random }}">
@@ -37,33 +37,6 @@
         </div>
         
         <div class="top-panel-right">
-            <!-- Меню настроек -->
-            <div class="dropdown-container">
-                <button id="settings-toggle" class="dropdown-button">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <div id="settings-dropdown" class="dropdown-menu">
-                    <a href="#" id="users-link" class="dropdown-item">
-                        <i class="fas fa-users"></i>
-                        <span>Управление пользователями</span>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" id="background-tasks-link" class="dropdown-item">
-                        <i class="fas fa-tasks"></i>
-                        <span>Управление очередями</span>
-                    </a>
-                    <a href="#" id="settings-link" class="dropdown-item">
-                        <i class="fas fa-cogs"></i>
-                        <span>Настройки системы</span>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <div class="version-info">
-                        <i class="fas fa-code-branch"></i>
-                        <span id="app-version">v{{ version }}</span>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Меню пользователя -->
             <div class="dropdown-container">
                 <button id="user-toggle" class="dropdown-button">
@@ -124,6 +97,12 @@
                         <i class="fas fa-sliders-h"></i>
                     </div>
                     <span class="sidebar-tab-title">Настройки</span>
+                </a>
+                <a href="#" class="sidebar-tab" data-page="background-tasks">
+                    <div class="sidebar-tab-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <span class="sidebar-tab-title">Управление очередями</span>
                 </a>
             </div>
         </nav>
@@ -297,6 +276,11 @@
                             <label for="hosts-file">Загрузить файл хостов:</label>
                             <input type="file" id="hosts-file" name="file" accept=".csv,.zip,.gz,.gzip" required>
                             <small>Поддерживаемые форматы: CSV, ZIP, GZIP</small>
+                            <div style="margin-top: 0.5rem;">
+                                <a href="/templates_for_user/example_vm_import.csv" download class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-file-csv"></i> Образец CSV
+                                </a>
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary btn-sm" id="hosts-upload-btn">
@@ -371,26 +355,31 @@
                     <!-- Фильтры импорта -->
                     <div class="import-filters" style="margin-bottom: 2rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
                         <h4><i class="fas fa-filter"></i> Фильтры импорта</h4>
-                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                             <div class="form-group">
                                 <label for="import-criticality-filter">Критичность уязвимости:</label>
-                                <select id="import-criticality-filter" name="criticality_filter" class="form-control">
-                                    <option value="">Все критичности</option>
+                                <select id="import-criticality-filter" name="criticality_filter" class="form-control" multiple size="5">
                                     <option value="Critical">Critical</option>
                                     <option value="High">High</option>
                                     <option value="Medium">Medium</option>
                                     <option value="Low">Low</option>
                                     <option value="N/A">N/A</option>
                                 </select>
+                                <small>Удерживайте Ctrl (Cmd на Mac) для выбора нескольких значений</small>
                             </div>
                             <div class="form-group">
                                 <label for="import-os-filter">Операционная система:</label>
                                 <input type="text" id="import-os-filter" name="os_filter" class="form-control" placeholder="Например: Windows, Linux, Ubuntu">
                                 <small>Оставьте пустым для всех ОС</small>
                             </div>
-                        </div>
+                            <div class="form-group">
+                                <label for="import-zone-filter">Зона:</label>
+                                <input type="text" id="import-zone-filter" name="zone_filter" class="form-control" placeholder="Например: DMZ, Internal, External">
+                                <small>Оставьте пустым для всех зон</small>
                     </div>
-                    
+                </div>
+            </div>
+
                     <!-- Статус файла VM -->
                     <div id="vm-file-status" style="margin-bottom: 1rem; padding: 1rem; background: var(--info-bg, #e3f2fd); border-radius: 8px; border: 1px solid var(--info-border, #2196f3);">
                         <h4><i class="fas fa-file-alt"></i> Статус файла VM</h4>
@@ -403,6 +392,33 @@
             </div>
 
 
+
+            <!-- Страница управления очередями -->
+            <div id="background-tasks-page" class="page-content">
+                <div class="content-header">
+                    <h1><i class="fas fa-tasks"></i> Управление очередями</h1>
+                    <p>Мониторинг и управление фоновыми задачами</p>
+                </div>
+                <div class="content-body">
+                    <div class="content-block">
+                        <div class="content-block-header">
+                            <h3 class="content-block-title">
+                                <i class="fas fa-tasks"></i> Активные задачи
+                            </h3>
+                            <div class="content-block-actions">
+                                <button onclick="window.location.reload()" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-refresh"></i> Обновить
+                                </button>
+                            </div>
+                        </div>
+                        <div id="background-tasks-content">
+                            <div class="loading-container">
+                                <span>Загрузка задач...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Страница настроек -->
             <div id="settings-page" class="page-content">
@@ -465,13 +481,13 @@
                                             <i class="fas fa-download"></i> Скачать скрипты для создания архива:
                                         </label>
                                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                            <a href="/vulnanalizer/static/scripts/download_vulnerability_databases.sh" download class="btn btn-secondary btn-sm">
+                                            <a href="/templates_for_user/download_vulnerability_databases.sh" download class="btn btn-secondary btn-sm">
                                                 <i class="fab fa-linux"></i> Bash (Linux/macOS)
                                             </a>
-                                            <a href="/vulnanalizer/static/scripts/download_vulnerability_databases.ps1" download class="btn btn-secondary btn-sm">
+                                            <a href="/templates_for_user/download_vulnerability_databases.ps1" download class="btn btn-secondary btn-sm">
                                                 <i class="fab fa-windows"></i> PowerShell (Windows)
                                             </a>
-                                            <a href="/vulnanalizer/static/scripts/DOWNLOAD_DATABASES_README.md" download class="btn btn-info btn-sm">
+                                            <a href="/templates_for_user/DOWNLOAD_DATABASES_README.md" download class="btn btn-info btn-sm">
                                                 <i class="fas fa-book"></i> Инструкция
                                             </a>
                                         </div>
@@ -639,110 +655,7 @@
                                         </div>
                                         <div class="collapsible-content" id="cve-year-selector">
                                             <div class="year-grid" id="year-grid">
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2024" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2024</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2023" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2023</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2022" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2022</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2021" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2021</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2020" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2020</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2019" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2019</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2018" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2018</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2017" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2017</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2016" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2016</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2015" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2015</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2014" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2014</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2013" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2013</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2012" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2012</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2011" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2011</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2010" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2010</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2009" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2009</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2008" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2008</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2007" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2007</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2006" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2006</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2005" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2005</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2004" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2004</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2003" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2003</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2002" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2002</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2001" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2001</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="2000" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">2000</span>
-                                                </label>
-                                                <label class="year-checkbox">
-                                                    <input type="checkbox" value="1999" class="year-checkbox-input">
-                                                    <span class="year-checkbox-text">1999</span>
-                                                </label>
+                                                <!-- Года будут добавлены через JavaScript -->
                                             </div>
                                             <div class="year-controls mt-2">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-years">
@@ -1560,8 +1473,125 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+
+                    <!-- Управление пользователями -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="users-management">
+                            <h3><i class="fas fa-users"></i> Управление пользователями</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="users-management">
+                            <iframe src="/users-iframe/" style="width: 100%; height: 600px; border: none;"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- Подключение к БД -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="database-connection">
+                            <h3><i class="fas fa-database"></i> Подключение к БД</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="database-connection">
+                            <div class="info-block">
+                                <p><i class="fas fa-info-circle"></i> Настройки подключения к базе данных PostgreSQL.</p>
+                            </div>
+                            <form id="database-form">
+                                <div class="form-group">
+                                    <label for="db-host">Хост БД:</label>
+                                    <input type="text" id="db-host" name="db_host" placeholder="localhost" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db-port">Порт БД:</label>
+                                    <input type="number" id="db-port" name="db_port" placeholder="5432" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db-name">Имя БД:</label>
+                                    <input type="text" id="db-name" name="db_name" placeholder="stools_db" required>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-save"></i> Сохранить
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="test-db-connection">
+                                        <i class="fas fa-plug"></i> Проверить подключение
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Настройки безопасности -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="security-settings">
+                            <h3><i class="fas fa-shield-alt"></i> Настройки безопасности</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="security-settings">
+                            <div class="info-block">
+                                <p><i class="fas fa-info-circle"></i> Настройки безопасности и аутентификации.</p>
+                            </div>
+                            <form id="security-form">
+                                <div class="form-group">
+                                    <label for="session-timeout">Таймаут сессии (минуты):</label>
+                                    <input type="number" id="session-timeout" name="session_timeout" min="5" max="1440" value="30" required>
+                                    <small>Время автоматического выхода при неактивности</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="max-login-attempts">Максимум попыток входа:</label>
+                                    <input type="number" id="max-login-attempts" name="max_login_attempts" min="3" max="10" value="5" required>
+                                    <small>Количество неудачных попыток до блокировки</small>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-save"></i> Сохранить
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Управление логами -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="logs-management">
+                            <h3><i class="fas fa-file-alt"></i> Управление логами</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="logs-management">
+                            <iframe src="/logs/" style="width: 100%; height: 600px; border: none;"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- Управление очередями -->
+                    <div class="collapsible-block">
+                        <div class="collapsible-header" data-target="background-tasks-section">
+                            <h3><i class="fas fa-tasks"></i> Управление очередями</h3>
+                            <div class="collapsible-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="background-tasks-section">
+                            <div class="info-block">
+                                <p><i class="fas fa-info-circle"></i> Управление фоновыми задачами и очередями.</p>
+                            </div>
+                            <div id="background-tasks-content">
+                                <div class="loading-spinner">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Загрузка задач...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
 
     <!-- Уведомления -->
     <div id="notifications" class="notifications"></div>
@@ -1718,8 +1748,8 @@
     <script src="/vulnanalizer/static/js/modules/core/EventManager.js?v=7.1"></script>
     <script src="/vulnanalizer/static/js/modules/core/AuthManager.js?v=8.0"></script>
     <script src="/vulnanalizer/static/js/modules/ui/NotificationManager.js?v=7.2"></script>
-    <script src="/vulnanalizer/static/js/modules/ui/SetupManager.js?v=7.3"></script>
-    <script src="/vulnanalizer/static/js/modules/ui/UIManager.js?v=7.6"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/SetupManager.js?v=7.6"></script>
+    <script src="/vulnanalizer/static/js/modules/ui/UIManager.js?v=8.27"></script>
     <script src="/vulnanalizer/static/js/modules/ui/HostsUIManager.js?v=7.1"></script>
     <script src="/vulnanalizer/static/js/modules/utils/Helpers.js?v=7.1"></script>
     <script src="/vulnanalizer/static/js/modules/services/HostsService.js?v=7.1"></script>

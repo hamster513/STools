@@ -433,7 +433,6 @@ class AdminAudit {
             'permissions': 'Права',
             'system': 'Система',
             'vulnanalizer': 'Анализатор уязвимостей',
-            'loganalizer': 'Анализатор логов'
         };
         return names[resource] || resource;
     }

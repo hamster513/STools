@@ -58,6 +58,10 @@ class NewDatabase:
             """Вставить записи хостов с прогрессом"""
             return await self.hosts.insert_hosts_records_with_progress(records, progress_callback)
         
+        async def insert_hosts_records_with_duplicate_check(self, records, progress_callback=None):
+            """Вставить записи хостов с проверкой дублей"""
+            return await self.hosts.insert_hosts_records_with_duplicate_check(records, progress_callback)
+        
         async def get_hosts_count(self):
             """Получить количество хостов"""
             return await self.hosts.get_hosts_count()

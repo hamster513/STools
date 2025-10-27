@@ -133,6 +133,32 @@ services:
       timeout: 10s
       retries: 3
 
+  # Worker для фоновых задач
+  vulnanalizer_worker:
+    image: docker.io/hamster5133/stools-vulnanalizer_worker:v0.7.10
+    container_name: vulnanalizer_worker
+    volumes:
+      - ./data:/app/data
+      - ./vulnanalizer/app:/app
+      - ./VERSION:/app/VERSION
+      - ./backups:/app/backups
+    environment:
+      - DATABASE_URL=postgresql://stools_user:stools_pass@postgres:5432/stools_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - stools_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
   # Основной сервер для административных страниц
   main_web:
     image: docker.io/hamster5133/stools-main_web:v0.7.10
@@ -162,6 +188,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
       - ./static:/var/www/static
+      - ./templates_for_user:/var/www/templates_for_user
     depends_on:
       auth_web:
         condition: service_healthy

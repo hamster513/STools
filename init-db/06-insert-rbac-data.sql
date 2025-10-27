@@ -28,11 +28,6 @@ INSERT INTO auth.permissions (name, description, resource, action) VALUES
 ('vulnanalizer.read', 'Просмотр данных анализатора', 'vulnanalizer', 'read'),
 ('vulnanalizer.delete', 'Удаление данных', 'vulnanalizer', 'delete'),
 
--- Права анализатора логов
-('loganalizer.admin', 'Администрирование анализатора логов', 'loganalizer', 'admin'),
-('loganalizer.write', 'Загрузка и изменение логов', 'loganalizer', 'write'),
-('loganalizer.read', 'Просмотр логов', 'loganalizer', 'read'),
-('loganalizer.delete', 'Удаление логов', 'loganalizer', 'delete')
 ON CONFLICT (name) DO NOTHING;
 
 -- Назначение прав ролям
@@ -57,7 +52,7 @@ SELECT r.id, p.id
 FROM auth.roles r, auth.permissions p
 WHERE r.name = 'analyst' 
   AND (p.action = 'read' OR p.action = 'write')
-  AND p.resource IN ('vulnanalizer', 'loganalizer')
+  AND p.resource IN ('vulnanalizer')
 ON CONFLICT DO NOTHING;
 
 -- Наблюдатель - только чтение
@@ -66,7 +61,7 @@ SELECT r.id, p.id
 FROM auth.roles r, auth.permissions p
 WHERE r.name = 'viewer' 
   AND p.action = 'read'
-  AND p.resource IN ('vulnanalizer', 'loganalizer', 'system')
+  AND p.resource IN ('vulnanalizer', 'system')
 ON CONFLICT DO NOTHING;
 
 -- Гость - только базовое чтение
@@ -74,7 +69,7 @@ INSERT INTO auth.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM auth.roles r, auth.permissions p
 WHERE r.name = 'guest' 
-  AND p.name IN ('system.read', 'vulnanalizer.read', 'loganalizer.read')
+  AND p.name IN ('system.read', 'vulnanalizer.read')
 ON CONFLICT DO NOTHING;
 
 -- Назначение роли супер администратора пользователю admin

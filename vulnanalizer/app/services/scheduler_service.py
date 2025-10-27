@@ -114,6 +114,82 @@ class SchedulerService:
             if conn:
                 await self.db.release_connection(conn)
     
+    def _clean_import_data(self, raw_records: list) -> list:
+        """Очистка данных от дублей и пустых записей"""
+        print(f"🧹 Начинаем очистку {len(raw_records)} записей")
+        
+        # Удаляем пустые записи
+        non_empty_records = []
+        for record in raw_records:
+            # Проверяем, что все обязательные поля заполнены
+            if (record.get('hostname') and record.get('hostname').strip() and
+                record.get('ip_address') and record.get('ip_address').strip() and
+                record.get('cve') and record.get('cve').strip()):
+                non_empty_records.append(record)
+        
+        print(f"🧹 После удаления пустых: {len(non_empty_records)} записей")
+        
+        # Удаляем дубли по комбинации hostname + ip_address + cve
+        seen_combinations = set()
+        unique_records = []
+        
+        for record in non_empty_records:
+            # Создаем уникальный ключ для проверки дублей
+            key = (
+                record.get('hostname', '').strip().lower(),
+                record.get('ip_address', '').strip(),
+                record.get('cve', '').strip()
+            )
+            
+            if key not in seen_combinations:
+                seen_combinations.add(key)
+                unique_records.append(record)
+        
+        print(f"🧹 После удаления дублей: {len(unique_records)} записей")
+        print(f"🧹 Удалено {len(raw_records) - len(unique_records)} записей (пустые + дубли)")
+        
+        return unique_records
+
+    async def _calculate_risks_for_imported_hosts(self, task_id: int, update_progress):
+        """Расчет рисков для импортированных хостов"""
+        try:
+            print("🔍 Начинаем расчет рисков для импортированных хостов")
+            
+            # Получаем настройки для расчета рисков
+            settings = await self.db.get_settings()
+            
+            # Создаем функцию обратного вызова для обновления прогресса
+            async def risk_update_progress(step, message, progress_percent, processed_records=None):
+                try:
+                    # Обновляем все поля прогресса
+                    update_data = {
+                        'current_step': f'Расчет рисков: {message}',
+                        'progress_percent': progress_percent
+                    }
+                    
+                    # Если переданы processed_records, обновляем их
+                    if processed_records is not None:
+                        update_data['processed_records'] = processed_records
+                    
+                    await self.db.update_background_task(task_id, **update_data)
+                    print(f"📊 Расчет рисков: {message} ({progress_percent:.1f}%)")
+                except Exception as e:
+                    print(f"⚠️ Ошибка обновления прогресса расчета рисков: {e}")
+            
+            # Используем правильный сервис расчета рисков
+            from database.hosts_update_service import HostsUpdateService
+            hosts_update_service = HostsUpdateService()
+            
+            # Запускаем расчет рисков
+            await hosts_update_service.recalculate_all_risks(risk_update_progress)
+            
+            print("✅ Расчет рисков завершен")
+            
+        except Exception as e:
+            print(f"❌ Ошибка расчета рисков: {e}")
+            import traceback
+            print(f"⚠️ Traceback: {traceback.format_exc()}")
+
     async def process_hosts_import_task(self, task_id: int, parameters: Dict[str, Any]):
         """Обработка фоновой задачи импорта хостов"""
         try:
@@ -130,6 +206,16 @@ class SchedulerService:
             
             file_path = parameters.get('file_path')
             filename = parameters.get('filename')
+            criticality_filter = parameters.get('criticality_filter')
+            os_filter = parameters.get('os_filter')
+            
+            # Парсим фильтр критичности (может быть строка с разделителями)
+            criticality_list = []
+            if criticality_filter:
+                criticality_list = [c.strip() for c in criticality_filter.split(',') if c.strip()]
+                print(f"🔍 Фильтр критичности: {criticality_list}")
+            
+            print(f"🔍 Фильтр ОС: {os_filter}")
             
             if not file_path or not Path(file_path).exists():
                 await self.db.update_background_task(task_id, **{
@@ -170,37 +256,23 @@ class SchedulerService:
                 parts = [decoded_content]
                 total_parts = 1
             
-            # Обработка частей
-            total_records = 0
-            total_processed_lines = 0
-            
-            # Сначала подсчитаем общее количество записей для установки total_records
-            total_expected_records = 0
-            for part_content in parts:
-                part_lines = part_content.splitlines()
-                reader = csv.DictReader(part_lines, delimiter=';')
-                total_expected_records += len(list(reader))
-            
-            print(f"📊 Ожидается обработка {total_expected_records} записей")
-            
-            # Обновляем задачу с общим количеством записей
+            # Этап 1: Сбор всех записей для предварительной обработки
             await self.db.update_background_task(task_id, **{
-                'total_records': total_expected_records,
-                'processed_records': 0
+                'current_step': 'Сбор данных для предварительной обработки'
             })
+            
+            all_raw_records = []
+            total_processed_lines = 0
             
             for part_index, part_content in enumerate(parts, 1):
                 await self.db.update_background_task(task_id, **{
-                    'current_step': f'Обработка части {part_index} из {total_parts}',
-                    'processed_items': part_index,
-                    'total_items': total_parts
+                    'current_step': f'Сбор данных из части {part_index} из {total_parts}'
                 })
                 
                 # Парсим CSV
                 part_lines = part_content.splitlines()
                 reader = csv.DictReader(part_lines, delimiter=';')
                 
-                part_records = []
                 for row in reader:
                     try:
                         # Парсим hostname и IP
@@ -218,7 +290,14 @@ class SchedulerService:
                         zone = row['Host.UF_Zone'].strip('"')
                         os_name = row['Host.OsName'].strip('"')
                         
-                        part_records.append({
+                        # Применяем фильтры
+                        if criticality_list and criticality not in criticality_list:
+                            continue
+                        
+                        if os_filter and os_filter.lower() not in os_name.lower():
+                            continue
+                        
+                        all_raw_records.append({
                             'hostname': hostname,
                             'ip_address': ip_address,
                             'cve': cve,
@@ -233,71 +312,103 @@ class SchedulerService:
                         print(f"⚠️ Ошибка обработки строки: {e}")
                         continue
                 
-                # Сохраняем в базу данных
-                await self.db.update_background_task(task_id, **{
-                    'current_step': f'Сохранение части {part_index} в базу данных'
-                })
-                
-                print(f"💾 Начинаем сохранение {len(part_records)} записей в базу данных...")
-                
-                # Создаем функцию обратного вызова для обновления прогресса
-                async def update_progress(step, message, progress_percent, current_step_progress=None, processed_records=None):
-                    try:
-                        print(f"🔧 Вызов update_progress: step={step}, message='{message}', progress_percent={progress_percent}, current_step_progress={current_step_progress}, processed_records={processed_records}")
-                        
-                        # Используем переданные значения для processed_records
-                        current_processed = processed_records if processed_records is not None else 0
-                        
-                        print(f"🔧 Вычисленный current_processed: {current_processed}")
-                        
-                        # Обновляем задачу с правильными значениями
-                        update_data = {
-                            'current_step': message,
-                            'processed_records': current_processed,
-                            'total_records': total_expected_records
-                        }
-                        
-                        # Добавляем дополнительную информацию в зависимости от этапа
-                        if step == 'cleaning':
-                            update_data['current_step'] = f"Этап 1/3: {message}"
-                        elif step == 'inserting':
-                            update_data['current_step'] = f"Этап 2/3: {message}"
-                        elif step == 'calculating_risk':
-                            # Убираем проценты из сообщения о расчете рисков
-                            if 'Расчет рисков...' in message:
-                                # Извлекаем только часть с количеством CVE без процентов
-                                import re
-                                match = re.search(r'Расчет рисков\.\.\. \((\d+)/(\d+) CVE\)', message)
-                                if match:
-                                    current_cve = match.group(1)
-                                    total_cve = match.group(2)
-                                    update_data['current_step'] = f"Этап 3/3: Расчет рисков... ({current_cve}/{total_cve} CVE)"
-                                else:
-                                    update_data['current_step'] = f"Этап 3/3: {message}"
+                total_processed_lines += len(part_lines)
+            
+            print(f"📊 Собрано {len(all_raw_records)} записей для предварительной обработки")
+            
+            # Этап 2: Предварительная очистка данных
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Предварительная очистка данных от дублей и пустых записей'
+            })
+            
+            # Очищаем от дублей и пустых записей
+            cleaned_records = self._clean_import_data(all_raw_records)
+            
+            print(f"📊 После очистки: {len(cleaned_records)} записей (удалено {len(all_raw_records) - len(cleaned_records)} дублей/пустых)")
+            
+            # Обновляем задачу с очищенными данными
+            await self.db.update_background_task(task_id, **{
+                'total_records': len(cleaned_records),
+                'processed_records': 0
+            })
+            
+            # Этап 3: Обработка очищенных данных
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Обработка очищенных данных'
+            })
+            
+            print(f"💾 Начинаем сохранение {len(cleaned_records)} очищенных записей в базу данных...")
+            
+            # Создаем функцию обратного вызова для обновления прогресса
+            async def update_progress(step, message, progress_percent, current_step_progress=None, processed_records=None):
+                try:
+                    print(f"🔧 Вызов update_progress: step={step}, message='{message}', progress_percent={progress_percent}, current_step_progress={current_step_progress}, processed_records={processed_records}")
+                    
+                    # Используем переданные значения для processed_records
+                    current_processed = processed_records if processed_records is not None else 0
+                    
+                    print(f"🔧 Вычисленный current_processed: {current_processed}")
+                    
+                    # Обновляем задачу с правильными значениями
+                    update_data = {
+                        'current_step': message,
+                        'processed_records': current_processed,
+                        'total_records': len(cleaned_records)
+                    }
+                    
+                    # Добавляем дополнительную информацию в зависимости от этапа
+                    if step == 'cleaning':
+                        update_data['current_step'] = f"Этап 1/3: {message}"
+                    elif step == 'inserting':
+                        update_data['current_step'] = f"Этап 2/3: {message}"
+                    elif step == 'calculating_risk':
+                        # Убираем проценты из сообщения о расчете рисков
+                        if 'Расчет рисков...' in message:
+                            # Извлекаем только часть с количеством CVE без процентов
+                            import re
+                            match = re.search(r'Расчет рисков\.\.\. \((\d+)/(\d+) CVE\)', message)
+                            if match:
+                                current_cve = match.group(1)
+                                total_cve = match.group(2)
+                                update_data['current_step'] = f"Этап 3/3: Расчет рисков... ({current_cve}/{total_cve} CVE)"
                             else:
                                 update_data['current_step'] = f"Этап 3/3: {message}"
-                        elif step == 'completed':
-                            update_data['current_step'] = f"✅ {message}"
-                        
-                        await self.db.update_background_task(task_id, **update_data)
-                        print(f"📊 Прогресс задачи {task_id}: {message} ({progress_percent:.1f}%) - {current_processed}/{total_expected_records}")
-                    except Exception as e:
-                        print(f"⚠️ Ошибка обновления прогресса: {e}")
-                        import traceback
-                        print(f"⚠️ Traceback: {traceback.format_exc()}")
-                
-                await self.db.insert_hosts_records_with_progress(part_records, update_progress)
-                print(f"✅ Сохранение завершено")
-                
-                total_records += len(part_records)
-                total_processed_lines += len(part_lines)
-                
+                        else:
+                            update_data['current_step'] = f"Этап 3/3: {message}"
+                    elif step == 'completed':
+                        update_data['current_step'] = f"✅ {message}"
+                    
+                    await self.db.update_background_task(task_id, **update_data)
+                    print(f"📊 Прогресс задачи {task_id}: {message} ({progress_percent:.1f}%) - {current_processed}/{len(cleaned_records)}")
+                except Exception as e:
+                    print(f"⚠️ Ошибка обновления прогресса: {e}")
+                    import traceback
+                    print(f"⚠️ Traceback: {traceback.format_exc()}")
+            
+            # Этап 4: Сохранение в базу с проверкой дублей
+            await self.db.update_background_task(task_id, **{
+                'current_step': 'Сохранение в базу данных с проверкой дублей'
+            })
+            
+            # Сохраняем записи с проверкой дублей
+            saved_count = await self.db.insert_hosts_records_with_duplicate_check(cleaned_records, update_progress)
+            print(f"✅ Сохранение завершено: {saved_count} записей сохранено")
+            
+            total_records = saved_count
+            
+            await self.db.update_background_task(task_id, **{
+                'processed_records': total_records,
+                'total_records': total_records
+            })
+            
+            # Этап 5: Расчет рисков
+            if total_records > 0:
                 await self.db.update_background_task(task_id, **{
-                    'processed_items': part_index,
-                    'total_items': total_parts,
-                    'processed_records': total_records,
-                    'total_records': total_records
+                    'current_step': 'Расчет рисков для импортированных записей'
                 })
+                
+                # Запускаем расчет рисков
+                await self._calculate_risks_for_imported_hosts(task_id, update_progress)
             
             # Завершение
             await self.db.update_background_task(task_id, **{
@@ -517,6 +628,10 @@ class SchedulerService:
                         print(f"🚀 Запускаем обработку задачи импорта VM {task_id} в отдельной задаче")
                         task = asyncio.create_task(self.process_vm_import_task(task_id, parameters))
                         task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'vm_import'))
+                    elif task_type == 'vm_manual_import':
+                        print(f"🚀 Запускаем обработку задачи ручного импорта VM {task_id} в отдельной задаче")
+                        task = asyncio.create_task(self.process_vm_manual_import_task(task_id, parameters))
+                        task.add_done_callback(lambda t: self._handle_task_completion(t, task_id, 'vm_manual_import'))
                     else:
                         print(f"❌ Неизвестный тип задачи: {task_type}")
                         await self.db.update_background_task(task_id, **{
@@ -532,16 +647,26 @@ class SchedulerService:
             print(f"❌ Error details: {traceback.format_exc()}")
     
     async def _check_stuck_tasks(self):
-        """Проверить зависшие задачи (processing более 3 минут)"""
+        """Проверить зависшие задачи с динамическими лимитами времени"""
         try:
             conn = await self.db.get_connection()
             
-            # Ищем задачи в статусе processing, которые не обновлялись более 3 минут
+            # Ищем задачи в статусе processing с динамическими лимитами
             query = """
-                SELECT id, task_type, status, current_step, created_at, updated_at, start_time
+                SELECT id, task_type, status, current_step, created_at, updated_at, start_time,
+                       last_activity_at, activity_count
                 FROM vulnanalizer.background_tasks 
                 WHERE status IN ('processing', 'initializing')
-                AND updated_at < NOW() - INTERVAL '3 minutes'
+                AND (
+                    -- Если нет активности более 5 минут - зависла
+                    (last_activity_at IS NULL AND updated_at < NOW() - INTERVAL '5 minutes')
+                    OR
+                    -- Если активность была, но давно - зависла
+                    (last_activity_at IS NOT NULL AND last_activity_at < NOW() - INTERVAL '5 minutes')
+                    OR
+                    -- Если задача очень старая (более 2 часов) - зависла
+                    (updated_at < NOW() - INTERVAL '2 hours')
+                )
                 ORDER BY updated_at ASC
             """
             stuck_tasks = await conn.fetch(query)
@@ -1202,7 +1327,7 @@ class SchedulerService:
             # Увеличиваем таймауты для больших файлов
             timeout = aiohttp.ClientTimeout(total=300, connect=60)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(url) as resp:
+                async with session.get(url, allow_redirects=True) as resp:
                     if resp.status != 200:
                         raise Exception(f"Failed to download: {resp.status} - {resp.reason}")
                     
@@ -1336,6 +1461,33 @@ class SchedulerService:
             await self.db.update_background_task(task_id, **{
                 'status': 'error',
                 'current_step': 'Ошибка импорта VM данных',
+                'error_message': str(e),
+                'end_time': datetime.now()
+            })
+
+    async def process_vm_manual_import_task(self, task_id: int, parameters: Dict[str, Any]):
+        """Обработать задачу ручного импорта VM данных"""
+        try:
+            print(f"🔄 Начинаем обработку задачи ручного импорта VM {task_id}")
+            
+            # Создаем VM Worker
+            vm_worker = VMWorker()
+            
+            # Запускаем ручной импорт
+            result = await vm_worker.start_manual_import(task_id, parameters)
+            
+            if result.get('success'):
+                print(f"✅ Ручной импорт VM данных завершен успешно: {result.get('count', 0)} хостов")
+            else:
+                print(f"❌ Ручной импорт VM данных завершен с ошибкой: {result.get('message', 'Неизвестная ошибка')}")
+                
+        except Exception as e:
+            print(f"❌ Ошибка в process_vm_manual_import_task: {e}")
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            
+            await self.db.update_background_task(task_id, **{
+                'status': 'error',
+                'current_step': 'Ошибка ручного импорта VM данных',
                 'error_message': str(e),
                 'end_time': datetime.now()
             })

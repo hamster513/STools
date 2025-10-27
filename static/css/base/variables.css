@@ -16,8 +16,11 @@
     
     /* Status Colors */
     --success-color: #4ade80;
+    --success-color-dark: #22c55e;
     --error-color: #fca5a5;
+    --error-color-dark: #f87171;
     --warning-color: #fcd34d;
+    --warning-color-dark: #f59e0b;
     --danger-color: #fca5a5;
     --info-color: #93c5fd;
     

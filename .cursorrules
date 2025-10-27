@@ -14,11 +14,12 @@
 ### Микросервисы
 1. **auth_web** (порт 8000) - JWT аутентификация, RBAC, аудит
 2. **vulnanalizer_web** (порт 8000) - основной функционал анализа уязвимостей
-3. **loganalizer_web** (порт 8000) - анализ логов (отключен по умолчанию, используется заглушка)
-4. **main_web** (порт 8000) - административные страницы (users, settings, background-tasks)
-5. **postgres** - единая PostgreSQL БД для всех сервисов (stools_db)
-6. **redis** - кэширование и очереди задач
-7. **nginx** - обратный прокси с HTTPS/SSL
+3. **vulnanalizer_worker** - фоновые задачи (импорт VM, расчет рисков, обновление баз данных)
+4. **loganalizer_web** (порт 8000) - анализ логов (отключен по умолчанию, используется заглушка)
+5. **main_web** (порт 8000) - административные страницы (users, settings, background-tasks)
+6. **postgres** - единая PostgreSQL БД для всех сервисов (stools_db)
+7. **redis** - кэширование и очереди задач
+8. **nginx** - обратный прокси с HTTPS/SSL
 
 ### Технологический стек
 - **Backend**: Python 3.13, FastAPI, uvicorn
@@ -39,6 +40,8 @@ STools/
 ├── vulnanalizer/             # Основной сервис анализа уязвимостей
 │   ├── app/
 │   │   ├── main.py          # FastAPI приложение vulnanalizer
+│   │   ├── worker_main.py   # Точка входа для vulnanalizer_worker
+│   │   ├── Dockerfile.worker # Dockerfile для worker контейнера
 │   │   ├── routes/          # API маршруты (hosts, cve, vm, epss, exploitdb, metasploit, backup, archive)
 │   │   ├── services/        # Бизнес-логика (cache, excel, risk, workers, scheduler, metrics)
 │   │   ├── models/          # Pydantic модели
@@ -89,10 +92,12 @@ STools/
 - Проверка токена на клиенте через `/auth/api/me-simple`
 
 ### Фоновые задачи
-- **Scheduler Service** в vulnanalizer для управления фоновыми задачами
+- **Scheduler Service** в отдельном контейнере `vulnanalizer_worker` для управления фоновыми задачами
+- **VMWorker** в `vulnanalizer_worker` для выполнения импорта VM и расчета рисков
 - Workers: vm_worker, cve_worker, metasploit_worker
 - Детальное логирование задач в `data/logs/` (например, vm_import_XXX.log)
 - Глобальный переключатель детального логирования для всех задач
+- Разделение нагрузки: веб-сервер не блокируется длительными операциями
 
 ### CSS архитектура
 - **Модульная система**: base, components, themes, pages, utilities
@@ -154,8 +159,9 @@ STools/
 ### Основной функционал
 - ✅ Аутентификация и RBAC полностью работают
 - ✅ VulnAnalizer работает (поиск хостов, CVE, импорт VM, EPSS, ExploitDB)
-- ✅ Фоновые задачи (импорт VM, обновление EPSS/ExploitDB)
+- ✅ Фоновые задачи (импорт VM, обновление EPSS/ExploitDB) в отдельном контейнере
 - ✅ Бэкапы и архивирование БД
+- ✅ Разделение нагрузки: веб-сервер и worker работают независимо
 - ⚠️ LogAnalizer отключен (используется заглушка)
 
 ### Планы развития

@@ -47,7 +47,6 @@ chmod -R 777 data/ backups/
 # Загружаем новые образы
 echo "⬇️  Загрузка образов v0.7.10..."
 docker pull hamster5133/stools-auth_web:v0.7.10
-docker pull hamster5133/stools-loganalizer_web:v0.7.10
 docker pull hamster5133/stools-vulnanalizer_web:v0.7.10
 docker pull hamster5133/stools-main_web:v0.7.10
 
@@ -66,4 +65,3 @@ docker-compose -f $COMPOSE_FILE -p stools ps
 echo "✅ Развертывание завершено!"
 echo "🌐 Приложение доступно по адресу: http://localhost"
 echo "📊 VulnAnalizer: http://localhost/vulnanalizer"
-echo "📋 LogAnalizer: http://localhost/loganalizer"

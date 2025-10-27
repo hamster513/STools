@@ -56,27 +56,39 @@ class HostsService {
         }
     }
 
+    // Обновление количества записей в базе
+    async updateRecordsCount() {
+        try {
+            const data = await this.api.get('/hosts/status');
+            
+            // Обновляем UI количества записей
+            this.updateRecordsCountUI(data);
+            
+            return data;
+        } catch (error) {
+            this.app.handleError(error, 'обновления количества записей');
+            throw error;
+        }
+    }
+
     // Обновление UI статуса хостов
     updateHostsStatusUI(data) {
         const statusDiv = this.app.getElementSafe('hosts-status');
-        const recordsCountElement = this.app.getElementSafe('records-count-value');
         
         if (statusDiv) {
             if (data && data.count !== undefined) {
-                statusDiv.innerHTML = `
-                    <div class="status-success">
-                        <i class="fas fa-check-circle"></i>
-                        <span class="status-message">Хостов в базе: ${data.count}</span>
-                    </div>
-                `;
+                statusDiv.innerHTML = '';
             } else {
                 statusDiv.innerHTML = '<span style="color:var(--error-color)">Ошибка получения статуса хостов</span>';
             }
         }
-        
-        // Обновляем счетчик записей в заголовке
-        if (recordsCountElement && data && data.count !== undefined) {
-            recordsCountElement.textContent = data.count;
+    }
+
+    // Обновление UI количества записей
+    updateRecordsCountUI(data) {
+        const recordsCountElement = this.app.getElementSafe('records-count-value');
+        if (recordsCountElement && data.total_count !== undefined) {
+            recordsCountElement.textContent = data.total_count.toLocaleString();
         }
     }
 
@@ -89,10 +101,12 @@ class HostsService {
             }
 
             // Получаем фильтры из формы
-            const criticalityFilter = document.getElementById('import-criticality-filter')?.value || '';
+            const criticalitySelect = document.getElementById('import-criticality-filter');
+            const selectedCriticalities = Array.from(criticalitySelect?.selectedOptions || [])
+                .map(option => option.value);
+            const criticalityFilter = selectedCriticalities.length > 0 ? selectedCriticalities.join(',') : '';
             const osFilter = document.getElementById('import-os-filter')?.value || '';
             
-            console.log('🔍 Применяем фильтры импорта:', { criticalityFilter, osFilter });
 
             // Создаем FormData с файлом и фильтрами
             const formData = new FormData();
@@ -114,6 +128,7 @@ class HostsService {
                 const filterText = filterInfo.length > 0 ? ` (фильтры: ${filterInfo.join(', ')})` : '';
                 this.app.showNotification(`Импорт завершен: ${data.processed_records || 0} записей${filterText}`, 'success');
                 this.updateHostsStatus();
+                this.updateRecordsCount(); // Обновляем количество записей в базе
                 
                 // Эмитируем событие импорта
                 if (this.eventManager) {
@@ -191,6 +206,7 @@ class HostsService {
                     if (task.status === 'completed') {
                         this.app.showNotification(`Импорт завершен: ${task.processed_records || 0} записей`, 'success');
                         this.updateHostsStatus();
+                        this.updateRecordsCount(); // Обновляем количество записей в базе
                     } else {
                         this.app.showNotification(`Ошибка импорта: ${task.error_message || 'Неизвестная ошибка'}`, 'error');
                     }
@@ -267,7 +283,6 @@ class HostsService {
                     ? `Удалено ${data.deleted_count} записей хостов`
                     : 'Данные хостов очищены';
                 this.app.showNotification(message, 'success');
-                console.log('✅ Очистка завершена:', data);
                 this.updateHostsStatus();
             } else {
                 const errorMsg = data?.message || data?.error || 'Неизвестная ошибка';
@@ -318,7 +333,47 @@ class HostsService {
     // Ручной импорт из файла VM
     async startVMManualImport() {
         try {
-            const data = await this.api.post('/vm/manual-import');
+            // Получаем фильтры из UI
+            const criticalitySelect = document.getElementById('import-criticality-filter');
+            console.log('🔍 Найден элемент criticalitySelect:', criticalitySelect);
+            
+            const selectedCriticalities = Array.from(criticalitySelect?.selectedOptions || [])
+                .map(option => option.value);
+            const criticalityFilter = selectedCriticalities.length > 0 ? selectedCriticalities.join(',') : '';
+            
+            const osFilterElement = document.getElementById('import-os-filter');
+            console.log('🔍 Найден элемент osFilterElement:', osFilterElement);
+            const osFilter = osFilterElement?.value || '';
+            
+            const zoneFilterElement = document.getElementById('import-zone-filter');
+            console.log('🔍 Найден элемент zoneFilterElement:', zoneFilterElement);
+            const zoneFilter = zoneFilterElement?.value || '';
+            
+            console.log('🔍 Фильтры для ручного импорта:', { 
+                criticalityFilter, 
+                osFilter, 
+                zoneFilter,
+                selectedCriticalities,
+                criticalitySelectExists: !!criticalitySelect,
+                osFilterElementExists: !!osFilterElement,
+                zoneFilterElementExists: !!zoneFilterElement
+            });
+            
+            // Создаем объект с фильтрами для отправки
+            const requestData = {};
+            if (criticalityFilter) {
+                requestData.criticality_filter = criticalityFilter;
+            }
+            if (osFilter) {
+                requestData.os_filter = osFilter;
+            }
+            if (zoneFilter) {
+                requestData.zone_filter = zoneFilter;
+            }
+            
+            console.log('🔍 Отправляем данные:', requestData);
+            
+            const data = await this.api.post('/vm/manual-import', requestData);
             
             if (data && data.success) {
                 this.app.showNotification('Ручной импорт из файла VM запущен', 'success');

@@ -299,7 +299,6 @@ class AdminRoles {
             'system': 'Система',
             'auth': 'Аутентификация',
             'vulnanalizer': 'Анализатор уязвимостей',
-            'loganalizer': 'Анализатор логов'
         };
         return names[resource] || resource;
     }

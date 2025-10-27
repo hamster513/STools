@@ -1,6 +1,6 @@
 /**
  * SetupManager - Менеджер настройки UI компонентов
- * v=7.2 - Исправлены API endpoints
+ * v=7.5 - Добавлена отладка для background-tasks
  */
 class SetupManager {
     constructor(app) {
@@ -29,6 +29,37 @@ class SetupManager {
                 
                 // Показываем нужную страницу
                 const targetPage = tab.getAttribute('data-page');
+                
+                // Специальная обработка для background-tasks
+                if (targetPage === 'background-tasks') {
+                    console.log('🚀 Обработка background-tasks как обычной страницы');
+                    
+                    // Скрываем все страницы
+                    const allPages = document.querySelectorAll('.page-content');
+                    allPages.forEach(page => page.classList.remove('active'));
+                    
+                    // Активируем страницу background-tasks
+                    const backgroundTasksPage = document.getElementById('background-tasks-page');
+                    if (backgroundTasksPage) {
+                        backgroundTasksPage.classList.add('active');
+                        console.log('✅ Страница background-tasks активирована');
+                    } else {
+                        console.error('❌ Страница background-tasks-page не найдена');
+                    }
+                    
+                    // Загружаем данные о задачах
+                    // await this.app.uiManager.loadBackgroundTasks(); // Метод временно отключен
+                    console.log('📊 Данные о задачах загружены');
+                    
+                    // Эмитируем событие смены страницы
+                    if (this.eventManager) {
+                        this.eventManager.emitPageChange('background-tasks');
+                    }
+                    
+                    console.log('🔄 Переключение на background-tasks завершено');
+                    return;
+                }
+                
                 const targetElement = this.app.getElementSafe(`${targetPage}-page`);
                 if (targetElement) {
                     targetElement.classList.add('active');
@@ -50,29 +81,11 @@ class SetupManager {
         });
     }
 
-    // Настройка меню настроек
+    // Настройка меню настроек (удалено - теперь в меню пользователя)
     setupSettings() {
-        const settingsToggle = this.app.getElementSafe('settings-toggle');
-        const settingsDropdown = this.app.getElementSafe('settings-dropdown');
-        
-        if (settingsToggle && settingsDropdown) {
-            settingsToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Закрываем меню пользователя при открытии настроек
-                const userDropdown = this.app.getElementSafe('user-dropdown');
-                if (userDropdown) {
-                    userDropdown.classList.remove('show');
-                }
-                settingsDropdown.classList.toggle('show');
-            });
-        }
-
-        // Закрытие выпадающих меню при клике вне их
-        document.addEventListener('click', (e) => {
-            if (settingsDropdown && !settingsDropdown.contains(e.target) && !settingsToggle.contains(e.target)) {
-                settingsDropdown.classList.remove('show');
-            }
-        });
+        // Элементы settings-toggle и settings-dropdown удалены
+        // Настройки теперь доступны через меню пользователя
+        console.log('ℹ️ Настройки теперь доступны через меню пользователя');
     }
 
     // Настройка меню пользователя
@@ -100,11 +113,6 @@ class SetupManager {
         if (userToggle) {
             userToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Закрываем меню настроек при открытии пользователя
-                const settingsDropdown = this.app.getElementSafe('settings-dropdown');
-                if (settingsDropdown) {
-                    settingsDropdown.classList.remove('show');
-                }
                 userDropdown.classList.toggle('show');
             });
         }
@@ -363,7 +371,6 @@ class SetupManager {
             const response = await fetch('/vulnanalizer/api/background-tasks/status');
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Данные фоновых задач загружены:', data);
                 return data;
             } else {
                 console.warn('⚠️ Ошибка загрузки данных фоновых задач:', response.status);
@@ -379,7 +386,6 @@ class SetupManager {
             const response = await fetch('/vulnanalizer/api/hosts/import-progress');
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Статус импорта хостов:', data);
                 return data;
             } else {
                 console.warn('⚠️ Ошибка проверки активных задач импорта:', response.status);
@@ -395,7 +401,6 @@ class SetupManager {
             const response = await fetch('/vulnanalizer/api/system/settings');
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Настройки базы данных загружены:', data);
                 return data;
             } else {
                 console.warn('⚠️ Ошибка загрузки настроек базы данных:', response.status);

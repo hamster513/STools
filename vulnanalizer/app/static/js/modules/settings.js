@@ -198,18 +198,6 @@ class SettingsModule {
             });
         }
 
-        // Обработка клика по пункту "Управление очередями"
-        if (backgroundTasksLink) {
-            backgroundTasksLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                settingsDropdown.classList.remove('show');
-                // Переключаемся на страницу фоновых задач
-                if (this.app && this.app.uiManager) {
-                    this.app.uiManager.switchPage('background-tasks');
-                }
-            });
-        }
-
         // Обработка клика по пункту "Настройки системы"
         if (settingsLink) {
             settingsLink.addEventListener('click', (e) => {

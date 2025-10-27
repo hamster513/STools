@@ -1,4 +1,23 @@
-/* ===== АДМИНИСТРАТИВНЫЕ СТРАНИЦЫ ===== */
+/* Спиннер загрузки */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+    gap: var(--spacing-md);
+}
+
+.loading-spinner i {
+    font-size: var(--font-size-2xl);
+    color: var(--primary-color);
+}
+
+.loading-spinner span {
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+}
 
 /* Общие стили для административных страниц */
 .users-page,

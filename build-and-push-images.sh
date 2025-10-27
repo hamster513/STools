@@ -89,11 +89,11 @@ echo ""
 # 1. Auth Service
 build_and_push "auth_web" "auth/Dockerfile" "auth"
 
-# 2. VulnAnalizer
+# 2. VulnAnalizer Web
 build_and_push "vulnanalizer_web" "vulnanalizer/app/Dockerfile" "vulnanalizer/app"
 
-# 3. LogAnalizer
-build_and_push "loganalizer_web" "loganalizer/app/Dockerfile" "loganalizer/app"
+# 3. VulnAnalizer Worker
+build_and_push "vulnanalizer_worker" "vulnanalizer/app/Dockerfile.worker" "vulnanalizer/app"
 
 # 4. Main Web
 build_and_push "main_web" "Dockerfile" "."
@@ -105,7 +105,7 @@ echo ""
 echo -e "${BLUE}Опубликованные образы:${NC}"
 echo -e "  • ${DOCKER_USERNAME}/stools-auth_web:v${VERSION}"
 echo -e "  • ${DOCKER_USERNAME}/stools-vulnanalizer_web:v${VERSION}"
-echo -e "  • ${DOCKER_USERNAME}/stools-loganalizer_web:v${VERSION}"
+echo -e "  • ${DOCKER_USERNAME}/stools-vulnanalizer_worker:v${VERSION}"
 echo -e "  • ${DOCKER_USERNAME}/stools-main_web:v${VERSION}"
 echo ""
 echo -e "${YELLOW}Для использования обновите версии в docker-compose.yml${NC}"

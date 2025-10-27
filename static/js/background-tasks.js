@@ -35,7 +35,6 @@ class BackgroundTasksManager {
             clearTasksBtn.addEventListener('click', () => {
                 this.clearBackgroundTasks();
             });
-        } else {
         }
 
         // Автоматическое обновление каждые 2 секунды
@@ -99,16 +98,13 @@ class BackgroundTasksManager {
                             <span class="task-status ${task.status}">${this.getStatusText(task.status)}</span>
                         </div>
                         <div class="task-progress">
-                            <div class="operation-progress-bar" style="height: 10px !important; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important; border: 1px solid #dee2e6 !important; border-radius: 8px !important; overflow: hidden !important; position: relative !important; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1) !important; width: 100% !important;">
-                                <div class="operation-progress-fill" style="width: ${task.progress_percent}% !important; height: 100% !important; background: linear-gradient(90deg, #007bff 0%, #0056b3 100%) !important; border-radius: 8px !important; transition: width 0.3s ease !important; position: relative !important; overflow: hidden !important; min-width: 0 !important; max-width: 100% !important; display: block !important;"></div>
+                            <div class="operation-progress-bar" style="height: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; width: 100%;">
+                                <div class="operation-progress-fill" style="width: ${this.calculateProgressFromStep(task.current_step)}%; height: 100%; background: #007bff; border-radius: 8px; transition: width 0.3s ease; position: relative; overflow: hidden; min-width: 0; max-width: 100%; display: block;"></div>
                             </div>
-                            <span class="progress-text">${task.progress_percent}%</span>
+                            <span class="progress-text">${this.calculateProgressFromStep(task.current_step)}%</span>
                         </div>
                         <div class="task-details">
                             <p><strong>Текущий шаг:</strong> ${task.current_step || 'Инициализация...'}</p>
-                            <p><strong>Обработано:</strong> ${task.processed_items}/${task.total_items}</p>
-                            <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
-                            <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
                         </div>
                         <div class="task-actions">
                             <button class="btn btn-danger btn-sm" onclick="backgroundTasksManager.cancelTask('${task.task_type}')">
@@ -117,8 +113,6 @@ class BackgroundTasksManager {
                         </div>
                     </div>
                 `).join('');
-                
-
             } else {
                 activeTasksContainer.innerHTML = '<p class="no-tasks">Нет активных задач</p>';
             }
@@ -136,9 +130,6 @@ class BackgroundTasksManager {
                         </div>
                         <div class="task-details">
                             <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
-                            <p><strong>Обработано:</strong> ${task.processed_items}/${task.total_items}</p>
-                            <p><strong>Обновлено записей:</strong> ${task.updated_records}</p>
-                            <p><strong>Начато:</strong> ${task.start_time ? new Date(task.start_time).toLocaleString() : 'Неизвестно'}</p>
                             <p><strong>Завершено:</strong> ${task.end_time ? new Date(task.end_time).toLocaleString() : 'Неизвестно'}</p>
                             ${task.error_message ? `<p><strong>Ошибка:</strong> <span class="error-text">${task.error_message}</span></p>` : ''}
                         </div>
@@ -178,6 +169,24 @@ class BackgroundTasksManager {
             'cancelled': 'Отменена'
         };
         return statusMap[status] || status;
+    }
+
+    calculateProgressFromStep(currentStep) {
+        if (!currentStep) return 0;
+        
+        // Ищем паттерн (число/число) в current_step, учитывая возможный текст между числами
+        const match = currentStep.match(/\((\d+(?:,\d+)*)\/(\d+(?:,\d+)*)/);
+        if (match) {
+            const processed = parseInt(match[1].replace(/,/g, ''));
+            const total = parseInt(match[2].replace(/,/g, ''));
+            
+            if (total > 0) {
+                return Math.round((processed / total) * 100);
+            }
+        }
+        
+        // Если паттерн не найден, возвращаем 0
+        return 0;
     }
 
     async cancelTask(taskType) {

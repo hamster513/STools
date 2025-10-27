@@ -298,6 +298,16 @@ class VulnAnalizer {
                 init: () => {}
             };
         }
+
+        // CVE Manager
+        if (typeof CVEManager !== 'undefined') {
+            this.cveManager = new CVEManager(this);
+        } else {
+            console.warn('CVEManager not available');
+            this.cveManager = {
+                init: () => {}
+            };
+        }
     }
 
     // Получение базового пути для API (делегируем в ApiManager)
@@ -707,28 +717,7 @@ class VulnAnalizer {
     }
 
     // Показ уведомлений
-    showNotification(message, type = 'info') {
-        const notifications = document.getElementById('notifications');
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        
-        let icon = 'fas fa-info-circle';
-        if (type === 'success') icon = 'fas fa-check-circle';
-        if (type === 'error') icon = 'fas fa-exclamation-circle';
-        if (type === 'warning') icon = 'fas fa-exclamation-triangle';
-
-        notification.innerHTML = `
-            <i class="${icon}"></i>
-            <span>${message}</span>
-        `;
-
-        notifications.appendChild(notification);
-
-        // Удаляем уведомление через 5 секунд
-        this.delay(5000).then(() => {
-            notification.remove();
-        });
-    }
+    // Дублирующий метод showNotification удален - используется NotificationManager
 
     // Новые методы для улучшенного статусбара
     showOperationProgress(operationId, message, progress = null) {

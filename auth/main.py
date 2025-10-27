@@ -311,6 +311,22 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     users = await auth_db.get_all_users()
     return {"users": users}
 
+@app.get("/api/users/public")
+async def get_users_public():
+    """Публичное получение списка пользователей (для iframe)"""
+    users = await auth_db.get_all_users()
+    # Возвращаем только базовую информацию без чувствительных данных
+    public_users = []
+    for user in users:
+        public_users.append({
+            "id": user["id"],
+            "username": user["username"],
+            "email": user.get("email"),
+            "is_admin": user["is_admin"],
+            "is_active": user["is_active"]
+        })
+    return {"success": True, "users": public_users}
+
 @app.get("/api/users/{user_id}")
 async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
     """Получение пользователя по ID (только для админов)"""

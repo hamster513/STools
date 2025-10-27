@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS auth.permissions (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
-    resource VARCHAR(50) NOT NULL, -- vulnanalizer, loganalizer, auth, system
+    resource VARCHAR(50) NOT NULL, -- vulnanalizer, auth, system
     action VARCHAR(50) NOT NULL,   -- read, write, delete, admin
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -64,7 +64,7 @@ COMMENT ON COLUMN auth.roles.description IS 'Описание роли';
 COMMENT ON COLUMN auth.roles.is_system IS 'Системная роль (нельзя удалить)';
 
 COMMENT ON COLUMN auth.permissions.name IS 'Название права';
-COMMENT ON COLUMN auth.permissions.resource IS 'Ресурс (vulnanalizer, loganalizer, auth, system)';
+COMMENT ON COLUMN auth.permissions.resource IS 'Ресурс (vulnanalizer, auth, system)';
 COMMENT ON COLUMN auth.permissions.action IS 'Действие (read, write, delete, admin)';
 
 COMMENT ON COLUMN auth.user_roles.assigned_by IS 'Кто назначил роль';

@@ -71,12 +71,6 @@ async def get_available_tables():
             {"schema": "vulnanalizer", "name": "settings", "description": "Настройки"}
         ])
         
-        # Таблицы loganalizer
-        tables.extend([
-            {"schema": "loganalizer", "name": "log_entries", "description": "Записи логов"},
-            {"schema": "loganalizer", "name": "log_files", "description": "Файлы логов"},
-            {"schema": "loganalizer", "name": "analysis_settings", "description": "Настройки анализа"}
-        ])
         
         return {"success": True, "tables": tables}
         

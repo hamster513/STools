@@ -33,11 +33,11 @@ class LoginManager {
                     console.log('🔐 Данные авторизации получены:', data);
                     
                     // Сохраняем токен с единым префиксом stools_ для всех сервисов
-                    localStorage.setItem('stools_auth_token', data.access_token);
+                    localStorage.setItem('auth_token', data.access_token);
                     localStorage.setItem('stools_user_info', JSON.stringify(data.user));
                     
                     console.log('💾 Токены сохранены в localStorage');
-                    console.log('🔑 stools_auth_token:', localStorage.getItem('stools_auth_token') ? 'сохранен' : 'НЕ СОХРАНЕН');
+                    console.log('🔑 auth_token:', localStorage.getItem('auth_token') ? 'сохранен' : 'НЕ СОХРАНЕН');
                     console.log('👤 stools_user_info:', localStorage.getItem('stools_user_info') ? 'сохранен' : 'НЕ СОХРАНЕН');
                     
                     // Перенаправляем на главную страницу

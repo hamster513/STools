@@ -147,7 +147,7 @@ async def hosts_status():
     try:
         db = get_db()
         count = await db.count_hosts_records()
-        return {"success": True, "count": count}
+        return {"success": True, "count": count, "total_count": count}
     except Exception as e:
         print('Hosts status error:', traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

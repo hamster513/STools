@@ -89,7 +89,7 @@ async def check_tables():
         tables = await conn.fetch('''
             SELECT schemaname, tablename, tableowner
             FROM pg_tables 
-            WHERE schemaname IN ('auth', 'vulnanalizer', 'loganalizer')
+            WHERE schemaname IN ('auth', 'vulnanalizer')
             ORDER BY schemaname, tablename
         ''')
         print(f'📋 Найдено таблиц: {len(tables)}')

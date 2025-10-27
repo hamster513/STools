@@ -23,45 +23,9 @@
                     <span class="system-tab-desc">Анализ безопасности</span>
                 </div>
             </a>
-            <a href="/loganalizer/" class="system-tab" id="loganalizer-tab">
-                <div class="system-tab-icon">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <div class="system-tab-info">
-                    <span class="system-tab-name">LogAnalizer</span>
-                    <span class="system-tab-desc">Анализ логов</span>
-                </div>
-            </a>
         </div>
         
         <div class="top-panel-right">
-            <!-- Меню настроек -->
-            <div class="dropdown-container">
-                <button id="settings-toggle" class="dropdown-button">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <div id="settings-dropdown" class="dropdown-menu">
-                    <a href="#" id="users-link" class="dropdown-item">
-                        <i class="fas fa-users"></i>
-                        <span>Управление пользователями</span>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" id="background-tasks-link" class="dropdown-item">
-                        <i class="fas fa-tasks"></i>
-                        <span>Управление очередями</span>
-                    </a>
-                    <a href="#" id="settings-link" class="dropdown-item">
-                        <i class="fas fa-cogs"></i>
-                        <span>Настройки системы</span>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <div class="version-info">
-                        <i class="fas fa-code-branch"></i>
-                        <span id="app-version">v{{ version }}</span>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Меню пользователя -->
             <div class="dropdown-container">
                 <button id="user-toggle" class="dropdown-button">
@@ -77,6 +41,14 @@
                             <span class="user-role">Администратор</span>
                         </div>
                     </div>
+                    <a href="#" id="system-settings-link" class="dropdown-item">
+                        <i class="fas fa-cogs"></i>
+                        <span>Настройки системы</span>
+                    </a>
+                    <a href="#" id="background-tasks-link" class="dropdown-item">
+                        <i class="fas fa-tasks"></i>
+                        <span>Управление очередями</span>
+                    </a>
                     <div class="dropdown-divider"></div>
                     <a href="#" id="theme-link" class="dropdown-item">
                         <i class="fas fa-moon"></i>
@@ -130,10 +102,8 @@
             const currentPath = window.location.pathname;
             if (currentPath.includes('/vulnanalizer/')) {
                 document.getElementById('vulnanalizer-tab').classList.add('active');
-            } else if (currentPath.includes('/loganalizer/')) {
-                document.getElementById('loganalizer-tab').classList.add('active');
             }
-
+            
             // Все обработчики событий управляются через UIManager
         });
 

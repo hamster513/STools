@@ -66,7 +66,6 @@ class VMModule {
     }
 
     populateVMSettings(settings) {
-        console.log('Загружаем VM настройки:', settings);
         
         const vmHost = document.getElementById('vm-host');
         const vmUsername = document.getElementById('vm-username');
@@ -77,16 +76,6 @@ class VMModule {
         const vmLimit = document.getElementById('vm-limit');
         const vmDetailedLogging = document.getElementById('vm-detailed-logging');
 
-        console.log('Найденные элементы:', {
-            vmHost: !!vmHost,
-            vmUsername: !!vmUsername,
-            vmPassword: !!vmPassword,
-            vmClientSecret: !!vmClientSecret,
-            vmOsFilter: !!vmOsFilter,
-            vmCustomFilter: !!vmCustomFilter,
-            vmLimit: !!vmLimit,
-            vmDetailedLogging: !!vmDetailedLogging
-        });
 
         if (vmHost) vmHost.value = settings.vm_host || '';
         if (vmUsername) vmUsername.value = settings.vm_username || '';
@@ -97,7 +86,6 @@ class VMModule {
         if (vmLimit) vmLimit.value = settings.vm_limit || '0';
         if (vmDetailedLogging) vmDetailedLogging.value = settings.vm_detailed_logging || 'false';
         
-        console.log('VM настройки загружены в форму');
     }
 
     async saveVMSettings() {

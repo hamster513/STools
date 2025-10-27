@@ -1,4 +1,33 @@
-/* ===== CONTENT - УНИВЕРСАЛЬНЫЙ ОСНОВНОЙ КОНТЕНТ ===== */
+/* Заголовки и тело контента */
+.content-header {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.content-header h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.content-header h1 i {
+    color: var(--primary-color);
+}
+
+.content-header p {
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.content-body {
+    padding: var(--spacing-lg) 0;
+}
 
 .main-content {
     position: fixed;
@@ -90,9 +119,56 @@
     color: var(--primary-color);
 }
 
-.content-block-actions {
-    display: flex;
-    gap: var(--spacing-sm);
+.content-block-body {
+    padding: var(--spacing-md) 0;
+}
+
+.content-block-body p {
+    margin: var(--spacing-xs) 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.content-block-body strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Бейджи */
+.badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge.processing,
+.badge.running,
+.badge.initializing {
+    background: var(--primary-color);
+    color: white;
+}
+
+.badge.completed {
+    background: var(--success-color);
+    color: white;
+}
+
+.badge.error {
+    background: var(--error-color);
+    color: white;
+}
+
+.badge.cancelled {
+    background: var(--warning-color);
+    color: var(--text-primary);
+}
+
+.badge.idle {
+    background: var(--text-secondary);
+    color: white;
 }
 
 /* Универсальные формы */
@@ -355,5 +431,20 @@
 .stat-label {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Действия с задачами */
+.task-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.content-block-body .error-text {
+    color: var(--error-color);
     font-weight: 500;
 }

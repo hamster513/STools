@@ -13,11 +13,6 @@ class AuthManager {
     // Проверка авторизации
     async checkAuth() {
         const token = this.storage.get('auth_token');
-        console.log('🔍 AuthManager.checkAuth: токен найден:', !!token);
-        console.log('🔍 AuthManager.checkAuth: localStorage содержимое:', {
-            auth_token: localStorage.getItem('auth_token') ? 'есть' : 'нет',
-            user_info: localStorage.getItem('user_info') ? 'есть' : 'нет'
-        });
         
         if (!token) {
             console.log('❌ AuthManager.checkAuth: токен не найден, перенаправляем на /auth/');
@@ -48,14 +43,11 @@ class AuthManager {
 
     // Обработка успешной авторизации
     async handleAuthSuccess(userData) {
-        console.log('✅ AuthManager.handleAuthSuccess: данные пользователя:', userData);
         if (userData.user) {
             this.storage.set('user_info', userData.user);
-            console.log('💾 AuthManager.handleAuthSuccess: user_info сохранен');
             
             // Проверяем права администратора
             const isAdmin = userData.user.is_admin === true;
-            console.log('👑 AuthManager.handleAuthSuccess: is_admin =', isAdmin);
             
             // Обновляем UI в зависимости от прав
             this.app.updateSidebarVisibility(isAdmin);

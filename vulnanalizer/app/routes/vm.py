@@ -160,8 +160,8 @@ async def import_vm_hosts():
 
 
 @router.post("/api/vm/manual-import")
-async def manual_import_vm_hosts():
-    """Ручной импорт хостов из сохраненного файла VM"""
+async def manual_import_vm_hosts(request: Request):
+    """Ручной импорт хостов из сохраненного файла VM с фильтрами"""
     try:
         # Проверяем, не запущена ли уже задача импорта
         db = get_db()
@@ -169,12 +169,36 @@ async def manual_import_vm_hosts():
         if existing_task and existing_task['status'] in ['processing', 'running', 'initializing', 'idle']:
             return {"success": False, "message": "Ручной импорт VM данных уже запущен"}
         
-        # Создаем фоновую задачу для ручного импорта
+        # Получаем данные из JSON запроса
+        try:
+            body = await request.json()
+            criticality_filter = body.get('criticality_filter', '')
+            os_filter = body.get('os_filter', '')
+            zone_filter = body.get('zone_filter', '')
+        except:
+            criticality_filter = ''
+            os_filter = ''
+            zone_filter = ''
+        
+        # Логируем фильтры
+        if criticality_filter:
+            print(f"🔍 Фильтр критичности для ручного импорта: {criticality_filter}")
+        if os_filter:
+            print(f"🔍 Фильтр ОС для ручного импорта: {os_filter}")
+        if zone_filter:
+            print(f"🔍 Фильтр зоны для ручного импорта: {zone_filter}")
+        
+        # Создаем фоновую задачу для ручного импорта с фильтрами
+        task_parameters = {
+            "import_type": "vm_manual_import",
+            "criticality_filter": criticality_filter,
+            "os_filter": os_filter,
+            "zone_filter": zone_filter
+        }
+        
         task_id = await db.create_background_task(
             task_type="vm_manual_import",
-            parameters={
-                "import_type": "vm_manual_import"
-            },
+            parameters=task_parameters,
             description="Ручной импорт данных из файла VM MaxPatrol"
         )
         

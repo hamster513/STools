@@ -126,80 +126,6 @@
             </div>
         </div>
 
-        <!-- Backup/Restore -->
-        <div class="collapsible-block">
-            <div class="collapsible-header" data-target="backup-restore">
-                <h3><i class="fas fa-download"></i> Backup/Restore</h3>
-                <div class="collapsible-arrow">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            <div class="collapsible-content" id="backup-restore">
-                <!-- Создание бэкапа -->
-                <div class="backup-section">
-                    <h4><i class="fas fa-save"></i> Создание бэкапа</h4>
-                    <form id="backup-form">
-                        <div class="form-group">
-                            <label>Выберите таблицы для бэкапа:</label>
-                            <div class="tables-selection" id="tables-selection">
-                                <!-- Таблицы будут загружены динамически -->
-                                <div class="loading">Загрузка списка таблиц...</div>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm" id="create-backup-btn">
-                                <i class="fas fa-download"></i> Создать бэкап
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <!-- Прогресс создания бэкапа -->
-                    <div id="backup-progress" class="progress-section" style="display: none;">
-                        <h5>Создание бэкапа...</h5>
-                        <div class="progress">
-                            <div class="progress-bar" id="backup-progress-bar" role="progressbar" style="width: 0%"></div>
-                        </div>
-                        <div class="progress-status" id="backup-status">Подготовка...</div>
-                    </div>
-                </div>
-
-                <!-- Список существующих бэкапов -->
-                <div class="backups-list-section">
-                    <h4><i class="fas fa-list"></i> Существующие бэкапы</h4>
-                    <div class="backups-list" id="backups-list">
-                        <!-- Список бэкапов будет загружен динамически -->
-                        <div class="loading">Загрузка списка бэкапов...</div>
-                    </div>
-                </div>
-
-                <!-- Восстановление из бэкапа -->
-                <div class="restore-section">
-                    <h4><i class="fas fa-upload"></i> Восстановление из бэкапа</h4>
-                    <form id="restore-form">
-                        <div class="form-group">
-                            <label for="backup-file">Выберите файл бэкапа:</label>
-                            <input type="file" id="backup-file" name="backup_file" required>
-                            <small>Поддерживаются форматы: .tar.gz, .zip, .sql</small>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-warning btn-sm" id="restore-backup-btn">
-                                <i class="fas fa-upload"></i> Восстановить
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <!-- Прогресс восстановления -->
-                    <div id="restore-progress" class="progress-section" style="display: none;">
-                        <h5>Восстановление...</h5>
-                        <div class="progress">
-                            <div class="progress-bar" id="restore-progress-bar" role="progressbar" style="width: 0%"></div>
-                        </div>
-                        <div class="progress-status" id="restore-status">Подготовка...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Управление логами -->
         <div class="collapsible-block">
             <div class="collapsible-header" data-target="logs-management">
@@ -244,42 +170,6 @@
                         <div class="loading">Загрузка файлов логов...</div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Информация о системе -->
-        <div class="collapsible-block">
-            <div class="collapsible-header" data-target="system-info">
-                <h3><i class="fas fa-info-circle"></i> Информация о системе</h3>
-                <div class="collapsible-arrow">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            <div class="collapsible-content" id="system-info">
-                <div class="system-info">
-                <div class="info-item">
-                    <span class="info-label">Версия системы:</span>
-                    <span class="info-value" id="system-version">{{ version }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Статус базы данных:</span>
-                    <span class="info-value" id="db-status">Проверка...</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Активных пользователей:</span>
-                    <span class="info-value" id="active-users">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Время работы системы:</span>
-                    <span class="info-value" id="system-uptime">-</span>
-                </div>
-            </div>
-            <div class="form-actions">
-                <button type="button" id="refresh-info" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-sync-alt"></i> Обновить информацию
-                </button>
-                            </div>
-            </div>
             </div>
         </div>
 </main>
