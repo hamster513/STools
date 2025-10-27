@@ -4,6 +4,7 @@
 import os
 import psutil
 import re
+import asyncpg
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
 from database import get_db
@@ -694,3 +695,46 @@ async def optimize_database():
 
 # Cache API endpoints temporarily disabled due to import issues
 # TODO: Fix imports and re-enable
+
+
+@router.post("/api/database/test-connection")
+async def test_database_connection(request: Request):
+    """Тестировать подключение к базе данных"""
+    try:
+        data = await request.json()
+        
+        # Валидация обязательных параметров
+        required_fields = ['db_host', 'db_port', 'db_name', 'db_username', 'db_password']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                raise HTTPException(status_code=400, detail=f"Поле {field} обязательно")
+        
+        # Формируем строку подключения
+        connection_string = f"postgresql://{data['db_username']}:{data['db_password']}@{data['db_host']}:{data['db_port']}/{data['db_name']}"
+        
+        # Тестируем подключение
+        try:
+            conn = await asyncpg.connect(connection_string)
+            await conn.execute("SELECT 1")  # Простой тест запрос
+            await conn.close()
+            
+            return {
+                "success": True, 
+                "message": "Подключение к базе данных успешно"
+            }
+        except asyncpg.exceptions.InvalidPasswordError:
+            raise HTTPException(status_code=400, detail="Неверный пароль")
+        except asyncpg.exceptions.InvalidAuthorizationSpecificationError:
+            raise HTTPException(status_code=400, detail="Неверное имя пользователя или пароль")
+        except asyncpg.exceptions.ConnectionDoesNotExistError:
+            raise HTTPException(status_code=400, detail="База данных не найдена")
+        except asyncpg.exceptions.ConnectionRefusedError:
+            raise HTTPException(status_code=400, detail="Сервер базы данных недоступен")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Ошибка подключения: {str(e)}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error testing database connection: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

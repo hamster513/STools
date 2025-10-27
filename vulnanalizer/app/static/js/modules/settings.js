@@ -15,6 +15,14 @@ class SettingsModule {
     }
 
     setupEventListeners() {
+        // Проверяем, не были ли уже добавлены обработчики
+        if (document.querySelector('[data-settings-listeners-added]')) {
+            return;
+        }
+        
+        // Помечаем, что обработчики добавлены
+        document.body.setAttribute('data-settings-listeners-added', 'true');
+        
         // Форма настроек
         const settingsForm = document.getElementById('settings-form');
         if (settingsForm) {
@@ -209,6 +217,27 @@ class SettingsModule {
                 }
             });
         }
+
+        // Форма настроек базы данных
+        const databaseForm = document.getElementById('database-settings-form');
+        if (databaseForm && !databaseForm.hasAttribute('data-listener-added')) {
+            databaseForm.setAttribute('data-listener-added', 'true');
+            databaseForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveDatabaseSettings();
+            });
+        }
+
+        // Тест подключения к БД
+        const testBtn = document.getElementById('test-connection');
+        if (testBtn && !testBtn.hasAttribute('data-listener-added')) {
+            testBtn.setAttribute('data-listener-added', 'true');
+            testBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.testConnection();
+            });
+        }
     }
 
     async loadDatabaseSettings() {
@@ -338,32 +367,70 @@ class SettingsModule {
     }
 
     async testConnection() {
-        try {
-            const btn = document.getElementById('test-connection');
-            if (!btn) {
-                window.notifications.show('❌ Кнопка проверки подключения не найдена', 'error');
-                return;
-            }
-            
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
-            btn.disabled = true;
+        const testBtn = document.getElementById('test-connection');
+        if (!testBtn) {
+            window.notifications.show('❌ Кнопка проверки подключения не найдена', 'error');
+            return;
+        }
+        
+        const originalText = testBtn.innerHTML;
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
+        testBtn.disabled = true;
 
-            const data = await this.app.api.testConnection();
+        try {
+            // Получаем данные из формы
+            const formData = new FormData(document.getElementById('database-settings-form'));
+            const settings = Object.fromEntries(formData.entries());
             
-            if (data.status === 'healthy' && data.database === 'connected') {
-                window.notifications.show('Подключение к базе данных успешно', 'success');
+            // Делаем API вызов для тестирования подключения
+            const response = await fetch('/vulnanalizer/api/database/test-connection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settings)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                window.notifications.show(result.message, 'success');
             } else {
-                window.notifications.show('Ошибка подключения к базе данных', 'error');
+                window.notifications.show(result.message || 'Ошибка подключения к базе данных', 'error');
             }
         } catch (error) {
-            window.notifications.show('❌ Ошибка подключения к базе данных', 'error');
+            console.error('Database connection test failed:', error);
+            window.notifications.show('Ошибка подключения к базе данных', 'error');
         } finally {
-            const btn = document.getElementById('test-connection');
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-database"></i> Проверить подключение';
-                btn.disabled = false;
+            testBtn.innerHTML = originalText;
+            testBtn.disabled = false;
+        }
+    }
+
+    async saveDatabaseSettings() {
+        try {
+            const formData = new FormData(document.getElementById('database-settings-form'));
+            const settings = Object.fromEntries(formData.entries());
+            
+            // Делаем API вызов для сохранения настроек БД
+            const response = await fetch('/vulnanalizer/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settings)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                window.notifications.show('Настройки базы данных сохранены', 'success');
+            } else {
+                window.notifications.show(result.message || 'Ошибка сохранения настроек', 'error');
             }
+        } catch (error) {
+            console.error('Database settings save failed:', error);
+            window.notifications.show('Ошибка сохранения настроек', 'error');
         }
     }
 

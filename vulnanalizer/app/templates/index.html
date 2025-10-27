@@ -430,27 +430,53 @@
                 </div>
                 
                 <div class="settings-container">
-                    <!-- Настройки производительности -->
+                    <!-- Подключение к БД -->
                     <div class="collapsible-block">
-                        <div class="collapsible-header" data-target="performance-settings">
-                            <h3><i class="fas fa-tachometer-alt"></i> Настройки производительности</h3>
+                        <div class="collapsible-header" data-target="database-connection">
+                            <h3><i class="fas fa-database"></i> Подключение к БД</h3>
                             <div class="collapsible-arrow">
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
-                        <div class="collapsible-content" id="performance-settings">
-                            <form id="performance-form">
-                            <div class="form-group">
-                                <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
-                                <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
-                                <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
+                        <div class="collapsible-content" id="database-connection">
+                            <div class="info-block">
+                                <p><i class="fas fa-info-circle"></i> Настройки подключения к базе данных PostgreSQL.</p>
                             </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-save"></i> Сохранить
-                                </button>
-                            </div>
-                        </form>
+                            <form id="database-settings-form">
+                                <div class="form-group">
+                                    <label for="db-host">Хост БД:</label>
+                                    <input type="text" id="db-host" name="db_host" placeholder="localhost" value="postgres" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db-port">Порт БД:</label>
+                                    <input type="number" id="db-port" name="db_port" placeholder="5432" value="5432" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db-name">Имя БД:</label>
+                                    <input type="text" id="db-name" name="db_name" placeholder="stools_db" value="stools_db" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db-username">Пользователь БД:</label>
+                                    <input type="text" id="db-username" name="db_username" placeholder="stools_user" value="stools_user" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db-password">Пароль БД:</label>
+                                    <input type="password" id="db-password" name="db_password" placeholder="stools_pass" value="stools_pass" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="vulnanalizer-max-concurrent-requests">Максимум одновременных запросов к БД:</label>
+                                    <input type="number" id="vulnanalizer-max-concurrent-requests" name="max_concurrent_requests" min="1" max="10" value="3" required>
+                                    <small>Рекомендуется: 1-5. Больше запросов = быстрее, но больше нагрузка на БД</small>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-save"></i> Сохранить
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="test-connection">
+                                        <i class="fas fa-plug"></i> Проверить подключение
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
 
@@ -1489,74 +1515,6 @@
                         </div>
                     </div>
 
-                    <!-- Подключение к БД -->
-                    <div class="collapsible-block">
-                        <div class="collapsible-header" data-target="database-connection">
-                            <h3><i class="fas fa-database"></i> Подключение к БД</h3>
-                            <div class="collapsible-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <div class="collapsible-content" id="database-connection">
-                            <div class="info-block">
-                                <p><i class="fas fa-info-circle"></i> Настройки подключения к базе данных PostgreSQL.</p>
-                            </div>
-                            <form id="database-form">
-                                <div class="form-group">
-                                    <label for="db-host">Хост БД:</label>
-                                    <input type="text" id="db-host" name="db_host" placeholder="localhost" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="db-port">Порт БД:</label>
-                                    <input type="number" id="db-port" name="db_port" placeholder="5432" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="db-name">Имя БД:</label>
-                                    <input type="text" id="db-name" name="db_name" placeholder="stools_db" required>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-save"></i> Сохранить
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" id="test-db-connection">
-                                        <i class="fas fa-plug"></i> Проверить подключение
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Настройки безопасности -->
-                    <div class="collapsible-block">
-                        <div class="collapsible-header" data-target="security-settings">
-                            <h3><i class="fas fa-shield-alt"></i> Настройки безопасности</h3>
-                            <div class="collapsible-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <div class="collapsible-content" id="security-settings">
-                            <div class="info-block">
-                                <p><i class="fas fa-info-circle"></i> Настройки безопасности и аутентификации.</p>
-                            </div>
-                            <form id="security-form">
-                                <div class="form-group">
-                                    <label for="session-timeout">Таймаут сессии (минуты):</label>
-                                    <input type="number" id="session-timeout" name="session_timeout" min="5" max="1440" value="30" required>
-                                    <small>Время автоматического выхода при неактивности</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="max-login-attempts">Максимум попыток входа:</label>
-                                    <input type="number" id="max-login-attempts" name="max_login_attempts" min="3" max="10" value="5" required>
-                                    <small>Количество неудачных попыток до блокировки</small>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-save"></i> Сохранить
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
 
                     <!-- Управление логами -->
                     <div class="collapsible-block">
