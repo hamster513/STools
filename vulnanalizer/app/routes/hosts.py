@@ -684,7 +684,7 @@ async def export_hosts(
             criticality=criticality,
             exploits_only=exploits_only,
             epss_only=epss_only,
-            limit=1000  # Большой лимит для экспорта
+            limit=50000  # Увеличенный лимит для экспорта
         )
         
         if not hosts_data:

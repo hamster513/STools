@@ -7,6 +7,7 @@ class UIManager {
         this.app = app;
         this.storage = app.storage;
         this.eventManager = app.eventManager;
+        this.backgroundTasksInterval = null; // Интервал для автоматического обновления задач
     }
 
     // Инициализация темы
@@ -144,6 +145,11 @@ class UIManager {
 
     // Переключение страниц
     switchPage(page) {
+        // Останавливаем автоматическое обновление задач при переходе на другую страницу
+        if (this.currentPage === 'background-tasks' && page !== 'background-tasks') {
+            this.stopBackgroundTasksAutoRefresh();
+        }
+        
         // Заголовки страниц больше не обновляются
         // Только обновляем статусы
         
@@ -168,7 +174,10 @@ class UIManager {
                 this.loadBackgroundTasks();
                 this.loadTaskHistory();
                 
-                // Добавляем обработчик для кнопки обновления истории
+                // Запускаем автоматическое обновление
+                this.startBackgroundTasksAutoRefresh();
+                
+                // Добавляем обработчики для кнопок обновления
                 setTimeout(() => {
                     const loadHistoryBtn = document.getElementById('load-task-history');
                     if (loadHistoryBtn) {
@@ -176,11 +185,21 @@ class UIManager {
                             this.loadTaskHistory();
                         });
                     }
+                    
+                    const refreshTasksBtn = document.getElementById('refresh-background-tasks-btn');
+                    if (refreshTasksBtn) {
+                        refreshTasksBtn.addEventListener('click', () => {
+                            this.loadBackgroundTasks();
+                        });
+                    }
                 }, 100);
                 break;
             default:
                 break;
         }
+        
+        // Обновляем текущую страницу
+        this.currentPage = page;
     }
 
     // Выход из системы
@@ -191,6 +210,87 @@ class UIManager {
         
         // Перенаправляем на страницу входа
         window.location.href = '/auth/';
+    }
+
+    // Форматирование даты для отображения
+    formatDateTime(dateString) {
+        if (!dateString) return 'Неизвестно';
+        
+        try {
+            const date = new Date(dateString);
+            
+            // Проверяем, что дата валидна
+            if (isNaN(date.getTime())) {
+                return 'Неверная дата';
+            }
+            
+            // Определяем, нужно ли конвертировать время
+            // Если время содержит 'T' или '+' или 'Z', это ISO формат с часовым поясом
+            const isISOTime = dateString.includes('T') || dateString.includes('+') || dateString.includes('Z');
+            
+            // Если время в формате "YYYY-MM-DD HH:MM:SS" без часового пояса,
+            // и час больше 20, то это скорее всего UTC время
+            const isLikelyUTC = !isISOTime && dateString.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/) && 
+                                parseInt(dateString.split(' ')[1].split(':')[0]) >= 20;
+            
+            let displayTime;
+            if (isISOTime || isLikelyUTC) {
+                // Конвертируем UTC в московское время (UTC+3)
+                displayTime = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+            } else {
+                // Считаем что это уже московское время
+                displayTime = date;
+            }
+            
+            // Форматируем дату в российском формате
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            
+            return displayTime.toLocaleString('ru-RU', options);
+        } catch (error) {
+            console.error('Ошибка форматирования даты:', error, dateString);
+            return 'Ошибка даты';
+        }
+    }
+
+    // Автоматическое обновление задач
+    startBackgroundTasksAutoRefresh() {
+        // Останавливаем предыдущий интервал если есть
+        this.stopBackgroundTasksAutoRefresh();
+        
+        // Показываем индикатор автоматического обновления
+        const indicator = document.getElementById('auto-refresh-indicator');
+        if (indicator) {
+            indicator.style.display = 'inline';
+        }
+        
+        // Запускаем новый интервал обновления каждые 3 секунды
+        this.backgroundTasksInterval = setInterval(() => {
+            this.loadBackgroundTasks();
+        }, 3000);
+        
+        console.log('🔄 Автоматическое обновление задач запущено');
+    }
+
+    stopBackgroundTasksAutoRefresh() {
+        if (this.backgroundTasksInterval) {
+            clearInterval(this.backgroundTasksInterval);
+            this.backgroundTasksInterval = null;
+            
+            // Скрываем индикатор автоматического обновления
+            const indicator = document.getElementById('auto-refresh-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+            
+            console.log('⏹️ Автоматическое обновление задач остановлено');
+        }
     }
 
     // Показать прогресс операции
@@ -400,8 +500,8 @@ class UIManager {
                     </div>
                     <div class="content-block-body">
                         <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
-                        <p><strong>Создано:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'Неизвестно'}</p>
-                        ${task.updated_at ? `<p><strong>Обновлено:</strong> ${new Date(task.updated_at).toLocaleString()}</p>` : ''}
+                        <p><strong>Создано:</strong> ${this.formatDateTime(task.created_at)}</p>
+                        ${task.updated_at ? `<p><strong>Обновлено:</strong> ${this.formatDateTime(task.updated_at)}</p>` : ''}
                         ${task.current_step ? `<p><strong>Текущий шаг:</strong> ${task.current_step}</p>` : ''}
                         ${task.progress_percent !== null && task.progress_percent !== undefined ? `
                             <div class="progress-bar">
@@ -503,9 +603,9 @@ class UIManager {
                     </div>
                     <div class="content-block-body">
                         <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
-                        <p><strong>Создано:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'Неизвестно'}</p>
-                        ${task.start_time ? `<p><strong>Начато:</strong> ${new Date(task.start_time).toLocaleString()}</p>` : ''}
-                        ${task.end_time ? `<p><strong>Завершено:</strong> ${new Date(task.end_time).toLocaleString()}</p>` : ''}
+                        <p><strong>Создано:</strong> ${this.formatDateTime(task.created_at)}</p>
+                        ${task.start_time ? `<p><strong>Начато:</strong> ${this.formatDateTime(task.start_time)}</p>` : ''}
+                        ${task.end_time ? `<p><strong>Завершено:</strong> ${this.formatDateTime(task.end_time)}</p>` : ''}
                         ${duration ? `<p><strong>Длительность:</strong> ${duration}</p>` : ''}
                         ${task.current_step ? `<p><strong>Последний шаг:</strong> ${task.current_step}</p>` : ''}
                         ${task.progress_percent !== null && task.progress_percent !== undefined ? `
