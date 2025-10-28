@@ -912,6 +912,12 @@ class VMWorker:
             if self.logger:
                 await self._log('debug', f"Получен CSV контент размером {len(csv_content)} символов")
             
+            # Подсчитываем количество строк в CSV для отладки
+            csv_lines = csv_content.split('\n')
+            non_empty_lines = [line for line in csv_lines if line.strip()]
+            if self.logger:
+                await self._log('debug', f"Всего строк в CSV: {len(csv_lines)}, непустых строк: {len(non_empty_lines)}")
+            
             # CSV файл больше не сохраняем для дебага
             
             csv_reader = csv.DictReader(io.StringIO(csv_content), delimiter=';')
