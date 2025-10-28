@@ -41,6 +41,16 @@ else
     exit 1
 fi
 
+# Сборка vulnanalizer_worker
+echo "📦 Сборка vulnanalizer_worker для x86_64..."
+docker build --platform linux/amd64 -f vulnanalizer/app/Dockerfile.worker -t hamster5133/stools-vulnanalizer_worker:v$VERSION ./vulnanalizer/app/
+if [ $? -eq 0 ]; then
+    echo "✅ vulnanalizer_worker собран успешно"
+else
+    echo "❌ Ошибка при сборке vulnanalizer_worker"
+    exit 1
+fi
+
 # Сборка main_web
 echo "📦 Сборка main_web для x86_64..."
 docker build --platform linux/amd64 -t hamster5133/stools-main_web:v$VERSION ./
@@ -64,6 +74,9 @@ docker push hamster5133/stools-loganalizer_web:v$VERSION
 echo "📤 Загрузка vulnanalizer_web..."
 docker push hamster5133/stools-vulnanalizer_web:v$VERSION
 
+echo "📤 Загрузка vulnanalizer_worker..."
+docker push hamster5133/stools-vulnanalizer_worker:v$VERSION
+
 echo "📤 Загрузка main_web..."
 docker push hamster5133/stools-main_web:v$VERSION
 
@@ -73,6 +86,7 @@ echo "📋 Загруженные образы:"
 echo "   - hamster5133/stools-auth_web:v$VERSION (x86_64)"
 echo "   - hamster5133/stools-loganalizer_web:v$VERSION (x86_64)"
 echo "   - hamster5133/stools-vulnanalizer_web:v$VERSION (x86_64)"
+echo "   - hamster5133/stools-vulnanalizer_worker:v$VERSION (x86_64)"
 echo "   - hamster5133/stools-main_web:v$VERSION (x86_64)"
 
 echo ""
