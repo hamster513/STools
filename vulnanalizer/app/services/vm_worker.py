@@ -362,7 +362,7 @@ class VMWorker:
         except Exception:
             return False
 
-    async def _split_large_file_if_needed(self, file_path: str, task_id: int) -> str:
+    async def _split_large_file_if_needed(self, file_path: str, task_id: int) -> List[str]:
         """
         Разбить большой файл на части если необходимо
         
@@ -371,7 +371,7 @@ class VMWorker:
             task_id: ID задачи для обновления прогресса
             
         Returns:
-            Путь к файлу для обработки (исходный или первый из частей)
+            Список путей к файлам для обработки (исходный файл или все части)
         """
         try:
             file_size = os.path.getsize(file_path)
@@ -379,7 +379,7 @@ class VMWorker:
             
             if file_size <= max_size_mb * 1024 * 1024:
                 print(f"📁 Файл {os.path.basename(file_path)} ({file_size / (1024*1024):.1f} MB) не требует разбивки")
-                return file_path
+                return [file_path]
             
             print(f"🔄 Файл {os.path.basename(file_path)} ({file_size / (1024*1024):.1f} MB) слишком большой, разбиваем на части")
             
@@ -409,14 +409,14 @@ class VMWorker:
                 "parts_dir": parts_dir
             })
             
-            # Возвращаем путь к первой части
-            return created_files[0]
+            # Возвращаем все части для обработки
+            return created_files
             
         except Exception as e:
             print(f"❌ Ошибка разбивки файла: {e}")
             await self._log('error', f"Ошибка разбивки файла: {str(e)}")
             # В случае ошибки возвращаем исходный файл
-            return file_path
+            return [file_path]
     
     async def _update_task_activity(self, task_id: int, activity_message: str = None):
         """Обновить активность задачи"""
@@ -691,19 +691,31 @@ class VMWorker:
             })
             await self._update_task_activity(task_id, "Проверка необходимости разбивки файла")
             
-            file_to_split = await self._split_large_file_if_needed(file_to_process, task_id)
-            await self._log('info', f"Файл для обработки: {file_to_split}")
+            files_to_process = await self._split_large_file_if_needed(file_to_process, task_id)
+            await self._log('info', f"Файлы для обработки: {files_to_process}")
             
-            # Этап 4: Загружаем данные из файла (или первой части)
+            # Этап 4: Загружаем данные из всех файлов
             await self.db.update_background_task(task_id, **{
-                'current_step': 'Загрузка данных из файла',
+                'current_step': f'Загрузка данных из {len(files_to_process)} файлов',
                 'progress_percent': 85
             })
-            await self._update_task_activity(task_id, "Загрузка данных из файла")
-            await self._log('info', "Начинаем загрузку данных из файла")
+            await self._update_task_activity(task_id, f"Загрузка данных из {len(files_to_process)} файлов")
+            await self._log('info', f"Начинаем загрузку данных из {len(files_to_process)} файлов")
             
-            vm_data_from_file = await self._load_vm_data_from_file(task_id, file_to_split)
-            await self._log('info', f"Загружено {len(vm_data_from_file)} записей из файла")
+            # Загружаем данные из всех файлов
+            all_vm_data = []
+            for i, file_path in enumerate(files_to_process):
+                await self.db.update_background_task(task_id, **{
+                    'current_step': f'Загрузка файла {i+1} из {len(files_to_process)}: {os.path.basename(file_path)}',
+                    'progress_percent': 85 + (i * 5 // len(files_to_process))
+                })
+                
+                vm_data_from_file = await self._load_vm_data_from_file(task_id, file_path)
+                all_vm_data.extend(vm_data_from_file)
+                await self._log('info', f"Загружено {len(vm_data_from_file)} записей из файла {os.path.basename(file_path)}")
+            
+            vm_data_from_file = all_vm_data
+            await self._log('info', f"Всего загружено {len(vm_data_from_file)} записей из всех файлов")
             
             # Этап 5: Очищаем данные от дублей и пустых записей
             await self.db.update_background_task(task_id, **{

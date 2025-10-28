@@ -1,0 +1,46 @@
+/* Стили для исправления отображения select multiple на Windows */
+
+#import-criticality-filter {
+    height: 120px !important; /* Фиксированная высота для отображения всех опций */
+    min-height: 120px !important;
+    overflow-y: auto !important; /* Прокрутка если нужно */
+    resize: vertical !important; /* Разрешаем изменение размера по вертикали */
+}
+
+/* Дополнительные стили для лучшего отображения */
+#import-criticality-filter option {
+    padding: 4px 8px !important;
+    margin: 2px 0 !important;
+    border-radius: 4px !important;
+}
+
+/* Цвета для опций критичности */
+#import-criticality-filter option[value="Critical"] {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    font-weight: bold !important;
+}
+
+#import-criticality-filter option[value="High"] {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: bold !important;
+}
+
+#import-criticality-filter option[value="Medium"] {
+    background-color: #d1ecf1 !important;
+    color: #0c5460 !important;
+    font-weight: bold !important;
+}
+
+#import-criticality-filter option[value="Low"] {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    font-weight: bold !important;
+}
+
+#import-criticality-filter option[value="N/A"] {
+    background-color: #e2e3e5 !important;
+    color: #383d41 !important;
+    font-weight: bold !important;
+}

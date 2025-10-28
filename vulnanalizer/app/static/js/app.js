@@ -491,6 +491,7 @@ class VulnAnalizer {
         this.delay(VulnAnalizer.DELAYS.INIT).then(async () => {
             this.authManager.checkUserPermissions();
             this.updateHostsStatus();
+            this.updateRecordsCount(); // Обновляем количество записей в базе
             this.updateEPSSStatus();
             this.updateExploitDBStatus();
             this.updateCVEStatus();
@@ -581,6 +582,10 @@ class VulnAnalizer {
 
     async updateHostsStatus() {
         return this.hostsService.updateHostsStatus();
+    }
+
+    async updateRecordsCount() {
+        return this.hostsService.updateRecordsCount();
     }
 
     async searchHosts(page = 1) {
