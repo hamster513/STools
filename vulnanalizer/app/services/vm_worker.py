@@ -920,22 +920,51 @@ class VMWorker:
             
             # CSV файл больше не сохраняем для дебага
             
-            csv_reader = csv.DictReader(io.StringIO(csv_content), delimiter=';')
+            # Парсим CSV построчно для лучшего контроля
+            csv_lines = csv_content.split('\n')
+            if not csv_lines:
+                raise Exception("CSV файл пуст")
+            
+            # Получаем заголовки из первой строки
+            header_line = csv_lines[0]
+            headers = [h.strip('"') for h in header_line.split(';')]
+            
+            if self.logger:
+                await self._log('debug', f"Заголовки CSV: {headers}")
             
             vm_data = []
             row_count = 0
-            for row in csv_reader:
+            
+            # Обрабатываем строки данных (пропускаем заголовок)
+            for line in csv_lines[1:]:
+                if not line.strip():  # Пропускаем пустые строки
+                    continue
+                    
                 row_count += 1
+                
+                # Парсим строку вручную
+                values = [v.strip('"') for v in line.split(';')]
+                if len(values) != len(headers):
+                    if self.logger:
+                        await self._log('warning', f"Строка {row_count}: несоответствие количества колонок ({len(values)} != {len(headers)})")
+                    continue
+                
+                row_dict = dict(zip(headers, values))
+                
                 if self.logger and row_count <= 5:  # Логируем первые 5 строк для отладки
-                    await self._log('debug', f"Строка {row_count}: {dict(row)}")
+                    await self._log('debug', f"Строка {row_count}: {row_dict}")
+                
+                # Логируем каждые 10000 записей для отслеживания прогресса
+                if self.logger and row_count % 10000 == 0:
+                    await self._log('debug', f"Обработано {row_count} строк CSV...")
                 
                 vm_data.append({
-                    'host': row['@Host'].strip('"'),
-                    'os_name': row['Host.OsName'].strip('"'),
-                    'groups': row['Host.@Groups'].strip('"'),
-                    'cve': row['Host.@Vulners.CVEs'].strip('"'),
-                    'criticality': row['Host.UF_Criticality'].strip('"'),
-                    'zone': row['Host.UF_Zone'].strip('"')
+                    'host': row_dict.get('@Host', '').strip('"'),
+                    'os_name': row_dict.get('Host.OsName', '').strip('"'),
+                    'groups': row_dict.get('Host.@Groups', '').strip('"'),
+                    'cve': row_dict.get('Host.@Vulners.CVEs', '').strip('"'),
+                    'criticality': row_dict.get('Host.UF_Criticality', '').strip('"'),
+                    'zone': row_dict.get('Host.UF_Zone', '').strip('"')
                 })
             
             if self.logger:
