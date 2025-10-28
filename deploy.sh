@@ -58,6 +58,15 @@ docker-compose -f $COMPOSE_FILE -p stools up -d
 echo "⏳ Ожидание запуска сервисов..."
 sleep 30
 
+# Применяем миграции базы данных
+echo "🗄️  Применение миграций базы данных..."
+if [ -f "./apply_migrations.sh" ]; then
+    chmod +x ./apply_migrations.sh
+    ./apply_migrations.sh
+else
+    echo "⚠️  Скрипт apply_migrations.sh не найден, пропускаем миграции"
+fi
+
 # Проверяем статус
 echo "📊 Статус контейнеров:"
 docker-compose -f $COMPOSE_FILE -p stools ps
