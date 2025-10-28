@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Скрипт для развертывания STools v0.7.10 на удаленном сервере
+# Скрипт для развертывания STools v0.8.0 на удаленном сервере
 
 set -e
 
-echo "🚀 Развертывание STools v0.7.10"
+echo "🚀 Развертывание STools v0.8.0"
 
 # Устанавливаем переменные окружения
 export COMPOSE_PROJECT_NAME=stools
-export STOOLS_VERSION=0.7.10
+export STOOLS_VERSION=0.8.0
 
 # Проверяем архитектуру
 ARCH=$(uname -m)
@@ -45,10 +45,10 @@ echo "🔐 Установка прав доступа..."
 chmod -R 777 data/ backups/
 
 # Загружаем новые образы
-echo "⬇️  Загрузка образов v0.7.10..."
-docker pull hamster5133/stools-auth_web:v0.7.10
-docker pull hamster5133/stools-vulnanalizer_web:v0.7.10
-docker pull hamster5133/stools-main_web:v0.7.10
+echo "⬇️  Загрузка образов v0.8.0..."
+docker pull hamster5133/stools-auth_web:v0.8.0
+docker pull hamster5133/stools-vulnanalizer_web:v0.8.0
+docker pull hamster5133/stools-main_web:v0.8.0
 
 # Запускаем контейнеры
 echo "🚀 Запуск контейнеров..."

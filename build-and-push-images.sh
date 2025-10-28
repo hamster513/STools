@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Читаем версию
-VERSION=$(cat VERSION 2>/dev/null || echo "0.7.10")
+VERSION=$(cat VERSION 2>/dev/null || echo "0.8.0")
 DOCKER_USERNAME="hamster5133"
 PLATFORM="linux/amd64"
 

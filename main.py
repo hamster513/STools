@@ -22,7 +22,7 @@ def get_version():
         with open('/app/VERSION', 'r') as f:
             return f.read().strip()
     except:
-        return "0.7.10"
+        return "0.8.0"
 
 app = FastAPI(title="STools Main Service", version=get_version())
 

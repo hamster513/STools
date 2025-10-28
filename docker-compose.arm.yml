@@ -1,4 +1,4 @@
-# STools v0.7.10 - Security Tools Suite (ARM64)
+# STools v0.8.0 - Security Tools Suite (ARM64)
 # Единый проект для всех сервисов
 
 services:
@@ -142,7 +142,7 @@ services:
 
   # Worker для фоновых задач
   vulnanalizer_worker:
-    image: docker.io/hamster5133/stools-vulnanalizer_worker:v0.7.10
+    image: docker.io/hamster5133/stools-vulnanalizer_worker:v0.8.0
     container_name: vulnanalizer_worker
     platform: linux/arm64
     volumes:
