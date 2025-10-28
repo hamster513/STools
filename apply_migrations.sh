@@ -15,11 +15,13 @@ fi
 
 # Список миграций для применения
 MIGRATIONS=(
+    "00-unified-database-init.sql"
     "04-add-refresh-tokens.sql"
     "05-add-rbac-tables.sql" 
     "06-insert-rbac-data.sql"
     "07-add-audit-tables.sql"
     "08-add-hosts-unique-index.sql"
+    "09-update-role-descriptions.sql"
 )
 
 # Функция для применения миграции
