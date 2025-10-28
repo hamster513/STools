@@ -191,6 +191,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     username: str
     email: Optional[str] = None
+    password: Optional[str] = None
     is_active: bool
     is_admin: bool
     role_ids: Optional[List[int]] = None
@@ -391,6 +392,12 @@ async def update_user(
     success = await auth_db.update_user(user_id, user_data.username, user_data.email, user_data.is_active, user_data.is_admin)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Обновляем пароль, если указан
+    if user_data.password:
+        password_success = await auth_db.update_user_password(user_id, user_data.password)
+        if not password_success:
+            raise HTTPException(status_code=500, detail="Failed to update password")
     
     # Обновляем роли, если указаны
     if user_data.role_ids is not None:

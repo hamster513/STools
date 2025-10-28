@@ -1040,6 +1040,12 @@ class SettingsModule {
             return;
         }
 
+        // Проверка совпадения паролей
+        if (userData.password !== userData['confirm-password']) {
+            window.notifications.show('Пароли не совпадают', 'error');
+            return;
+        }
+
         // Преобразуем данные для API
         const apiData = {
             username: userData.username,
@@ -1196,6 +1202,7 @@ class SettingsModule {
             document.getElementById('edit-username').value = user.username;
             document.getElementById('edit-fullname').value = user.email || '';
             document.getElementById('edit-password').value = '';
+            document.getElementById('edit-confirm-password').value = '';
             document.getElementById('edit-role').value = user.is_admin ? 'admin' : 'analyst';
             document.getElementById('edit-active').checked = user.is_active;
         }
@@ -1221,6 +1228,12 @@ class SettingsModule {
 
         if (userData.password && userData.password.length < 6) {
             window.notifications.show('Пароль должен содержать минимум 6 символов', 'error');
+            return;
+        }
+
+        // Проверка совпадения паролей, если пароль указан
+        if (userData.password && userData.password !== userData['confirm-password']) {
+            window.notifications.show('Пароли не совпадают', 'error');
             return;
         }
 

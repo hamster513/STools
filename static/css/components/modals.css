@@ -9,7 +9,7 @@
     background-color: transparent;
     display: grid;
     place-items: center;
-    z-index: 1000;
+    z-index: var(--z-modal);
     opacity: 0;
     visibility: hidden;
     transition: all var(--transition-speed);
@@ -20,42 +20,7 @@
     visibility: visible;
 }
 
-/* Простые модальные окна без overlay */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: transparent;
-}
-
-.modal-content {
-    background-color: var(--surface-color, #ffffff);
-    margin: 2% auto;
-    padding: 0;
-    border: 1px solid var(--border-color, #dee2e6);
-    border-radius: var(--border-radius);
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-xl);
-    animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+/* Простые модальные окна без overlay - удалены, используются из collapsible.css */
 
 .modal-header {
     padding: var(--spacing-lg);
@@ -209,7 +174,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1000;
+    z-index: var(--z-modal);
     background-color: var(--surface-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-xl);
@@ -235,7 +200,7 @@
 /* CVE Modal specific styles */
 #cve-modal {
     position: fixed;
-    z-index: 1000;
+    z-index: var(--z-modal);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -483,20 +448,7 @@
     }
 }
 
-/* Базовые стили для модальных окон с классом modal-content */
-.modal-content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    background-color: var(--surface-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-    max-width: 90vw;
-    max-height: 90vh;
-}
+/* Базовые стили для модальных окон с классом modal-content - удалены, используются из collapsible.css */
 
 
 
@@ -528,7 +480,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1000;
+    z-index: var(--z-modal);
     background-color: var(--surface-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-xl);
@@ -561,7 +513,7 @@
     top: 50%;
     left: calc(50% + var(--sidebar-width, 280px) / 2);
     transform: translate(-50%, -50%);
-    z-index: 1000;
+    z-index: var(--z-modal);
     background-color: var(--surface-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-xl);
@@ -576,7 +528,7 @@
     top: 50%;
     left: calc(50% + var(--sidebar-width, 280px) / 2);
     transform: translate(-50%, -50%);
-    z-index: 1000;
+    z-index: var(--z-modal);
     background-color: var(--surface-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-xl);

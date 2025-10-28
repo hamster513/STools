@@ -152,9 +152,7 @@
 }
 
 .light-theme .modal {
-    background-color: var(--surface-color);
-    border-color: var(--border-color);
-    box-shadow: var(--shadow-xl);
+    background-color: transparent; /* Используем прозрачный фон для псевдоэлемента */
 }
 
 .light-theme .dropdown-menu {

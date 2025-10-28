@@ -44,7 +44,7 @@ class AdminUsers {
                 window.location.href = '/auth/';
             }
         }).catch(() => {
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem('stools_auth_token');
             window.location.href = '/auth/';
         });
     }
@@ -79,6 +79,41 @@ class AdminUsers {
         document.getElementById('role-filter').addEventListener('change', () => {
             this.filterUsers();
         });
+
+        // Обработка изменения пароля будет настроена в openUserModal
+    }
+
+    checkPasswordMatch() {
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const passwordMatchMessage = document.getElementById('password-match-message');
+        const saveButton = document.querySelector('#user-form button[type="submit"]');
+
+        if (passwordInput && confirmPasswordInput && passwordMatchMessage) {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (password.length > 0 && confirmPassword.length > 0) {
+                if (password === confirmPassword) {
+                    passwordMatchMessage.style.display = 'none';
+                    passwordMatchMessage.textContent = 'Пароли не совпадают';
+                    if (saveButton) {
+                        saveButton.disabled = false;
+                    }
+                } else {
+                    passwordMatchMessage.style.display = 'block';
+                    passwordMatchMessage.textContent = 'Пароли не совпадают';
+                    if (saveButton) {
+                        saveButton.disabled = true;
+                    }
+                }
+            } else {
+                passwordMatchMessage.style.display = 'none';
+                if (saveButton) {
+                    saveButton.disabled = false;
+                }
+            }
+        }
     }
 
     async loadUsers() {
@@ -248,6 +283,11 @@ class AdminUsers {
                 document.getElementById('is-active').checked = user.is_active;
                 document.getElementById('password').required = false;
                 document.getElementById('password').placeholder = 'Оставьте пустым, чтобы не изменять';
+                document.getElementById('password').value = '';
+                document.getElementById('confirm-password').value = '';
+                document.getElementById('confirm-password-group').style.display = 'none';
+                document.getElementById('password-match-message').style.display = 'none';
+                document.getElementById('password-help').textContent = 'Оставьте пустым, чтобы не изменять';
                 
                 // Выбираем роли пользователя
                 if (user.roles && Array.isArray(user.roles)) {
@@ -263,6 +303,9 @@ class AdminUsers {
             form.reset();
             document.getElementById('password').required = true;
             document.getElementById('password').placeholder = '';
+            document.getElementById('confirm-password').required = true;
+            document.getElementById('confirm-password-group').style.display = 'block';
+            document.getElementById('password-help').textContent = 'Введите пароль и подтверждение';
             
             // Перезаполняем роли после reset
             rolesSelect.innerHTML = this.roles.map(role => 
@@ -270,7 +313,55 @@ class AdminUsers {
             ).join('');
         }
         
+        // Настраиваем обработчики для полей пароля
+        this.setupPasswordHandlers();
+        
         modal.style.display = 'flex';
+    }
+
+    setupPasswordHandlers() {
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordGroup = document.getElementById('confirm-password-group');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const passwordMatchMessage = document.getElementById('password-match-message');
+        const passwordHelp = document.getElementById('password-help');
+
+        console.log('🔍 Элементы пароля:', {
+            passwordInput: !!passwordInput,
+            confirmPasswordGroup: !!confirmPasswordGroup,
+            confirmPasswordInput: !!confirmPasswordInput,
+            passwordMatchMessage: !!passwordMatchMessage,
+            passwordHelp: !!passwordHelp
+        });
+
+        if (passwordInput && confirmPasswordGroup && confirmPasswordInput) {
+            // Удаляем старые обработчики, если они есть
+            passwordInput.removeEventListener('input', this.handlePasswordInput);
+            confirmPasswordInput.removeEventListener('input', this.handleConfirmPasswordInput);
+            
+            // Добавляем новые обработчики
+            this.handlePasswordInput = () => {
+                if (passwordInput.value.length > 0) {
+                    confirmPasswordGroup.style.display = 'block';
+                    confirmPasswordInput.required = true;
+                    passwordHelp.textContent = 'Введите пароль и подтверждение';
+                    this.checkPasswordMatch();
+                } else {
+                    confirmPasswordGroup.style.display = 'none';
+                    confirmPasswordInput.required = false;
+                    confirmPasswordInput.value = '';
+                    passwordMatchMessage.style.display = 'none';
+                    passwordHelp.textContent = 'Оставьте пустым, чтобы не изменять';
+                }
+            };
+
+            this.handleConfirmPasswordInput = () => {
+                this.checkPasswordMatch();
+            };
+
+            passwordInput.addEventListener('input', this.handlePasswordInput);
+            confirmPasswordInput.addEventListener('input', this.handleConfirmPasswordInput);
+        }
     }
 
     closeUserModal() {
@@ -282,6 +373,23 @@ class AdminUsers {
         const form = document.getElementById('user-form');
         const formData = new FormData(form);
         const userData = Object.fromEntries(formData.entries());
+        
+        // Проверяем пароли, если они введены
+        const password = userData.password;
+        const confirmPassword = userData['confirm-password'];
+        
+        if (password && confirmPassword) {
+            if (password !== confirmPassword) {
+                this.showNotification('Пароли не совпадают', 'error');
+                return;
+            }
+        } else if (password && !confirmPassword) {
+            this.showNotification('Подтвердите пароль', 'error');
+            return;
+        } else if (!password && confirmPassword) {
+            this.showNotification('Введите пароль', 'error');
+            return;
+        }
         
         // Обрабатываем чекбоксы
         userData.is_admin = formData.has('is_admin');
@@ -297,10 +405,11 @@ class AdminUsers {
             const url = userId ? `/auth/api/users/${userId}` : '/auth/api/users';
             const method = userId ? 'PUT' : 'POST';
             
-            // Убираем пустой пароль при редактировании
-            if (userId && !userData.password) {
-                delete userData.password;
-            }
+        // Убираем пустой пароль при редактировании и поле подтверждения
+        if (userId && !userData.password) {
+            delete userData.password;
+        }
+        delete userData['confirm-password']; // Удаляем поле подтверждения пароля
             
             const token = localStorage.getItem('stools_auth_token');
             const response = await fetch(url, {

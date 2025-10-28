@@ -79,6 +79,7 @@ class UsersManager {
                 e.target.classList.remove('show');
             }
         });
+
     }
 
     async loadUsers() {

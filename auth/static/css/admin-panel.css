@@ -646,47 +646,7 @@
     margin: var(--spacing-lg) 0;
 }
 
-/* Модальные окна для ролей */
-#role-modal,
-#permissions-modal,
-#delete-modal,
-#user-modal {
-    display: none !important;
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    width: auto !important;
-    height: auto !important;
-    background-color: transparent !important;
-    z-index: 9999 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    transform: translate(-50%, -50%) !important;
-    overflow: visible !important;
-}
-
-/* Стили для активных модальных окон */
-#role-modal[style*="flex"],
-#permissions-modal[style*="flex"],
-#delete-modal[style*="flex"],
-#user-modal[style*="flex"] {
-    display: flex !important;
-}
-
-/* Дополнительная защита от переопределения */
-body #role-modal,
-body #permissions-modal,
-body #delete-modal,
-body #user-modal {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    width: auto !important;
-    height: auto !important;
-    background-color: transparent !important;
-    z-index: 9999 !important;
-    transform: translate(-50%, -50%) !important;
-}
+/* Модальные окна для ролей - используют стандартные стили из collapsible.css */
 
 #role-modal .modal-content,
 #permissions-modal .modal-content,

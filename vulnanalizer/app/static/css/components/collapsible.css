@@ -20,6 +20,8 @@
     --transition-speed: 0.3s;
     --hover-color: #f1f5f9;
     --z-modal: 1200;
+    --z-notification: 99999;
+    --z-tooltip: 1000;
 }
 
 
@@ -385,7 +387,7 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: transparent;
 }
 
 .modal.show {
@@ -394,17 +396,62 @@
     justify-content: center;
 }
 
+.modal.show::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(90% + 40px);
+    height: calc(90vh + 40px);
+    max-width: calc(800px + 40px);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    z-index: -1;
+}
+
 .modal-content {
     background-color: var(--surface-color);
     margin: auto;
     padding: 0;
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    border-radius: 12px;
     width: 90%;
-    max-width: 1200px;
+    max-width: 800px;
     max-height: 90vh;
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+/* Стандартные размеры модальных окон */
+.modal-content.small {
+    max-width: 400px;
+}
+
+.modal-content.medium {
+    max-width: 600px;
+}
+
+.modal-content.large {
+    max-width: 800px;
+}
+
+.modal-content.extra-large {
+    max-width: 1000px;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .modal-header {
