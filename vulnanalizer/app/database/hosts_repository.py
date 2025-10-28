@@ -368,6 +368,16 @@ class HostsRepository(DatabaseBase):
         error_cves = 0
         updated_hosts = 0
         
+        # Кэшируем настройки для оптимизации
+        cached_settings = settings or {}
+        
+        # Список для batch обновлений хостов
+        hosts_to_update = []
+        
+        # Инициализируем переменные кэша
+        exploitdb_types_data = {}
+        metasploit_data = {}
+        
         # Получаем все EPSS данные одним запросом для оптимизации
         cve_list = [cve_row['cve'] for cve_row in cve_rows]
         epss_query = "SELECT cve, epss, percentile FROM vulnanalizer.epss WHERE cve = ANY($1::text[])"
@@ -401,18 +411,51 @@ class HostsRepository(DatabaseBase):
             exploitdb_data = {row['cve_id']: row['exploit_count'] for row in exploitdb_rows}
             print(f"✅ Загружено ExploitDB данных: {len(exploitdb_data)} CVE с эксплойтами")
             
+            # Загружаем типы эксплойтов ExploitDB
+            exploitdb_types_query = """
+                WITH cve_exploits AS (
+                    SELECT 
+                        unnest(string_to_array(codes, ';')) as cve_id,
+                        type
+                    FROM vulnanalizer.exploitdb 
+                    WHERE codes IS NOT NULL AND codes LIKE '%CVE-%'
+                )
+                SELECT cve_id, type
+                FROM cve_exploits 
+                WHERE cve_id LIKE 'CVE-%'
+            """
+            exploitdb_types_rows = await asyncio.wait_for(conn.fetch(exploitdb_types_query), timeout=30.0)
+            exploitdb_types_data = {row['cve_id']: row['type'] for row in exploitdb_types_rows}
+            print(f"✅ Загружено типов ExploitDB: {len(exploitdb_types_data)} CVE")
+            
+            # Загружаем данные Metasploit
+            metasploit_query = """
+                WITH cve_metasploit AS (
+                    SELECT 
+                        unnest(string_to_array("references", ';')) as cve_id,
+                        rank
+                    FROM vulnanalizer.metasploit_modules 
+                    WHERE "references" IS NOT NULL AND "references" LIKE '%CVE-%'
+                )
+                SELECT cve_id, rank
+                FROM cve_metasploit 
+                WHERE cve_id LIKE 'CVE-%'
+            """
+            metasploit_rows = await asyncio.wait_for(conn.fetch(metasploit_query), timeout=30.0)
+            metasploit_data = {row['cve_id']: row['rank'] for row in metasploit_rows}
+            print(f"✅ Загружено Metasploit данных: {len(metasploit_data)} CVE")
+            
             # Отладочная информация
-            if 'CVE-2015-1635' in exploitdb_data:
-                print(f"🔍 DEBUG: CVE-2015-1635 найден в exploitdb_data: {exploitdb_data['CVE-2015-1635']}")
-            else:
-                print(f"🔍 DEBUG: CVE-2015-1635 НЕ найден в exploitdb_data")
-                print(f"🔍 DEBUG: Первые 5 ключей: {list(exploitdb_data.keys())[:5]}")
         except asyncio.TimeoutError:
             print("⚠️ Таймаут при загрузке ExploitDB данных, пропускаем анализ эксплойтов")
             exploitdb_data = {}
+            exploitdb_types_data = {}
+            metasploit_data = {}
         except Exception as e:
             print(f"⚠️ Ошибка загрузки ExploitDB данных: {e}")
             exploitdb_data = {}
+            exploitdb_types_data = {}
+            metasploit_data = {}
         
         print(f"✅ Загружено EPSS данных: {len(epss_data)} из {len(cve_list)} CVE")
         print(f"✅ Загружено CVSS данных: {len(cve_data)} из {len(cve_list)} CVE")
@@ -438,9 +481,6 @@ class HostsRepository(DatabaseBase):
                 exploit_count = exploitdb_data.get(cve, 0)
                 has_exploits = exploit_count > 0
                 
-                # Отладочная информация для CVE-2015-1635
-                if cve == 'CVE-2015-1635':
-                    print(f"🔍 DEBUG CVE-2015-1635: exploit_count={exploit_count}, exploitdb_data keys: {list(exploitdb_data.keys())[:10]}")
                 
                 # Получаем хосты для этого CVE
                 hosts_query = "SELECT id, cvss, criticality, confidential_data, internet_access FROM vulnanalizer.hosts WHERE cve = $1"
@@ -503,19 +543,15 @@ class HostsRepository(DatabaseBase):
                                     'cvss_v2_authentication': cve_data_row.get('cvss_v2_authentication')
                                 })
                             
-                            # Получаем данные ExploitDB и Metasploit для CVE
+                            # Получаем данные ExploitDB и Metasploit для CVE из кэша
                             if exploit_count > 0:
-                                # Получаем тип эксплойта из ExploitDB
-                                exdb_query = "SELECT type FROM vulnanalizer.exploitdb WHERE codes LIKE $1 LIMIT 1"
-                                exdb_row = await conn.fetchrow(exdb_query, f'%{cve}%')
-                                if exdb_row and exdb_row['type']:
-                                    cve_calculation_data['exploitdb_type'] = exdb_row['type']
+                                # Получаем тип эксплойта из кэша
+                                if cve in exploitdb_types_data:
+                                    cve_calculation_data['exploitdb_type'] = exploitdb_types_data[cve]
                             
-                            # Получаем ранг Metasploit для CVE (ищем в поле references)
-                            msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" LIKE $1 LIMIT 1"
-                            msf_row = await conn.fetchrow(msf_query, f'%{cve}%')
-                            if msf_row and msf_row['rank'] is not None:
-                                cve_calculation_data['msf_rank'] = msf_row['rank']
+                            # Получаем ранг Metasploit для CVE из кэша
+                            if cve in metasploit_data:
+                                cve_calculation_data['msf_rank'] = metasploit_data[cve]
                             else:
                                 cve_calculation_data['msf_rank'] = None
                             
@@ -524,7 +560,7 @@ class HostsRepository(DatabaseBase):
                                 epss=epss_score,
                                 cvss=cvss_score,
                                 criticality=criticality,
-                                settings=settings,
+                                settings=cached_settings,
                                 cve_data=cve_calculation_data,
                                 confidential_data=host_row.get('confidential_data', False),
                                 internet_access=host_row.get('internet_access', False)
@@ -535,39 +571,20 @@ class HostsRepository(DatabaseBase):
                         else:
                             # Если нет EPSS данных, устанавливаем значения по умолчанию
                             cve_calculation_data = {}
-                        # Обновляем хост с информацией об эксплойтах
-                        update_query = """
-                            UPDATE vulnanalizer.hosts SET
-                                cvss = $1,
-                                cvss_source = $2,
-                                epss_score = $3,
-                                epss_percentile = $4,
-                                exploits_count = $5,
-                                has_exploits = $6,
-                                risk_score = $7,
-                                risk_raw = $8,
-                                epss_updated_at = $9,
-                                exploits_updated_at = $10,
-                                risk_updated_at = $11,
-                                metasploit_rank = $12
-                            WHERE id = $13
-                        """
                         
-                        await conn.execute(update_query,
-                            cvss_score,
-                            cvss_source,
-                            epss_score,
-                            epss_percentile,
-                            exploit_count,
-                            has_exploits,
-                            risk_score,
-                            raw_risk,
-                            datetime.now(),
-                            datetime.now(),
-                            datetime.now(),
-                            cve_calculation_data.get('msf_rank') if has_epss_data else None,
-                            host_row['id']
-                        )
+                        # Добавляем хост в список для batch обновления
+                        hosts_to_update.append({
+                            'id': host_row['id'],
+                            'cvss_score': cvss_score,
+                            'cvss_source': cvss_source,
+                            'epss_score': epss_score,
+                            'epss_percentile': epss_percentile,
+                            'exploit_count': exploit_count,
+                            'has_exploits': has_exploits,
+                            'risk_score': risk_score,
+                            'raw_risk': raw_risk,
+                            'msf_rank': cve_calculation_data.get('msf_rank') if has_epss_data else None
+                        })
                         
                         updated_hosts += 1
                         
@@ -586,6 +603,10 @@ class HostsRepository(DatabaseBase):
                 print(f"❌ Ошибка обработки CVE {cve}: {e}")
                 continue
         
+        # Выполняем batch обновление хостов
+        if hosts_to_update:
+            await self._batch_update_hosts(conn, hosts_to_update)
+        
         print(f"✅ Расчет рисков завершен: обработано {processed_cves} CVE, ошибок {error_cves}, обновлено хостов {updated_hosts}")
         
         if progress_callback:
@@ -594,6 +615,85 @@ class HostsRepository(DatabaseBase):
                 95, 
                 current_step_progress=total_cves, 
                 processed_records=processed_cves)
+    
+    async def _batch_update_hosts(self, conn, hosts_to_update):
+        """Batch обновление хостов для оптимизации производительности"""
+        if not hosts_to_update:
+            return
+        
+        # Группируем хосты по 1000 для batch обновления
+        batch_size = 1000
+        for i in range(0, len(hosts_to_update), batch_size):
+            batch = hosts_to_update[i:i + batch_size]
+            
+            # Создаем временную таблицу для batch обновления
+            temp_table_query = """
+                CREATE TEMP TABLE temp_host_updates (
+                    id INTEGER,
+                    cvss DECIMAL,
+                    cvss_source TEXT,
+                    epss_score DECIMAL,
+                    epss_percentile DECIMAL,
+                    exploits_count INTEGER,
+                    has_exploits BOOLEAN,
+                    risk_score INTEGER,
+                    risk_raw DECIMAL,
+                    metasploit_rank INTEGER
+                )
+            """
+            await conn.execute(temp_table_query)
+            
+            # Вставляем данные в временную таблицу
+            insert_query = """
+                INSERT INTO temp_host_updates (id, cvss, cvss_source, epss_score, epss_percentile, 
+                                             exploits_count, has_exploits, risk_score, risk_raw, metasploit_rank)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            """
+            
+            for host in batch:
+                # Преобразуем msf_rank в INTEGER, если это возможно
+                msf_rank = host['msf_rank']
+                if msf_rank is not None:
+                    try:
+                        msf_rank = int(msf_rank) if isinstance(msf_rank, str) else msf_rank
+                    except (ValueError, TypeError):
+                        msf_rank = None
+                
+                await conn.execute(insert_query,
+                    host['id'],
+                    host['cvss_score'],
+                    host['cvss_source'],
+                    host['epss_score'],
+                    host['epss_percentile'],
+                    host['exploit_count'],
+                    host['has_exploits'],
+                    host['risk_score'],
+                    host['raw_risk'],
+                    msf_rank
+                )
+            
+            # Выполняем batch обновление
+            update_query = """
+                UPDATE vulnanalizer.hosts SET
+                    cvss = t.cvss,
+                    cvss_source = t.cvss_source,
+                    epss_score = t.epss_score,
+                    epss_percentile = t.epss_percentile,
+                    exploits_count = t.exploits_count,
+                    has_exploits = t.has_exploits,
+                    risk_score = t.risk_score,
+                    risk_raw = t.risk_raw,
+                    epss_updated_at = NOW(),
+                    exploits_updated_at = NOW(),
+                    risk_updated_at = NOW(),
+                    metasploit_rank = t.metasploit_rank
+                FROM temp_host_updates t
+                WHERE hosts.id = t.id
+            """
+            await conn.execute(update_query)
+            
+            # Удаляем временную таблицу
+            await conn.execute("DROP TABLE temp_host_updates")
     
     async def get_hosts_stats(self) -> Dict[str, Any]:
         """Получить статистику хостов"""

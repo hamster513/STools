@@ -49,6 +49,10 @@ class SetupManager {
                     await this.app.uiManager.loadBackgroundTasks();
                     await this.app.uiManager.loadTaskHistory();
                     
+                    // Запускаем автоматическое обновление через switchPage
+                    this.app.uiManager.switchPage('background-tasks');
+                    await this.app.uiManager.loadTaskHistory();
+                    
                     // Эмитируем событие смены страницы
                     if (this.eventManager) {
                         this.eventManager.emitPageChange('background-tasks');

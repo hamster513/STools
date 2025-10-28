@@ -46,18 +46,6 @@ def calculate_risk_score(epss: float, cvss: float = None, criticality: str = 'Me
     raw_risk = epss * cvss_factor * impact * cve_param * exdb_param * msf_param
     risk_score = round(min(1, raw_risk) * 100)
     
-    # Отладочный вывод для CVE-2017-0144
-    if cve_data and cve_data.get('cve_id') == 'CVE-2017-0144':
-        print(f"🔍 DEBUG CVE-2017-0144: epss={epss}, cvss_factor={cvss_factor}, impact={impact}")
-        print(f"🔍 DEBUG CVE-2017-0144: cve_param={cve_param}, exdb_param={exdb_param}, msf_param={msf_param}")
-        print(f"🔍 DEBUG CVE-2017-0144: raw_risk={raw_risk}, risk_score={risk_score}")
-        print(f"🔍 DEBUG CVE-2017-0144: cve_data={cve_data}")
-        print(f"🔍 DEBUG CVE-2017-0144: settings keys={list(settings.keys()) if settings else 'None'}")
-        if settings:
-            exploitdb_keys = [k for k in settings.keys() if 'exploitdb' in k]
-            metasploit_keys = [k for k in settings.keys() if 'metasploit' in k]
-            print(f"🔍 DEBUG CVE-2017-0144: exploitdb settings={exploitdb_keys}")
-            print(f"🔍 DEBUG CVE-2017-0144: metasploit settings={metasploit_keys}")
     
     return {
         'raw_risk': raw_risk,
@@ -196,11 +184,6 @@ def _calculate_exdb_param(cve_data: dict = None, settings: dict = None) -> float
             # Если настройка не найдена, используем нейтральное значение
             exdb_settings[exdb_type] = 1.0
     
-    # Отладочный вывод для CVE-2017-0144
-    if cve_data and cve_data.get('cve_id') == 'CVE-2017-0144':
-        print(f"🔍 DEBUG _calculate_exdb_param: exploit_type={exploit_type}")
-        print(f"🔍 DEBUG _calculate_exdb_param: exdb_settings={exdb_settings}")
-        print(f"🔍 DEBUG _calculate_exdb_param: result={exdb_settings.get(exploit_type, 1.0)}")
     
     return exdb_settings.get(exploit_type, 1.0)
 
@@ -246,10 +229,5 @@ def _calculate_msf_param(cve_data: dict = None, settings: dict = None) -> float:
         else:
             msf_rank = 'unknown'
     
-    # Отладочный вывод для CVE-2017-0144
-    if cve_data and cve_data.get('cve_id') == 'CVE-2017-0144':
-        print(f"🔍 DEBUG _calculate_msf_param: msf_rank={msf_rank}")
-        print(f"🔍 DEBUG _calculate_msf_param: msf_settings={msf_settings}")
-        print(f"🔍 DEBUG _calculate_msf_param: result={msf_settings.get(msf_rank, 1.0)}")
     
     return msf_settings.get(msf_rank, 1.0)

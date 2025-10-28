@@ -41,6 +41,7 @@ class SchedulerService:
         schedule.every().hour.do(self._run_async_task, self.hourly_check)
         schedule.every(30).minutes.do(self._run_async_task, self.cleanup_old_data)
         schedule.every(10).seconds.do(self._run_async_task, self.process_background_tasks)
+        schedule.every(2).hours.do(self._run_async_task, self.vacuum_database)
         
         # Запускаем в отдельном потоке
         asyncio.create_task(self._run_scheduler())
@@ -658,14 +659,14 @@ class SchedulerService:
                 FROM vulnanalizer.background_tasks 
                 WHERE status IN ('processing', 'initializing', 'running')
                 AND (
-                    -- Если нет активности более 5 минут - зависла
-                    (last_activity_at IS NULL AND updated_at < NOW() - INTERVAL '5 minutes')
+                    -- Если нет активности более 15 минут - зависла (увеличено с 5 минут)
+                    (last_activity_at IS NULL AND updated_at < NOW() - INTERVAL '15 minutes')
                     OR
-                    -- Если активность была, но давно - зависла
-                    (last_activity_at IS NOT NULL AND last_activity_at < NOW() - INTERVAL '5 minutes')
+                    -- Если активность была, но давно - зависла (увеличено с 5 минут)
+                    (last_activity_at IS NOT NULL AND last_activity_at < NOW() - INTERVAL '15 minutes')
                     OR
-                    -- Если задача очень старая (более 2 часов) - зависла
-                    (updated_at < NOW() - INTERVAL '2 hours')
+                    -- Если задача очень старая (более 4 часов) - зависла (увеличено с 2 часов)
+                    (updated_at < NOW() - INTERVAL '4 hours')
                 )
                 ORDER BY updated_at ASC
             """
@@ -751,6 +752,39 @@ class SchedulerService:
             
         except Exception as e:
             print(f"❌ Error in cleanup: {e}")
+        finally:
+            if conn:
+                await self.db.release_connection(conn)
+    
+    async def vacuum_database(self):
+        """Очистка мертвых записей в базе данных"""
+        conn = None
+        try:
+            print("🧹 Выполняем очистку мертвых записей (VACUUM)")
+            
+            conn = await self.db.get_connection()
+            
+            # Очищаем основные таблицы
+            tables_to_vacuum = [
+                'vulnanalizer.hosts',
+                'vulnanalizer.background_tasks', 
+                'vulnanalizer.cve',
+                'vulnanalizer.epss',
+                'vulnanalizer.exploitdb',
+                'vulnanalizer.metasploit_modules'
+            ]
+            
+            for table in tables_to_vacuum:
+                try:
+                    await conn.execute(f"VACUUM ANALYZE {table}")
+                    print(f"✅ Очищена таблица {table}")
+                except Exception as e:
+                    print(f"⚠️ Ошибка очистки {table}: {e}")
+            
+            print("✅ Очистка мертвых записей завершена")
+            
+        except Exception as e:
+            print(f"❌ Ошибка очистки базы данных: {e}")
         finally:
             if conn:
                 await self.db.release_connection(conn)

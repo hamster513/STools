@@ -239,7 +239,7 @@ class HostsUpdateService(DatabaseBase):
                     # Обновляем прогресс
                     if progress_callback and i % 10 == 0:
                         progress = (i + 1) / len(hosts_rows) * 100
-                        await progress_callback(progress, f"Updated {i + 1}/{len(hosts_rows)} hosts")
+                        await progress_callback(progress, f"Updated {i + 1}/{len(hosts_rows)} hosts", processed_records=i+1, total_records=len(hosts_rows))
                 
                 except Exception as e:
                     print(f"⚠️ Error updating host for CVE {cve}: {e}")
@@ -292,15 +292,63 @@ class HostsUpdateService(DatabaseBase):
             
             print(f"📊 Found {len(hosts_rows)} hosts to recalculate")
             
+            # Получаем уникальные CVE для кэширования
+            unique_cves = list(set([host['cve'] for host in hosts_rows if host['cve']]))
+            print(f"🔍 Уникальных CVE для кэширования: {len(unique_cves)}")
+            
+            # Кэшируем все данные CVE одним запросом
+            cve_query = """
+                SELECT cve_id, cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction, 
+                       cvss_v2_access_vector, cvss_v2_access_complexity, cvss_v2_authentication 
+                FROM vulnanalizer.cve 
+                WHERE cve_id = ANY($1::text[])
+            """
+            cve_rows = await conn.fetch(cve_query, unique_cves)
+            cve_data_cache = {row['cve_id']: row for row in cve_rows}
+            print(f"✅ Загружено CVE данных: {len(cve_data_cache)}")
+            
+            # Кэшируем данные ExploitDB одним запросом
+            exploitdb_query = """
+                WITH cve_exploits AS (
+                    SELECT 
+                        unnest(string_to_array(codes, ';')) as cve_id,
+                        type
+                    FROM vulnanalizer.exploitdb 
+                    WHERE codes IS NOT NULL AND codes LIKE '%CVE-%'
+                )
+                SELECT cve_id, type
+                FROM cve_exploits 
+                WHERE cve_id = ANY($1::text[])
+            """
+            exploitdb_rows = await conn.fetch(exploitdb_query, unique_cves)
+            exploitdb_types_cache = {row['cve_id']: row['type'] for row in exploitdb_rows}
+            print(f"✅ Загружено типов ExploitDB: {len(exploitdb_types_cache)}")
+            
+            # Кэшируем данные Metasploit одним запросом
+            metasploit_query = """
+                WITH cve_metasploit AS (
+                    SELECT 
+                        unnest(string_to_array("references", ';')) as cve_id,
+                        rank
+                    FROM vulnanalizer.metasploit_modules 
+                    WHERE "references" IS NOT NULL AND "references" LIKE '%CVE-%'
+                )
+                SELECT cve_id, rank
+                FROM cve_metasploit 
+                WHERE cve_id = ANY($1::text[])
+            """
+            metasploit_rows = await conn.fetch(metasploit_query, unique_cves)
+            metasploit_cache = {row['cve_id']: row['rank'] for row in metasploit_rows}
+            print(f"✅ Загружено Metasploit данных: {len(metasploit_cache)}")
+            
             updated_count = 0
+            hosts_to_update = []
+            
             for i, host_row in enumerate(hosts_rows):
                 try:
-                    # Получаем данные CVE для расчета параметров
+                    # Получаем данные CVE из кэша
                     cve_data = {}
-                    
-                    # Получаем CVSS данные
-                    cve_query = "SELECT cvss_v3_attack_vector, cvss_v3_privileges_required, cvss_v3_user_interaction, cvss_v2_access_vector, cvss_v2_access_complexity, cvss_v2_authentication FROM vulnanalizer.cve WHERE cve_id = $1"
-                    cve_row = await conn.fetchrow(cve_query, host_row['cve'])
+                    cve_row = cve_data_cache.get(host_row['cve'])
                     if cve_row:
                         cve_data.update({
                             'cvss_v3_attack_vector': cve_row.get('cvss_v3_attack_vector'),
@@ -311,47 +359,18 @@ class HostsUpdateService(DatabaseBase):
                             'cvss_v2_authentication': cve_row.get('cvss_v2_authentication')
                         })
                     
-                    # Получаем ExploitDB данные и подсчитываем эксплойты (исправленная логика)
-                    exdb_query = """
-                        SELECT type FROM vulnanalizer.exploitdb 
-                        WHERE codes LIKE $1 
-                        ORDER BY 
-                            CASE type 
-                                WHEN 'remote' THEN 1
-                                WHEN 'webapps' THEN 2
-                                WHEN 'local' THEN 3
-                                WHEN 'hardware' THEN 4
-                                WHEN 'dos' THEN 5
-                                ELSE 6
-                            END,
-                            date_published DESC
-                        LIMIT 1
-                    """
-                    exdb_row = await conn.fetchrow(exdb_query, f'%{host_row["cve"]}%')
-                    if exdb_row and exdb_row['type']:
-                        cve_data['exploitdb_type'] = exdb_row['type']
+                    # Получаем ExploitDB данные из кэша
+                    if host_row['cve'] in exploitdb_types_cache:
+                        cve_data['exploitdb_type'] = exploitdb_types_cache[host_row['cve']]
                     
-                    # Подсчитываем количество эксплойтов с исправленной логикой
-                    exploit_count_query = """
-                        WITH cve_exploits AS (
-                            SELECT 
-                                unnest(string_to_array(codes, ';')) as cve_id,
-                                exploit_id
-                            FROM vulnanalizer.exploitdb 
-                            WHERE codes IS NOT NULL AND codes LIKE '%CVE-%'
-                        )
-                        SELECT COUNT(*) as exploit_count
-                        FROM cve_exploits 
-                        WHERE cve_id = $1
-                    """
-                    exploit_count_row = await conn.fetchrow(exploit_count_query, host_row['cve'])
-                    exploit_count = exploit_count_row['exploit_count'] if exploit_count_row else 0
+                    # Устанавливаем количество эксплойтов (будет рассчитано в функции риска)
+                    exploit_count = 1 if host_row['cve'] in exploitdb_types_cache else 0
                     
-                    # Получаем Metasploit данные (исправленная логика)
-                    msf_query = "SELECT rank FROM vulnanalizer.metasploit_modules WHERE \"references\" ILIKE $1 ORDER BY rank DESC LIMIT 1"
-                    msf_row = await conn.fetchrow(msf_query, f'%{host_row["cve"]}%')
-                    if msf_row and msf_row['rank'] is not None:
-                        cve_data['msf_rank'] = msf_row['rank']
+                    # Получаем Metasploit данные из кэша
+                    if host_row['cve'] in metasploit_cache:
+                        cve_data['msf_rank'] = metasploit_cache[host_row['cve']]
+                    else:
+                        cve_data['msf_rank'] = None
                     
                     # Рассчитываем риск
                     from database.risk_calculation import calculate_risk_score
@@ -369,34 +388,81 @@ class HostsUpdateService(DatabaseBase):
                         new_risk_score = risk_result['risk_score']
                         new_risk_raw = risk_result['raw_risk']
                         
-                        # Обновляем риск в базе данных
-                        update_query = """
-                            UPDATE vulnanalizer.hosts SET
-                                risk_score = $1,
-                                risk_raw = $2,
-                                risk_updated_at = $3
-                            WHERE id = $4
-                        """
-                        
-                        await conn.execute(update_query,
-                            new_risk_score,
-                            new_risk_raw,
-                            datetime.now(),
-                            host_row['id']
-                        )
+                        # Добавляем хост в список для batch обновления
+                        hosts_to_update.append({
+                            'id': host_row['id'],
+                            'risk_score': new_risk_score,
+                            'risk_raw': new_risk_raw,
+                            'risk_updated_at': datetime.now()
+                        })
                         
                         updated_count += 1
                     
                     # Обновляем прогресс
                     if progress_callback and i % 100 == 0:
                         progress = (i + 1) / len(hosts_rows) * 100
-                        await progress_callback(progress, f"Recalculated {i + 1}/{len(hosts_rows)} hosts")
+                        await progress_callback(progress, f"Recalculated {i + 1}/{len(hosts_rows)} hosts", processed_records=i+1, total_records=len(hosts_rows))
                 
                 except Exception as e:
                     print(f"⚠️ Error recalculating risk for host {host_row['id']}: {e}")
                     continue
             
+            # Выполняем batch обновление хостов
+            if hosts_to_update:
+                await self._batch_update_hosts_risks(conn, hosts_to_update)
+            
             print(f"✅ Risk recalculation finished: {updated_count} hosts updated")
             
         finally:
             await self.release_connection(conn)
+    
+    async def _batch_update_hosts_risks(self, conn, hosts_to_update):
+        """Batch обновление рисков хостов для оптимизации производительности"""
+        if not hosts_to_update:
+            return
+        
+        # Группируем хосты по 1000 для batch обновления
+        batch_size = 1000
+        for i in range(0, len(hosts_to_update), batch_size):
+            batch = hosts_to_update[i:i + batch_size]
+            
+            # Создаем временную таблицу для batch обновления
+            temp_table_query = """
+                CREATE TEMP TABLE temp_host_risk_updates (
+                    id INTEGER,
+                    risk_score INTEGER,
+                    risk_raw DECIMAL,
+                    risk_updated_at TIMESTAMP
+                )
+            """
+            await conn.execute(temp_table_query)
+            
+            # Вставляем данные в временную таблицу
+            insert_query = """
+                INSERT INTO temp_host_risk_updates (id, risk_score, risk_raw, risk_updated_at)
+                VALUES ($1, $2, $3, $4)
+            """
+            
+            for host in batch:
+                await conn.execute(insert_query,
+                    host['id'],
+                    host['risk_score'],
+                    host['risk_raw'],
+                    host['risk_updated_at']
+                )
+            
+            # Выполняем batch обновление
+            update_query = """
+                UPDATE vulnanalizer.hosts SET
+                    risk_score = t.risk_score,
+                    risk_raw = t.risk_raw,
+                    risk_updated_at = t.risk_updated_at
+                FROM temp_host_risk_updates t
+                WHERE hosts.id = t.id
+            """
+            await conn.execute(update_query)
+            
+            # Удаляем временную таблицу
+            await conn.execute("DROP TABLE temp_host_risk_updates")
+            
+            print(f"✅ Batch обновлено {len(batch)} хостов")
